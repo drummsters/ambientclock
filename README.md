@@ -45,15 +45,7 @@ The clock can be customized through the controls panel:
 - Arrow keys: Move clock position
 - `Ctrl` + `+`/`-`: Adjust clock size
 
-## Excluded Files
-
-The following files/directories are excluded from version control:
-
-- `cline_docs/` - Documentation for development assistant
-- `boneyard/` - Experimental/development scripts
-- `js/config.js` - Contains API keys and sensitive configuration
-- `test-*` files - Development test files
 
 ## License
 
-MIT License - See LICENSE file for details
+GNU Affero General Public License (AGPL) v3
