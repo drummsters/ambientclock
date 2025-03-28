@@ -86,26 +86,6 @@ function handleKeyDown(event) {
     }
 }
 
-/**
- * Handles the plus key press
- * Decreases background overlay opacity (makes background brighter)
- */
-function handlePlusKey() {
-    const { overlayOpacity } = getState();
-    updateOverlayOpacity(overlayOpacity - OPACITY_STEP, true);
-    // Controls should only be shown with spacebar or C key
-}
-
-/**
- * Handles the minus key press
- * Increases background overlay opacity (makes background darker)
- */
-function handleMinusKey() {
-    const { overlayOpacity } = getState();
-    updateOverlayOpacity(overlayOpacity + OPACITY_STEP, true);
-    // Controls should only be shown with spacebar or C key
-}
-
 // These functions are now imported from wheel.js
 
 /**

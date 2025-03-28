@@ -61,19 +61,8 @@ export function initBackground() {
  * @param {Object} prevState - The previous state (for comparison)
  */
 function handleStateChange(state, prevState = {}) {
-    // Apply a consistent dark overlay
-    if (overlay) {
-        updateStyle(overlay, {
-            backgroundColor: 'rgba(0, 0, 0, 0.3)' // Fixed semi-transparent black overlay
-        });
-    }
-    
-    // Update the background image opacity based on the state
-    if (backgroundContainer) {
-        updateStyle(backgroundContainer, {
-            opacity: (1 - state.overlayOpacity).toFixed(2) // Invert the opacity for the background
-        });
-    }
+    // Update the overlay opacity based on the state
+    updateOverlayOpacity(state.overlayOpacity, false);
     
     // Update zoom effect if it changed
     if (prevState.zoomEnabled !== undefined && state.zoomEnabled !== prevState.zoomEnabled) {
@@ -120,28 +109,51 @@ function handleStateChange(state, prevState = {}) {
 export function updateOverlayOpacity(opacity, updateStateFlag = true) {
     // Clamp opacity between 0.0 and 1.0
     const clampedOpacity = Math.max(0.0, Math.min(1.0, opacity));
+
+    // Get the current background color from state
+    const { backgroundColor } = getState();
     
-    // Apply a consistent dark overlay
-    if (overlay) {
-        updateStyle(overlay, {
-            backgroundColor: 'rgba(0, 0, 0, 0.3)' // Fixed semi-transparent black overlay
-        });
+    // Helper function to convert hex color to RGB components
+    const hexToRgb = (hex) => {
+        // Remove the # if present
+        hex = hex.replace(/^#/, '');
+        
+        // Parse the hex values
+        let r, g, b;
+        if (hex.length === 3) {
+            // Short notation (#RGB)
+            r = parseInt(hex.charAt(0) + hex.charAt(0), 16);
+            g = parseInt(hex.charAt(1) + hex.charAt(1), 16);
+            b = parseInt(hex.charAt(2) + hex.charAt(2), 16);
+        } else {
+            // Full notation (#RRGGBB)
+            r = parseInt(hex.substring(0, 2), 16);
+            g = parseInt(hex.substring(2, 4), 16);
+            b = parseInt(hex.substring(4, 6), 16);
+        }
+        
+        return { r, g, b };
+    };
+    
+    // Default to black if backgroundColor is not a valid hex color
+    let overlayColor = `rgba(0, 0, 0, ${clampedOpacity})`;
+    
+    // Try to parse the backgroundColor if it's a hex color
+    if (backgroundColor && backgroundColor.match(/^#([0-9A-F]{3}){1,2}$/i)) {
+        const { r, g, b } = hexToRgb(backgroundColor);
+        overlayColor = `rgba(${r}, ${g}, ${b}, ${clampedOpacity})`;
     }
+    
+    // Update the --overlay-color CSS variable
+    document.documentElement.style.setProperty('--overlay-color', overlayColor);
     
     // Apply opacity directly to the background image
     if (backgroundContainer) {
-        // Make sure the background container has a black background
-        if (!backgroundContainer.style.backgroundColor || 
-            backgroundContainer.style.backgroundColor === 'none' || 
-            backgroundContainer.style.backgroundImage !== 'none') {
-            backgroundContainer.style.backgroundColor = '#000000';
-        }
-        
         updateStyle(backgroundContainer, {
-            opacity: (1 - clampedOpacity).toFixed(2) // Invert the opacity for the background
+            opacity: 1 // Reset opacity to full
         });
     }
-    
+
     // Update state only if flag is true
     if (updateStateFlag) {
         updateState({ overlayOpacity: clampedOpacity });
@@ -176,6 +188,11 @@ export function setBackgroundColor(color, updateStateFlag = true) {
     if (updateStateFlag) {
         updateState({ backgroundColor: color });
     }
+    
+    // Update the overlay color to match the new background color
+    // This ensures the overlay color changes when the background color changes
+    const { overlayOpacity } = getState();
+    updateOverlayOpacity(overlayOpacity, false);
 }
 
 /**

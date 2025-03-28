@@ -34,6 +34,7 @@ The clock can be customized through the controls panel:
 - **Image Source**: Select between Unsplash or Pexels for background images
 - **Background**: Choose from preset categories or enter custom search terms
 - **Clock Opacity**: Adjust transparency of the clock face
+- **Background Opacity**: Control the opacity of the background overlay
 - **Font**: Select from various font options and toggle bold style
 - **Time Format**: Switch between 12-hour and 24-hour formats
 - **Show Seconds**: Toggle seconds display
@@ -42,7 +43,7 @@ The clock can be customized through the controls panel:
 
 ## Keyboard Shortcuts
 
-- `+`/`-`: Adjust background dimness
+- `+`/`-`: Adjust background dimness (now also controllable via slider)
 - `Space` or `C`: Show/hide controls panel
 - Arrow keys: Move clock position
 - `Ctrl` + `+`/`-`: Adjust clock size

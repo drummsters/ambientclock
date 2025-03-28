@@ -25,6 +25,7 @@ let backgroundColorInput;
 let clockFaceSelect;
 let effectSelect;
 let clockOpacitySlider;
+let backgroundOpacitySlider;
 let timeFormatSelect;
 let showSecondsCheckbox;
 let nextBackgroundButton;
@@ -59,6 +60,7 @@ export function initControls() {
     clockFaceSelect = getElement('clockface-select');
     effectSelect = getElement('effect-select');
     clockOpacitySlider = getElement('clock-opacity-slider');
+    backgroundOpacitySlider = getElement('background-opacity-slider');
     timeFormatSelect = getElement('time-format-select');
     showSecondsCheckbox = getElement('show-seconds-checkbox');
     nextBackgroundButton = getElement('next-background-button');
@@ -135,6 +137,11 @@ function setupEventListeners() {
     // Clock opacity slider change
     if (clockOpacitySlider) {
         addEvent(clockOpacitySlider, 'input', handleClockOpacityChange);
+    }
+
+    // Background opacity slider change
+    if (backgroundOpacitySlider) {
+        addEvent(backgroundOpacitySlider, 'input', handleBackgroundOpacityChange);
     }
     
     // Zoom effect checkbox change
@@ -325,6 +332,11 @@ function updateControlsFromState() {
         clockOpacitySlider.value = state.clockOpacity;
     }
     
+    // Update background opacity slider
+    if (backgroundOpacitySlider) {
+        backgroundOpacitySlider.value = state.overlayOpacity;
+    }
+    
     // Update time format select
     if (timeFormatSelect) {
         timeFormatSelect.value = state.timeFormat;
@@ -396,6 +408,11 @@ function handleBackgroundColorChange(event) {
     if (getState().category === 'None') {
         // Use false for the second parameter to avoid infinite recursion
         setBackgroundColor(color, false);
+    } else {
+        // Even if we're not showing a solid background color,
+        // we still want to update the overlay color
+        const { overlayOpacity } = getState();
+        updateOverlayOpacity(overlayOpacity, false);
     }
     
     // Log the color change for debugging
@@ -458,8 +475,20 @@ function handleEffectChange(event) {
  * Handles clock opacity slider change
  * @param {Event} event - The input event
  */
+/**
+ * Handles clock opacity slider change
+ * @param {Event} event - The input event
+ */
 function handleClockOpacityChange(event) {
     updateClockOpacity(parseFloat(event.target.value));
+}
+
+/**
+ * Handles background opacity slider change
+ * @param {Event} event - The input event
+ */
+function handleBackgroundOpacityChange(event) {
+    updateOverlayOpacity(parseFloat(event.target.value));
 }
 
 /**

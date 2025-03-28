@@ -163,6 +163,7 @@ export function resetSettings() {
         backgroundColor: '#000000', // Black background
         showSeconds: true, // Seconds visible
         clockOpacity: 1.0, // 100% opacity
+        overlayOpacity: DEFAULT_OVERLAY_OPACITY, // Reset to default overlay opacity
         imageSource: DEFAULT_IMAGE_SOURCE // Reset to default image source
     }, true);
 }
