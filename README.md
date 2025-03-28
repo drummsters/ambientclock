@@ -6,6 +6,7 @@ A customizable ambient clock application with various display styles and backgro
 
 - Multiple clock faces (Clean, Analog, LED)
 - Customizable background images from Unsplash and Pexels
+- Background zoom effect to prevent screen burn-in
 - Adjustable clock opacity and position
 - Keyboard shortcuts for quick adjustments
 - Auto-hiding controls panel with helpful hints
@@ -36,6 +37,7 @@ The clock can be customized through the controls panel:
 - **Font**: Select from various font options and toggle bold style
 - **Time Format**: Switch between 12-hour and 24-hour formats
 - **Show Seconds**: Toggle seconds display
+- **Background Zoom**: Toggle the slow zoom effect to prevent screen burn-in
 - **Reset All Settings**: Restore all settings to defaults
 
 ## Keyboard Shortcuts

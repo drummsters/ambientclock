@@ -7,7 +7,7 @@ import { getState, updateState, subscribe } from '../state.js';
 import * as unsplashService from '../services/unsplash.js';
 import * as pexelsService from '../services/pexels.js';
 import { getElement, updateStyle } from '../utils/dom.js';
-import { BACKGROUND_CYCLE_INTERVAL } from '../config.js';
+import { BACKGROUND_CYCLE_INTERVAL, DEFAULT_ZOOM_ENABLED, ZOOM_ANIMATION_DURATION } from '../config.js';
 
 // DOM elements
 let backgroundContainer;
@@ -43,6 +43,14 @@ export function initBackground() {
     // Initialize _prevCategory to prevent background from changing on first state change
     updateState({ _prevCategory: state.category }, false, true);
     
+    // Initialize zoom effect if not already in state
+    if (state.zoomEnabled === undefined) {
+        updateState({ zoomEnabled: DEFAULT_ZOOM_ENABLED }, false, true);
+    }
+    
+    // Apply zoom effect based on state
+    updateZoomEffect(state.zoomEnabled);
+    
     // Start background cycling if needed, but don't force a new image on page load
     startBackgroundCycling(true, false);
 }
@@ -65,6 +73,11 @@ function handleStateChange(state, prevState = {}) {
         updateStyle(backgroundContainer, {
             opacity: (1 - state.overlayOpacity).toFixed(2) // Invert the opacity for the background
         });
+    }
+    
+    // Update zoom effect if it changed
+    if (prevState.zoomEnabled !== undefined && state.zoomEnabled !== prevState.zoomEnabled) {
+        updateZoomEffect(state.zoomEnabled);
     }
     
     // Get the previous category from the state
@@ -368,4 +381,31 @@ export function stopBackgroundCycling() {
         backgroundIntervalId = null;
         console.log("Background cycling stopped");
     }
+}
+
+/**
+ * Updates the zoom effect on the background
+ * @param {boolean} enabled - Whether the zoom effect is enabled
+ */
+export function updateZoomEffect(enabled) {
+    if (!backgroundContainer) return;
+    
+    if (enabled) {
+        backgroundContainer.classList.add('zoom-effect');
+        console.log("Background zoom effect enabled");
+    } else {
+        backgroundContainer.classList.remove('zoom-effect');
+        console.log("Background zoom effect disabled");
+    }
+    
+    // Update state
+    updateState({ zoomEnabled: enabled }, false, true);
+}
+
+/**
+ * Toggles the zoom effect on the background
+ */
+export function toggleZoomEffect() {
+    const { zoomEnabled } = getState();
+    updateZoomEffect(!zoomEnabled);
 }

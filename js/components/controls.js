@@ -8,7 +8,7 @@ import { getElement, updateStyle, showElement, hideElement, addEvent } from '../
 import { CONTROLS_HIDE_DELAY } from '../config.js';
 import { VisibilityManager } from '../utils/visibility.js';
 import { setClockFace, updateClockOpacity } from './clock-manager.js';
-import { updateOverlayOpacity, setBackgroundColor, fetchNewBackground, startBackgroundCycling } from './background.js';
+import { updateOverlayOpacity, setBackgroundColor, fetchNewBackground, startBackgroundCycling, updateZoomEffect } from './background.js';
 import { setEffect } from '../features/effects.js';
 import { updateDonateWidgetVisibility } from './donate.js';
 
@@ -31,6 +31,7 @@ let nextBackgroundButton;
 let resetButton;
 let fontSelect;
 let boldCheckbox;
+let zoomEffectCheckbox;
 
 // Visibility manager for controls
 let controlsVisibility;
@@ -64,6 +65,7 @@ export function initControls() {
     resetButton = getElement('reset-button');
     fontSelect = getElement('font-select');
     boldCheckbox = getElement('font-bold');
+    zoomEffectCheckbox = getElement('zoom-effect-checkbox');
     
     if (!controls) {
         console.error("Controls element not found");
@@ -133,6 +135,11 @@ function setupEventListeners() {
     // Clock opacity slider change
     if (clockOpacitySlider) {
         addEvent(clockOpacitySlider, 'input', handleClockOpacityChange);
+    }
+    
+    // Zoom effect checkbox change
+    if (zoomEffectCheckbox) {
+        addEvent(zoomEffectCheckbox, 'change', handleZoomEffectChange);
     }
     
     // Font select change
@@ -337,6 +344,11 @@ function updateControlsFromState() {
     if (showSecondsCheckbox) {
         showSecondsCheckbox.checked = state.showSeconds;
     }
+    
+    // Update zoom effect checkbox
+    if (zoomEffectCheckbox) {
+        zoomEffectCheckbox.checked = state.zoomEnabled !== undefined ? state.zoomEnabled : true;
+    }
 }
 
 /**
@@ -502,6 +514,15 @@ function handleFontBoldChange(event) {
  */
 function handleShowSecondsChange(event) {
     updateState({ showSeconds: event.target.checked });
+}
+
+/**
+ * Handles zoom effect checkbox change
+ * @param {Event} event - The change event
+ */
+function handleZoomEffectChange(event) {
+    const enabled = event.target.checked;
+    updateZoomEffect(enabled);
 }
 
 /**

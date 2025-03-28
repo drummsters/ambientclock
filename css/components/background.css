@@ -2,6 +2,19 @@
  * Background styles for the Ambient Clock application
  */
 
+/* Zoom Animation */
+@keyframes slowZoom {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
 /* Background & Overlay */
 #background-container {
     position: fixed;
@@ -15,6 +28,12 @@
     background-repeat: no-repeat;
     transition: var(--background-transition);
     z-index: 1; /* Background should be behind the overlay */
+}
+
+/* Zoom effect class that can be toggled */
+#background-container.zoom-effect {
+    animation: slowZoom 60s ease-in-out infinite;
+    transform-origin: center center;
 }
 
 #overlay {
