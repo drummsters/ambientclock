@@ -1,0 +1,50 @@
+/**
+ * CSS Variables for the Ambient Clock application
+ * Centralizes color schemes and other design values
+ */
+
+:root {
+    /* Colors */
+    --text-color: white;
+    --background-color: #000000;
+    --overlay-color: rgba(0, 0, 0, 0.3);
+    --control-bg-color: rgba(0, 0, 0, 0.6);
+    --control-hover-color: rgba(0, 0, 0, 0.8);
+    --control-text-color: #eee;
+    --control-border-color: #555;
+    --control-button-color: #555;
+    --control-button-hover-color: #777;
+    --control-button-active-color: #999;
+    --link-color: #aaf;
+    --link-hover-color: #ccf;
+    --link-active-color: #88f;
+    
+    /* LED Clock Colors */
+    --led-color: #ff0000;
+    --led-glow: rgba(255, 0, 0, 0.7);
+    
+    /* Analog Clock Colors */
+    --analog-border-color: white;
+    --analog-hour-hand-color: white;
+    --analog-minute-hand-color: white;
+    --analog-second-hand-color: red;
+    --analog-center-dot-color: white;
+    
+    /* Flip Clock Colors */
+    --flip-card-top-color: #1f1f1f;
+    --flip-card-bottom-color: #2a2a2a;
+    --flip-card-text-color: #e0e0e0;
+    --flip-card-line-color: rgba(0, 0, 0, 0.5);
+    --flip-dot-color: #1f1f1f;
+    
+    /* Spacing */
+    --control-spacing: 10px;
+    --control-padding: 15px;
+    --control-border-radius: 8px;
+    
+    /* Transitions */
+    --fade-transition: opacity 0.5s ease;
+    --background-transition: background-image 1.5s ease-in-out;
+    --overlay-transition: background-color 0.3s ease;
+    --button-transition: background-color 0.2s ease;
+}

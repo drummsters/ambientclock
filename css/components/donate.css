@@ -1,0 +1,126 @@
+/**
+ * Donate widget styles for the Ambient Clock application
+ */
+
+/* Donate Widget */
+#donate-widget {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 100;
+    opacity: 0; /* Start hidden */
+    transition: var(--fade-transition);
+    pointer-events: none; /* Don't capture mouse events when hidden */
+}
+
+#donate-widget.visible {
+    opacity: 1;
+    pointer-events: auto; /* Capture mouse events when visible */
+}
+
+.donate-content {
+    display: flex;
+    align-items: center;
+    background-color: var(--control-bg-color);
+    padding: 8px 12px;
+    border-radius: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    transition: var(--button-transition);
+    cursor: pointer;
+    color: white;
+}
+
+.donate-content:hover {
+    background-color: var(--control-hover-color);
+}
+
+.coffee-icon {
+    font-size: 20px;
+    margin-right: 8px;
+}
+
+.donate-text {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Payment Dropdown */
+.payment-dropdown {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    margin-bottom: 10px;
+    background-color: var(--control-bg-color);
+    border-radius: 10px;
+    padding: 10px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+    min-width: 150px;
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    z-index: 101; /* Ensure it's above other elements */
+}
+
+/* Show dropdown on hover */
+#donate-widget:hover .payment-dropdown {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+/* Create an invisible area to prevent mouseleave when moving to dropdown */
+#donate-widget::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    height: 15px; /* Connection area between widget and dropdown */
+    background-color: transparent;
+}
+
+.payment-option {
+    margin: 8px 0;
+}
+
+.payment-option:first-child {
+    margin-top: 0;
+}
+
+.payment-option:last-child {
+    margin-bottom: 0;
+}
+
+.payment-option a {
+    display: flex;
+    align-items: center;
+    color: white;
+    text-decoration: none;
+    padding: 6px 8px;
+    border-radius: 6px;
+    transition: var(--button-transition);
+}
+
+.payment-option a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.payment-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    width: 24px;
+    height: 24px;
+}
+
+.payment-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.payment-name {
+    font-size: 14px;
+}

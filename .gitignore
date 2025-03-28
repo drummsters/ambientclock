@@ -1,0 +1,16 @@
+# Exclude sensitive files
+cline_docs/
+boneyard/
+js/config.js
+script.js.bak
+
+# Exclude test files
+test-*.html
+test-*.js
+
+# Common exclusions
+node_modules/
+.DS_Store
+.env
+.env.local
+*.log

@@ -1,0 +1,19 @@
+/**
+ * Main CSS file for the Ambient Clock application
+ * Imports all component and feature styles
+ */
+
+/* Base styles */
+@import 'base/reset.css';
+@import 'base/variables.css';
+
+/* Component styles */
+@import 'components/background.css';
+@import 'components/clock/clean.css';
+@import 'components/clock/analog.css';
+@import 'components/clock/led.css';
+@import 'components/controls.css';
+@import 'components/donate.css';
+
+/* Feature styles */
+@import 'features/effects.css';

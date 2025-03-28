@@ -1,0 +1,52 @@
+/**
+ * LED Clock styles for the Ambient Clock application
+ */
+
+/* LED Clock */
+#led-clock {
+    display: none; /* Hidden by default, shown when active */
+    font-family: 'Digital-7', 'Segment7', monospace; /* Fallback to monospace if digital fonts not available */
+}
+
+#led-clock.active {
+    display: block;
+}
+
+.led-display {
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 10px;
+    padding: 15px 25px;
+    display: inline-flex;
+    align-items: center;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(50, 50, 50, 0.8);
+}
+
+.led-digit {
+    font-size: 10vw;
+    color: var(--led-color);
+    text-shadow: 0 0 10px var(--led-glow);
+    letter-spacing: 0.05em;
+}
+
+.led-colon {
+    font-size: 10vw;
+    color: var(--led-color);
+    text-shadow: 0 0 10px var(--led-glow);
+    margin: 0 5px;
+    animation: blink 1s infinite;
+}
+
+.led-ampm {
+    font-size: 3vw;
+    color: var(--led-color);
+    text-shadow: 0 0 5px var(--led-glow);
+    margin-left: 15px;
+    align-self: flex-end;
+    margin-bottom: 1.5vw;
+}
+
+@keyframes blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0.5; }
+}

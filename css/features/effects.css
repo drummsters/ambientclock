@@ -1,0 +1,103 @@
+/**
+ * Visual effects styles for the Ambient Clock application
+ */
+
+/* Default (Flat) - Basic readability shadow */
+.effect-flat #clean-clock {
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
+}
+
+.effect-flat .hand,
+.effect-flat .center-dot {
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.effect-flat .analog-face {
+    border-color: rgba(255, 255, 255, 0.8); /* Slightly softer border */
+    box-shadow: none;
+}
+
+/* Raised Effect */
+.effect-raised #clean-clock {
+    /* Subtle raised effect */
+    text-shadow:
+        1px 1px 1px rgba(0, 0, 0, 0.4), /* Near shadow */
+        2px 3px 4px rgba(0, 0, 0, 0.2), /* Softer distance shadow */
+        0 0 8px rgba(0, 0, 0, 0.5);      /* General readability shadow */
+}
+
+.effect-raised .analog-face {
+    border-color: white;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.4), 3px 5px 8px rgba(0,0,0,0.2);
+}
+
+.effect-raised .hand {
+    box-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.effect-raised .center-dot {
+    box-shadow: 0px 0px 3px rgba(0,0,0,0.6);
+}
+
+/* Reflected Effect */
+.effect-reflected .clock-face.active {
+    /* Non-standard property, works in Webkit/Blink (Chrome, Edge, Safari) */
+    -webkit-box-reflect: below 0px 
+        linear-gradient(transparent 0px, 
+                       rgba(255, 255, 255, 0.05) 10px,
+                       rgba(255, 255, 255, 0.2) 20px,
+                       rgba(255, 255, 255, 0.3) 100%);
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.2));
+}
+
+/* Fallback for browsers without -webkit-box-reflect */
+@supports not (-webkit-box-reflect: below 0) {
+    .effect-reflected .clock-face.active::after {
+        content: "";
+        display: block;
+        height: 20px;
+        width: 100%;
+        position: absolute;
+        bottom: -20px;
+        transform: scaleY(-0.5);
+        opacity: 0.3;
+        background: linear-gradient(transparent, white);
+        mask-image: linear-gradient(transparent, white);
+    }
+}
+
+/* Special handling for clean clock reflection */
+.effect-reflected #clean-clock.active {
+    -webkit-box-reflect: below 0px linear-gradient(transparent 0px, rgba(255, 255, 255, 0.3));
+}
+
+/* Special handling for LED clock reflection */
+.effect-reflected #led-clock.active .led-display {
+    -webkit-box-reflect: below 0px linear-gradient(transparent 0px, rgba(255, 0, 0, 0.3));
+}
+
+/* Add back a basic text shadow for readability when reflected */
+.effect-reflected #clean-clock {
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
+}
+
+/* Specific shadow for analog hands when reflected for readability */
+.effect-reflected .hand,
+.effect-reflected .center-dot {
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.effect-reflected .analog-face {
+    border-color: rgba(255, 255, 255, 0.8);
+    box-shadow: none;
+}
+
+/* Draggable styles */
+.clock-face.active {
+    cursor: move; /* Show move cursor only on the active clock face */
+}
+
+/* Active clock face when dragging */
+.clock-face.active.dragging {
+    cursor: grabbing; /* Show grabbing cursor when dragging */
+}

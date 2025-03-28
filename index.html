@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ambient Clock</title>
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <!-- Background container and overlay for dimming -->
+    <div id="background-container"></div>
+    <div id="overlay"></div>
+
+    <!-- Main container for clock faces and effects (hidden initially to prevent flash of unstyled content) -->
+    <div id="clock-container" style="opacity: 0; transition: opacity 0.5s ease;" role="region" aria-label="Clock Display">
+        <!-- Clean Clock -->
+        <div id="clean-clock" class="clock-face active">
+            <span id="clean-hours">00</span>:<span id="clean-minutes">00</span>:<span id="clean-seconds">00</span>
+        </div>
+
+        <!-- Analog Clock -->
+        <div id="analog-clock" class="clock-face">
+            <div class="analog-face">
+                <div class="hand hour-hand" id="analog-hour"></div>
+                <div class="hand minute-hand" id="analog-minute"></div>
+                <div class="hand second-hand" id="analog-second"></div>
+                <div class="center-dot"></div>
+                 <!-- Optional: Hour markers -->
+                 <div class="marker marker-12"></div>
+                 <div class="marker marker-3"></div>
+                 <div class="marker marker-6"></div>
+                 <div class="marker marker-9"></div>
+            </div>
+        </div>
+        
+        <!-- LED Clock -->
+        <div id="led-clock" class="clock-face">
+            <div class="led-display">
+                <span id="led-hours" class="led-digit">00</span>
+                <span class="led-colon">:</span>
+                <span id="led-minutes" class="led-digit">00</span>
+                <span class="led-colon">:</span>
+                <span id="led-seconds" class="led-digit">00</span>
+                <span id="led-ampm" class="led-ampm"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Left corner hover trigger -->
+    <div id="controls-trigger"></div>
+    
+    <!-- Buy Me a Coffee Widget with Dropdown -->
+    <div id="donate-widget" role="region" aria-label="Donation options">
+        <!-- Main Button -->
+        <div class="donate-content">
+            <div class="coffee-icon">☕</div>
+            <div class="donate-text">Buy Me a Coffee</div>
+        </div>
+        
+        <!-- Payment Options Dropdown (part of the same hover target) -->
+        <div class="payment-dropdown" id="payment-dropdown">
+            <div class="payment-option">
+                <a href="https://www.paypal.com/paypalme/YourPayPalUsername" target="_blank">
+                    <span class="payment-icon">
+                        <img src="assets/icons/paypal.svg" alt="PayPal" width="24" height="24">
+                    </span>
+                    <span class="payment-name">PayPal</span>
+                </a>
+            </div>
+            <div class="payment-option">
+                <a href="https://venmo.com/YourVenmoUsername" target="_blank">
+                    <span class="payment-icon">
+                        <img src="assets/icons/venmo.svg" alt="Venmo" width="24" height="24">
+                    </span>
+                    <span class="payment-name">Venmo</span>
+                </a>
+            </div>
+            <div class="payment-option">
+                <a href="https://cash.app/$YourCashAppUsername" target="_blank">
+                    <span class="payment-icon">
+                        <img src="assets/icons/cash-app.svg" alt="Cash App" width="24" height="24">
+                    </span>
+                    <span class="payment-name">Cash App</span>
+                </a>
+            </div>
+            <div class="payment-option">
+                <a href="https://gpay.app.goo.gl/YourGooglePayLink" target="_blank">
+                    <span class="payment-icon">
+                        <img src="assets/icons/google-pay.svg" alt="Google Pay" width="24" height="24">
+                    </span>
+                    <span class="payment-name">Google Pay</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls Panel -->
+    <div id="controls" class="visible" role="region" aria-label="Clock Controls">
+        <div class="control-group">
+            <label for="clockface-select">Clock Face:</label>
+            <select id="clockface-select" aria-label="Select clock face style">
+                <option value="clean-clock">Clean</option>
+                <option value="analog-clock">Analog</option>
+                <option value="led-clock">LED</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label for="effect-select">Style:</label>
+            <select id="effect-select" aria-label="Select visual effect style">
+                <option value="flat">Flat</option>
+                <option value="raised" selected>Raised</option> <!-- Default to Raised -->
+                <option value="reflected">Reflected</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label for="image-source-select">Image Source:</label>
+            <select id="image-source-select" aria-label="Select image source API">
+                <option value="unsplash">Unsplash</option>
+                <option value="pexels">Pexels</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label for="category-select">Background Category:</label>
+            <select id="category-select" aria-label="Select background image category">
+                <option value="None">None</option>
+                <option value="Landscapes">Landscapes</option>
+                <option value="Nature Wildlife">Nature/Wildlife</option>
+                <option value="Abstract">Abstract</option>
+                <option value="Cityscapes">Cityscapes</option>
+                <option value="Space Astronomy">Space/Astronomy</option>
+                <option value="Minimalist">Minimalist</option>
+                <option value="Macro Photography">Macro Photography</option>
+                <option value="Patterns Textures">Patterns/Textures</option>
+                <option value="Art Illustrations">Art/Illustrations</option>
+                <option value="Vehicles Transportation">Vehicles/Transportation</option>
+                <option value="Custom">Custom...</option>
+            </select>
+        </div>
+        <div class="control-group" id="custom-category-group" style="display: none;">
+            <label for="custom-category">Custom:</label>
+            <input type="text" id="custom-category" placeholder="Enter search term..." aria-label="Enter custom background search term">
+            <a href="#" id="apply-custom-category" style="margin-left: 10px;" role="button" aria-label="Apply custom background">Apply</a>
+        </div>
+        <div class="control-group" id="color-picker-group" style="display: none;">
+            <label for="background-color">Color:</label>
+            <input type="color" id="background-color" value="#000000" aria-label="Select background color">
+        </div>
+        <!-- Clock Opacity Slider -->
+        <div class="control-group">
+             <label for="clock-opacity-slider">Clock Opacity:</label>
+             <input type="range" id="clock-opacity-slider" min="0.1" max="1.0" step="0.05" value="1.0" aria-label="Adjust clock opacity">
+        </div>
+        <!-- Time Format Option -->
+        <div class="control-group">
+            <label for="font-select">Clock Font:</label>
+            <select id="font-select" aria-label="Select clock font">
+                <option value="'Segoe UI', Tahoma, Geneva, Verdana, sans-serif">Segoe UI</option>
+                <option value="Roboto, sans-serif">Roboto</option>
+                <option value="'Helvetica Neue', sans-serif">Helvetica Neue</option>
+                <option value="Arial, sans-serif">Arial</option>
+                <option value="Lato, sans-serif">Lato</option>
+                <option value="'Open Sans', sans-serif">Open Sans</option>
+                <option value="Montserrat, sans-serif">Montserrat</option>
+                <option value="Poppins, sans-serif">Poppins</option>
+                <option value="Nunito, sans-serif">Nunito</option>
+                <option value="Inter, sans-serif">Inter</option>
+                <option value="Raleway, sans-serif">Raleway</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label for="font-bold">Bold:</label>
+            <input type="checkbox" id="font-bold" aria-label="Toggle bold font">
+        </div>
+        <div class="control-group">
+            <label for="time-format-select">Time Format:</label>
+            <select id="time-format-select" aria-label="Select time format">
+                <option value="24">24-hour</option>
+                <option value="12">12-hour</option>
+            </select>
+        </div>
+        <!-- Show Seconds Option -->
+        <div class="control-group">
+            <label for="show-seconds-checkbox">Show Seconds:</label>
+            <input type="checkbox" id="show-seconds-checkbox" checked aria-label="Toggle seconds display">
+        </div>
+        <!-- Next Background Button -->
+         <div class="control-group">
+             <button id="next-background-button" aria-label="Load next background image">Next Background</button>
+         </div>
+         <div class="control-group">
+             <button id="reset-button" class="reset-button" aria-label="Reset all settings to defaults">Reset All Settings</button>
+         </div>
+
+         <p>Use '+' and '-' keys to adjust background image opacity.</p>
+    </div>
+
+    <!-- Hint message for controls -->
+    <div id="controls-hint" class="controls-hint">To access the control panel, press Spacebar or C.</div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
