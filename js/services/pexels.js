@@ -4,6 +4,19 @@
 
 import { PEXELS_API_KEY } from '../config.js';
 
+// Debug mode flag - set to false to disable verbose logging
+const DEBUG = false;
+
+/**
+ * Conditional logger that only logs when DEBUG is true
+ * @param {...any} args - Arguments to log
+ */
+function debugLog(...args) {
+    if (DEBUG) {
+        console.log(...args);
+    }
+}
+
 /**
  * Checks if we're within the rate limits for the Pexels API
  * @returns {boolean} True if we can make a request, false if we should wait
@@ -63,7 +76,7 @@ export async function fetchRandomImage(category) {
     if (processedCategory.includes(' ')) {
         // Replace spaces with plus signs for multi-word searches
         processedCategory = processedCategory.replace(/\s+/g, '+');
-        console.log("Multi-word search detected, formatted as:", processedCategory);
+        debugLog("Multi-word search detected, formatted as:", processedCategory);
     } else {
         // Use standard URL encoding for single-word terms
         processedCategory = encodeURIComponent(processedCategory);
@@ -73,13 +86,13 @@ export async function fetchRandomImage(category) {
     const url = `https://api.pexels.com/v1/search?query=${processedCategory}&orientation=landscape&per_page=10`;
     
     // Log the API request details
-    console.log("Pexels API Request:");
-    console.log("- Original Category:", category);
-    console.log("- Processed Category:", processedCategory);
-    console.log("- Full URL:", url);
+    debugLog("Pexels API Request:");
+    debugLog("- Original Category:", category);
+    debugLog("- Processed Category:", processedCategory);
+    debugLog("- Full URL:", url);
 
     try {
-        console.log("Sending API request to Pexels...");
+        debugLog("Sending API request to Pexels...");
         const response = await fetch(url, {
             headers: {
                 'Authorization': PEXELS_API_KEY
@@ -114,7 +127,7 @@ export async function fetchRandomImage(category) {
             reset: response.headers.get('X-Ratelimit-Reset')
         };
         
-        // Log rate limit information
+        // Log rate limit information - keep this in regular console for monitoring
         console.log("Pexels API Rate Limits:");
         console.log("- Limit:", rateLimit.limit, "requests per hour");
         console.log("- Remaining:", rateLimit.remaining, "requests");
@@ -138,9 +151,9 @@ export async function fetchRandomImage(category) {
         const data = await response.json();
         
         // Log the API response details
-        console.log("Pexels API Response:");
-        console.log("- Response Status:", response.status);
-        console.log("- Total Results:", data.total_results);
+        debugLog("Pexels API Response:");
+        debugLog("- Response Status:", response.status);
+        debugLog("- Total Results:", data.total_results);
         
         // Check if we have photos in the response
         if (data.photos && data.photos.length > 0) {
@@ -148,14 +161,15 @@ export async function fetchRandomImage(category) {
             const randomIndex = Math.floor(Math.random() * data.photos.length);
             const photo = data.photos[randomIndex];
             
-            console.log("- Image ID:", photo.id);
-            console.log("- Photographer:", photo.photographer);
-            console.log("- Image URLs:", photo.src);
-            console.log("- Selected Index:", randomIndex, "of", data.photos.length);
+            debugLog("- Image ID:", photo.id);
+            debugLog("- Photographer:", photo.photographer);
+            debugLog("- Image URLs:", photo.src);
+            debugLog("- Selected Index:", randomIndex, "of", data.photos.length);
             
             // Pexels provides multiple image sizes, we'll use the large one with improved quality
             const imageUrl = photo.src.large.replace(/\&w.+/g, '').replace(/\&h.+/g, `&h${window.innerWidth}`);
-            console.log("- Selected Image URL:", imageUrl);
+            debugLog("- Selected Image URL:", imageUrl);
+            // Keep attribution in regular console for legal compliance
             console.log(`Photo by ${photo.photographer} on Pexels: ${photo.url}`); // Attribution
             
             return imageUrl;

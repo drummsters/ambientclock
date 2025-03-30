@@ -7,17 +7,36 @@
     /* Colors */
     --text-color: white;
     --background-color: #000000;
-    --overlay-color: rgba(0, 0, 0, 0.3);
-    --control-bg-color: rgba(0, 0, 0, 0.6);
-    --control-hover-color: rgba(0, 0, 0, 0.8);
-    --control-text-color: #eee;
-    --control-border-color: #555;
-    --control-button-color: #555;
-    --control-button-hover-color: #777;
-    --control-button-active-color: #999;
-    --link-color: #aaf;
-    --link-hover-color: #ccf;
-    --link-active-color: #88f;
+    --overlay-color: rgba(0, 0, 0, 1); /* Full color, actual opacity controlled by JavaScript */
+    
+    /* Control Panel Colors */
+    --control-bg-color: rgba(30, 30, 40, 0.85);
+    --control-hover-color: rgba(40, 40, 50, 0.9);
+    --control-text-color: #f0f0f0;
+    --control-border-color: rgba(255, 255, 255, 0.2);
+    --control-button-color: rgba(100, 150, 255, 0.6);
+    --control-button-hover-color: rgba(100, 150, 255, 0.8);
+    --control-button-active-color: rgba(80, 130, 235, 0.9);
+    --control-section-border: rgba(255, 255, 255, 0.1);
+    --control-title-border: rgba(255, 255, 255, 0.15);
+    --control-input-bg: rgba(20, 20, 30, 0.6);
+    --control-focus-border: rgba(100, 150, 255, 0.6);
+    --control-focus-shadow: rgba(100, 150, 255, 0.2);
+    --control-checkbox-checked: rgba(100, 150, 255, 0.6);
+    --control-range-bg: rgba(255, 255, 255, 0.15);
+    --control-range-hover-bg: rgba(255, 255, 255, 0.25);
+    
+    /* Link Colors */
+    --link-color: rgba(100, 150, 255, 0.9);
+    --link-hover-color: #fff;
+    --link-active-color: #fff;
+    --link-hover-bg: rgba(100, 150, 255, 0.3);
+    --link-active-bg: rgba(100, 150, 255, 0.5);
+    
+    /* Reset Button Colors */
+    --reset-button-color: rgba(220, 53, 69, 0.6);
+    --reset-button-hover-color: rgba(220, 53, 69, 0.8);
+    --reset-button-active-color: rgba(200, 35, 51, 0.9);
     
     /* LED Clock Colors */
     --led-color: #ff0000;
@@ -39,12 +58,21 @@
     
     /* Spacing */
     --control-spacing: 10px;
-    --control-padding: 15px;
-    --control-border-radius: 8px;
+    --control-padding: 18px;
+    --control-border-radius: 12px;
+    --control-section-spacing: 20px;
+    --control-section-padding: 15px;
+    
+    /* Shadows */
+    --control-panel-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    --control-input-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    --control-button-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    --control-button-hover-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     
     /* Transitions */
     --fade-transition: opacity 0.5s ease;
     --background-transition: background-image 1.5s ease-in-out;
     --overlay-transition: background-color 0.3s ease;
-    --button-transition: background-color 0.2s ease;
+    --button-transition: all 0.2s ease;
+    --input-transition: all 0.2s ease;
 }

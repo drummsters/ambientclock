@@ -11,6 +11,11 @@
     <div id="background-container"></div>
     <div id="overlay"></div>
 
+    <!-- Date display container -->
+    <div id="date-container" style="display: none;">
+        <div id="date-face" class="date-face"></div>
+    </div>
+    
     <!-- Main container for clock faces and effects (hidden initially to prevent flash of unstyled content) -->
     <div id="clock-container" style="opacity: 0; transition: opacity 0.5s ease;" role="region" aria-label="Clock Display">
         <!-- Clean Clock -->
@@ -96,112 +101,157 @@
 
     <!-- Controls Panel -->
     <div id="controls" class="visible" role="region" aria-label="Clock Controls">
-        <div class="control-group">
-            <label for="clockface-select">Clock Face:</label>
-            <select id="clockface-select" aria-label="Select clock face style">
-                <option value="clean-clock">Clean</option>
-                <option value="analog-clock">Analog</option>
-                <option value="led-clock">LED</option>
-            </select>
+        <!-- CLOCK SECTION -->
+        <div class="control-section">
+            <h3 class="section-title">Clock</h3>
+            <div class="control-group">
+                <label for="clockface-select">Clock Face:</label>
+                <select id="clockface-select" aria-label="Select clock face style">
+                    <option value="clean-clock">Clean</option>
+                    <option value="analog-clock">Analog</option>
+                    <option value="led-clock">LED</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="time-format-select">Time Format:</label>
+                <select id="time-format-select" aria-label="Select time format">
+                    <option value="24">24-hour</option>
+                    <option value="12" selected>12-hour</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="show-seconds-checkbox">Show Seconds:</label>
+                <input type="checkbox" id="show-seconds-checkbox" checked aria-label="Toggle seconds display">
+            </div>
+            <div class="control-group">
+                <label for="font-select">Clock Font:</label>
+                <select id="font-select" aria-label="Select clock font">
+                    <option value="'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" selected>Segoe UI</option>
+                    <option value="Roboto, sans-serif">Roboto</option>
+                    <option value="'Helvetica Neue', sans-serif">Helvetica Neue</option>
+                    <option value="Arial, sans-serif">Arial</option>
+                    <option value="Lato, sans-serif">Lato</option>
+                    <option value="'Open Sans', sans-serif">Open Sans</option>
+                    <option value="Montserrat, sans-serif">Montserrat</option>
+                    <option value="Poppins, sans-serif">Poppins</option>
+                    <option value="Nunito, sans-serif">Nunito</option>
+                    <option value="Inter, sans-serif">Inter</option>
+                    <option value="Raleway, sans-serif">Raleway</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="font-bold">Bold:</label>
+                <input type="checkbox" id="font-bold" aria-label="Toggle bold font">
+            </div>
+            <!-- Clean Clock Color Option -->
+            <div class="control-group" id="clean-clock-color-group" style="display: none;">
+                <label for="clean-clock-color">Clock Color:</label>
+                <input type="color" id="clean-clock-color" value="#FFFFFF" aria-label="Select clean clock font color">
+            </div>
+            <div class="control-group">
+                <label for="clock-opacity-slider">Clock Opacity:</label>
+                <input type="range" id="clock-opacity-slider" min="0.1" max="1.0" step="0.05" value="1.0" aria-label="Adjust clock opacity">
+            </div>
         </div>
-        <div class="control-group">
-            <label for="effect-select">Style:</label>
-            <select id="effect-select" aria-label="Select visual effect style">
-                <option value="flat">Flat</option>
-                <option value="raised" selected>Raised</option> <!-- Default to Raised -->
-                <option value="reflected">Reflected</option>
-            </select>
-        </div>
-        <div class="control-group">
-            <label for="image-source-select">Image Source:</label>
-            <select id="image-source-select" aria-label="Select image source API">
-                <option value="unsplash">Unsplash</option>
-                <option value="pexels">Pexels</option>
-            </select>
-        </div>
-        <div class="control-group">
-            <label for="category-select">Background Category:</label>
-            <select id="category-select" aria-label="Select background image category">
-                <option value="None">None</option>
-                <option value="Landscapes">Landscapes</option>
-                <option value="Nature Wildlife">Nature/Wildlife</option>
-                <option value="Abstract">Abstract</option>
-                <option value="Cityscapes">Cityscapes</option>
-                <option value="Space Astronomy">Space/Astronomy</option>
-                <option value="Minimalist">Minimalist</option>
-                <option value="Macro Photography">Macro Photography</option>
-                <option value="Patterns Textures">Patterns/Textures</option>
-                <option value="Art Illustrations">Art/Illustrations</option>
-                <option value="Vehicles Transportation">Vehicles/Transportation</option>
-                <option value="Custom">Custom...</option>
-            </select>
-        </div>
-        <div class="control-group" id="custom-category-group" style="display: none;">
-            <label for="custom-category">Custom:</label>
-            <input type="text" id="custom-category" placeholder="Enter search term..." aria-label="Enter custom background search term">
-            <a href="#" id="apply-custom-category" style="margin-left: 10px;" role="button" aria-label="Apply custom background">Apply</a>
-        </div>
-        <div class="control-group" id="color-picker-group" style="display: none;">
-            <label for="background-color">Color:</label>
-            <input type="color" id="background-color" value="#000000" aria-label="Select background color">
-        </div>
-        <!-- Clock Opacity Slider -->
-        <div class="control-group">
-             <label for="clock-opacity-slider">Clock Opacity:</label>
-             <input type="range" id="clock-opacity-slider" min="0.1" max="1.0" step="0.05" value="1.0" aria-label="Adjust clock opacity">
-        </div>
-        <!-- Background Opacity Slider -->
-        <div class="control-group">
-             <label for="background-opacity-slider">Background Opacity:</label>
-             <input type="range" id="background-opacity-slider" min="0.0" max="1.0" step="0.05" value="0.5" aria-label="Adjust background opacity">
-        </div>
-        <!-- Time Format Option -->
-        <div class="control-group">
-            <label for="font-select">Clock Font:</label>
-            <select id="font-select" aria-label="Select clock font">
-                <option value="'Segoe UI', Tahoma, Geneva, Verdana, sans-serif">Segoe UI</option>
-                <option value="Roboto, sans-serif">Roboto</option>
-                <option value="'Helvetica Neue', sans-serif">Helvetica Neue</option>
-                <option value="Arial, sans-serif">Arial</option>
-                <option value="Lato, sans-serif">Lato</option>
-                <option value="'Open Sans', sans-serif">Open Sans</option>
-                <option value="Montserrat, sans-serif">Montserrat</option>
-                <option value="Poppins, sans-serif">Poppins</option>
-                <option value="Nunito, sans-serif">Nunito</option>
-                <option value="Inter, sans-serif">Inter</option>
-                <option value="Raleway, sans-serif">Raleway</option>
-            </select>
-        </div>
-        <div class="control-group">
-            <label for="font-bold">Bold:</label>
-            <input type="checkbox" id="font-bold" aria-label="Toggle bold font">
-        </div>
-        <div class="control-group">
-            <label for="time-format-select">Time Format:</label>
-            <select id="time-format-select" aria-label="Select time format">
-                <option value="24">24-hour</option>
-                <option value="12">12-hour</option>
-            </select>
-        </div>
-        <!-- Show Seconds Option -->
-        <div class="control-group">
-            <label for="show-seconds-checkbox">Show Seconds:</label>
-            <input type="checkbox" id="show-seconds-checkbox" checked aria-label="Toggle seconds display">
-        </div>
-        <!-- Background Zoom Effect Option -->
-        <div class="control-group">
-            <label for="zoom-effect-checkbox">Background Zoom:</label>
-            <input type="checkbox" id="zoom-effect-checkbox" checked aria-label="Toggle background zoom effect">
-        </div>
-        <!-- Next Background Button -->
-         <div class="control-group">
-             <button id="next-background-button" aria-label="Load next background image">Next Background</button>
-         </div>
-         <div class="control-group">
-             <button id="reset-button" class="reset-button" aria-label="Reset all settings to defaults">Reset All Settings</button>
-         </div>
 
-         <p>Use sliders to adjust clock and background opacity.</p>
+        <!-- DATE SECTION -->
+        <div class="control-section">
+            <h3 class="section-title">Date</h3>
+            <div class="control-group">
+                <label for="date-display-checkbox">Display Date:</label>
+                <input type="checkbox" id="date-display-checkbox" aria-label="Toggle date display">
+            </div>
+            <div class="control-group">
+                <label for="date-format-select">Date Format:</label>
+                <select id="date-format-select" aria-label="Select date format" disabled>
+                    <option value="MM/DD/YYYY">MM/DD/YYYY (US)</option>
+                    <option value="DD/MM/YYYY">DD/MM/YYYY (UK)</option>
+                    <option value="YYYY-MM-DD">YYYY-MM-DD (Canada/ISO)</option>
+                    <option value="Day">Day (e.g., Friday)</option>
+                    <option value="Day, Month DD">Day, Month DD (e.g., Friday, March 28)</option>
+                    <option value="Month DD, YYYY">Month DD, YYYY (e.g., March 28, 2025)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="date-color">Date Color:</label>
+                <input type="color" id="date-color" value="#FFFFFF" aria-label="Select date font color">
+            </div>
+            <div class="control-group">
+                <label for="date-opacity-slider">Date Opacity:</label>
+                <input type="range" id="date-opacity-slider" min="0.1" max="1.0" step="0.05" value="1.0" aria-label="Adjust date opacity">
+            </div>
+        </div>
+
+        <!-- BACKGROUND SECTION -->
+        <div class="control-section">
+            <h3 class="section-title">Background</h3>
+            <div class="control-group">
+                <label for="image-source-select">Image Source:</label>
+                <select id="image-source-select" aria-label="Select image source API">
+                    <option value="unsplash">Unsplash</option>
+                    <option value="pexels">Pexels</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="category-select">Category:</label>
+                <select id="category-select" aria-label="Select background image category">
+                    <option value="Nature">Nature</option>
+                    <option value="None">None</option>
+                    <option value="Landscapes">Landscapes</option>
+                    <option value="Nature Wildlife">Nature/Wildlife</option>
+                    <option value="Abstract">Abstract</option>
+                    <option value="Cityscapes">Cityscapes</option>
+                    <option value="Space Astronomy">Space/Astronomy</option>
+                    <option value="Minimalist">Minimalist</option>
+                    <option value="Macro Photography">Macro Photography</option>
+                    <option value="Patterns Textures">Patterns/Textures</option>
+                    <option value="Art Illustrations">Art/Illustrations</option>
+                    <option value="Vehicles Transportation">Vehicles/Transportation</option>
+                    <option value="Custom">Custom...</option>
+                </select>
+            </div>
+            <div class="control-group" id="custom-category-group" style="display: none;">
+                <label for="custom-category">Custom:</label>
+                <input type="text" id="custom-category" placeholder="Enter search term..." aria-label="Enter custom background search term">
+                <a href="#" id="apply-custom-category" role="button" aria-label="Apply custom background">Apply</a>
+            </div>
+            <div class="control-group" id="color-picker-group" style="display: none;">
+                <label for="background-color">Color:</label>
+                <input type="color" id="background-color" value="#000000" aria-label="Select background color">
+            </div>
+            <div class="control-group">
+                <label for="background-opacity-slider">Opacity:</label>
+                <input type="range" id="background-opacity-slider" min="0.0" max="1.0" step="0.05" value="1.0" aria-label="Adjust background opacity">
+            </div>
+            <div class="control-group">
+                <label for="zoom-effect-checkbox">Zoom Effect:</label>
+                <input type="checkbox" id="zoom-effect-checkbox" checked aria-label="Toggle background zoom effect">
+            </div>
+            <div class="control-group">
+                <button id="next-background-button" aria-label="Load next background image">Next Background</button>
+            </div>
+        </div>
+
+        <!-- EFFECTS SECTION -->
+        <div class="control-section">
+            <h3 class="section-title">Effects</h3>
+            <div class="control-group">
+                <label for="effect-select">Style:</label>
+                <select id="effect-select" aria-label="Select visual effect style">
+                    <option value="flat">Flat</option>
+                    <option value="raised" selected>Raised</option> <!-- Default to Raised -->
+                    <option value="reflected">Reflected</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- SETTINGS SECTION -->
+        <div class="control-section">
+            <h3 class="section-title">Settings</h3>
+            <div class="control-group">
+                <button id="reset-button" class="reset-button" aria-label="Reset all settings to defaults">Reset All Settings</button>
+            </div>
+        </div>
     </div>
 
     <!-- Hint message for controls -->

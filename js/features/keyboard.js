@@ -5,10 +5,18 @@
 
 import { OPACITY_STEP, SCALE_STEP } from '../config.js';
 import { updateOverlayOpacity } from '../components/background.js';
-import { getState } from '../state.js';
+import { getState, updateState } from '../state.js';
 import { showControls, toggleControls } from '../components/controls.js';
 import { increaseClockSize, decreaseClockSize } from './position.js';
-import { handleWheelEvent, increaseClockOpacity, decreaseClockOpacity } from '../utils/wheel.js';
+import { 
+    handleWheelEvent, 
+    increaseClockOpacity, 
+    decreaseClockOpacity,
+    increaseDateOpacity,
+    decreaseDateOpacity,
+    increaseDateSize,
+    decreaseDateSize
+} from '../utils/wheel.js';
 
 // Track if shift key is pressed
 let isShiftPressed = false;
@@ -20,7 +28,7 @@ export function initKeyboard() {
     // Add keyboard event listeners
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
-    document.addEventListener('wheel', handleWheel, { passive: false });
+    // Removed global wheel event listener to only handle wheel events on clock and date elements
     
     console.log("Keyboard shortcuts initialized");
 }
@@ -41,23 +49,41 @@ function handleKeyDown(event) {
         return;
     }
 
+    // Check if date display is active
+    const { showDate } = getState();
+    const isDateFocused = document.activeElement === document.getElementById('date-container');
+    
     switch (event.key) {
         case '+':
         case '=': // Handle both + and =
             event.preventDefault(); // Prevent browser zoom or other default actions
             if (event.shiftKey) {
-                increaseClockOpacity();
+                if (showDate && isDateFocused) {
+                    increaseDateOpacity();
+                } else {
+                    increaseClockOpacity();
+                }
             } else {
-                handlePlusKey();
+                // Increase background overlay opacity
+                const { overlayOpacity } = getState();
+                const newOpacity = Math.min(1.0, overlayOpacity + OPACITY_STEP);
+                updateOverlayOpacity(newOpacity);
             }
             break;
             
         case '-':
             event.preventDefault(); // Prevent browser zoom
             if (event.shiftKey) {
-                decreaseClockOpacity();
+                if (showDate && isDateFocused) {
+                    decreaseDateOpacity();
+                } else {
+                    decreaseClockOpacity();
+                }
             } else {
-                handleMinusKey();
+                // Decrease background overlay opacity
+                const { overlayOpacity } = getState();
+                const newOpacity = Math.max(0.0, overlayOpacity - OPACITY_STEP);
+                updateOverlayOpacity(newOpacity);
             }
             break;
             
@@ -72,18 +98,49 @@ function handleKeyDown(event) {
             toggleControls();
             break;
             
+        case 'd':
+        case 'D': // D key - toggle date display
+            event.preventDefault();
+            toggleDateDisplay();
+            break;
+            
         case 'ArrowUp': // Up arrow - increase size
             event.preventDefault();
-            increaseClockSize(SCALE_STEP);
-            // Controls should only be shown with spacebar or C key
+            if (showDate && isDateFocused) {
+                increaseDateSize();
+            } else {
+                increaseClockSize(SCALE_STEP);
+            }
             break;
             
         case 'ArrowDown': // Down arrow - decrease size
             event.preventDefault();
-            decreaseClockSize(SCALE_STEP);
-            // Controls should only be shown with spacebar or C key
+            if (showDate && isDateFocused) {
+                decreaseDateSize();
+            } else {
+                decreaseClockSize(SCALE_STEP);
+            }
             break;
     }
+}
+
+/**
+ * Toggles the date display
+ */
+function toggleDateDisplay() {
+    const { showDate } = getState();
+    const newShowDate = !showDate;
+    
+    // Update state
+    updateState({ showDate: newShowDate });
+    
+    // Update date container visibility
+    const dateContainer = document.getElementById('date-container');
+    if (dateContainer) {
+        dateContainer.style.display = newShowDate ? 'block' : 'none';
+    }
+    
+    console.log(`Date display ${newShowDate ? 'enabled' : 'disabled'}`);
 }
 
 // These functions are now imported from wheel.js

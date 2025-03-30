@@ -1,23 +1,25 @@
 /**
  * Drag feature for the Ambient Clock application
- * Handles dragging and resizing of clock faces
+ * Handles dragging and resizing of UI elements (clock faces and date display)
  */
 
-import { getState, updateState } from '../state.js';
-import { getElement, getElements, addClass, removeClass } from '../utils/dom.js';
-import { CUSTOM_POSITION_INDEX } from '../config.js';
-import { updateCustomPosition } from './position.js';
-import { showControls } from '../components/controls.js';
+import { getElement, getElements } from '../utils/dom.js';
 import { handleWheelEvent } from '../utils/wheel.js';
+import { startElementDrag, handleElementDrag, stopElementDrag, handleElementTouchStart, handleElementTouchMove } from './element-drag.js';
+import { getActiveClock, getDateDisplay } from '../components/element-manager.js';
 
 // DOM elements
 let clockContainer;
 let clockFaces;
+let dateContainer;
 
 // Drag state
 let isDragging = false;
 let dragOffsetX = 0;
 let dragOffsetY = 0;
+let isDraggingDate = false;
+let dateDragOffsetX = 0;
+let dateDragOffsetY = 0;
 
 /**
  * Initializes the drag feature
@@ -26,6 +28,7 @@ export function initDrag() {
     // Get DOM elements
     clockContainer = getElement('clock-container');
     clockFaces = getElements('.clock-face');
+    dateContainer = getElement('date-container');
     
     if (!clockContainer || !clockFaces.length) {
         console.error("Clock elements not found");
@@ -34,6 +37,9 @@ export function initDrag() {
     
     // Add drag event listeners to the active clock face
     setupDragListeners();
+    
+    // Add drag event listeners to the date container
+    setupDateDragListeners();
     
     // Add wheel event listeners for resizing
     setupWheelListeners();
@@ -64,6 +70,28 @@ function setupDragListeners() {
 }
 
 /**
+ * Sets up drag event listeners for the date container
+ */
+function setupDateDragListeners() {
+    // If dateContainer is not initialized, get it now
+    if (!dateContainer) {
+        dateContainer = getElement('date-container');
+    }
+    
+    // Get the date face element
+    const dateFace = getElement('date-face');
+    
+    // If still no date elements, exit
+    if (!dateContainer || !dateFace) {
+        console.error("Date elements not found in setupDateDragListeners");
+        return;
+    }
+    
+    // Add event listeners to the date face (not the container)
+    addDateDragListeners(dateFace);
+}
+
+/**
  * Adds drag event listeners to an element
  * @param {HTMLElement} element - The element to make draggable
  */
@@ -81,12 +109,28 @@ function addDragListeners(element) {
 }
 
 /**
+ * Adds drag event listeners to the date container
+ * @param {HTMLElement} element - The date container element
+ */
+function addDateDragListeners(element) {
+    // Mouse events
+    element.addEventListener('mousedown', startDateDrag);
+    document.addEventListener('mousemove', handleDateDrag);
+    document.addEventListener('mouseup', stopDateDrag);
+    
+    // Touch events
+    element.addEventListener('touchstart', handleDateTouchStart);
+    document.addEventListener('touchmove', handleDateTouchMove);
+    document.addEventListener('touchend', stopDateDrag);
+    document.addEventListener('touchcancel', stopDateDrag);
+}
+
+/**
  * Handles touch start event
  * @param {TouchEvent} event - The touch event
  */
 function handleTouchStart(event) {
-    event.preventDefault();
-    startDrag(event.touches[0]);
+    handleElementTouchStart(event, startDrag);
 }
 
 /**
@@ -94,8 +138,23 @@ function handleTouchStart(event) {
  * @param {TouchEvent} event - The touch event
  */
 function handleTouchMove(event) {
-    event.preventDefault();
-    handleDrag(event.touches[0]);
+    handleElementTouchMove(event, handleDrag);
+}
+
+/**
+ * Handles date touch start event
+ * @param {TouchEvent} event - The touch event
+ */
+function handleDateTouchStart(event) {
+    handleElementTouchStart(event, startDateDrag);
+}
+
+/**
+ * Handles date touch move event
+ * @param {TouchEvent} event - The touch event
+ */
+function handleDateTouchMove(event) {
+    handleElementTouchMove(event, handleDateDrag);
 }
 
 /**
@@ -105,34 +164,15 @@ function handleTouchMove(event) {
 function startDrag(event) {
     // Get the active clock face
     const activeFace = document.querySelector('.clock-face.active');
-    if (!activeFace) return;
+    if (!activeFace || !clockContainer) return;
     
-    // Get current position before switching modes
-    const containerRect = clockContainer.getBoundingClientRect();
-    const initialLeft = containerRect.left;
-    const initialTop = containerRect.top;
+    // Use the shared element drag function
+    const dragState = startElementDrag('clock', clockContainer, activeFace, event);
     
-    // Only switch to custom position mode if not already in it
-    if (getState().positionIndex !== CUSTOM_POSITION_INDEX) {
-        // Calculate current position as percentage before switching modes
-        const customPositionX = (initialLeft / window.innerWidth) * 100;
-        const customPositionY = (initialTop / window.innerHeight) * 100;
-        
-        // Switch to custom position mode
-        updateCustomPosition(customPositionX, customPositionY);
-    }
-    
-    // Add dragging class
-    addClass(activeFace, 'dragging');
-    
-    // Calculate the offset of the mouse pointer relative to the clock container
-    dragOffsetX = event.clientX - initialLeft;
-    dragOffsetY = event.clientY - initialTop;
-    
-    isDragging = true;
-    
-    // Prevent text selection during drag
-    event.preventDefault();
+    // Store drag state
+    isDragging = dragState.isDragging;
+    dragOffsetX = dragState.offsetX;
+    dragOffsetY = dragState.offsetY;
 }
 
 /**
@@ -142,17 +182,58 @@ function startDrag(event) {
 function handleDrag(event) {
     if (!isDragging || !clockContainer) return;
     
-    // Calculate new position
-    const left = event.clientX - dragOffsetX;
-    const top = event.clientY - dragOffsetY;
+    // Use the shared element drag function
+    handleElementDrag('clock', clockContainer, event, { offsetX: dragOffsetX, offsetY: dragOffsetY });
+}
+
+/**
+ * Starts dragging the date container
+ * @param {MouseEvent|Touch} event - The mouse event or touch point
+ */
+function startDateDrag(event) {
+    if (!dateContainer) return;
     
-    // Update the clock position directly for smooth dragging
-    // Only update the visual position during dragging, not the state
-    clockContainer.style.left = `${left}px`;
-    clockContainer.style.top = `${top}px`;
+    // Get the date face element
+    const dateFace = getElement('date-face');
+    if (!dateFace) return;
     
-    // Ensure the clock container has absolute positioning
-    clockContainer.style.position = 'absolute';
+    // Use the shared element drag function
+    const dragState = startElementDrag('date', dateContainer, dateFace, event);
+    
+    // Store drag state
+    isDraggingDate = dragState.isDragging;
+    dateDragOffsetX = dragState.offsetX;
+    dateDragOffsetY = dragState.offsetY;
+}
+
+/**
+ * Handles dragging the date container
+ * @param {MouseEvent|Touch} event - The mouse event or touch point
+ */
+function handleDateDrag(event) {
+    if (!isDraggingDate || !dateContainer) return;
+    
+    // Use the shared element drag function
+    handleElementDrag('date', dateContainer, event, { offsetX: dateDragOffsetX, offsetY: dateDragOffsetY });
+}
+
+/**
+ * Stops dragging the date container
+ */
+function stopDateDrag() {
+    if (!isDraggingDate || !dateContainer) return;
+    
+    // Get the date face element
+    const dateFace = getElement('date-face');
+    if (!dateFace) return;
+    
+    // Get the date display instance from the element manager
+    const dateDisplay = getDateDisplay();
+    
+    // Use the shared element drag function with applyScale callback
+    stopElementDrag('date', dateContainer, dateFace, dateDisplay ? dateDisplay.applyScale.bind(dateDisplay) : null);
+    
+    isDraggingDate = false;
 }
 
 /**
@@ -161,25 +242,12 @@ function handleDrag(event) {
 function stopDrag() {
     if (!isDragging) return;
     
-    // Remove dragging class
+    // Get the active clock face
     const activeFace = document.querySelector('.clock-face.active');
-    if (activeFace) {
-        removeClass(activeFace, 'dragging');
-    }
+    if (!activeFace || !clockContainer) return;
     
-    // Get the final position
-    if (clockContainer) {
-        const containerRect = clockContainer.getBoundingClientRect();
-        const left = containerRect.left;
-        const top = containerRect.top;
-        
-        // Convert to percentage of window size for responsive positioning
-        const customPositionX = (left / window.innerWidth) * 100;
-        const customPositionY = (top / window.innerHeight) * 100;
-        
-        // Update state with final position only when drag is complete
-        updateCustomPosition(customPositionX, customPositionY);
-    }
+    // Use the shared element drag function
+    stopElementDrag('clock', clockContainer, activeFace);
     
     isDragging = false;
 }

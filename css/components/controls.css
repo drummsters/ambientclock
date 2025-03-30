@@ -8,6 +8,8 @@
     bottom: 20px;
     left: 20px;
     background-color: var(--control-bg-color);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     padding: var(--control-padding);
     border-radius: var(--control-border-radius);
     z-index: 100;
@@ -17,6 +19,10 @@
     transition: var(--fade-transition);
     pointer-events: none; /* Don't capture mouse events when hidden */
     min-width: 350px;
+    max-height: 95vh; /* Increased to 95% of viewport height to reduce scrolling */
+    overflow-y: auto; /* Add scrollbar if needed */
+    box-shadow: var(--control-panel-shadow);
+    border: 1px solid var(--control-section-border);
 }
 
 #controls.visible {
@@ -34,21 +40,82 @@
     z-index: 99;
 }
 
+/* Control Sections */
+.control-section {
+    margin-bottom: var(--control-section-spacing);
+    padding-bottom: var(--control-section-padding);
+    border-bottom: 1px solid var(--control-section-border);
+    position: relative;
+}
+
+.control-section:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 5%;
+    right: 5%;
+    height: 1px;
+    background: linear-gradient(
+        to right,
+        transparent,
+        var(--control-title-border) 20%,
+        var(--control-button-color) 50%,
+        var(--control-title-border) 80%,
+        transparent
+    );
+}
+
+.control-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 15px 0;
+    color: var(--control-text-color);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding-bottom: 8px;
+    position: relative;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    display: inline-block; /* Make the underline match the text width */
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--control-button-color);
+    border-radius: 1.5px;
+}
+
 /* Control Groups */
 .control-group {
-    margin-bottom: var(--control-spacing);
+    margin-bottom: 8px;
     display: flex;
     align-items: center;
     gap: 10px;
     white-space: nowrap;
 }
 
+.control-group:last-child {
+    margin-bottom: 0;
+}
+
 #controls label {
-    width: 150px;
+    width: 120px;
     margin-right: 0;
     text-align: right;
     flex-shrink: 0;
     white-space: nowrap;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
 }
 
 .control-input {
@@ -59,66 +126,179 @@
     white-space: nowrap;
 }
 
+/* Form Controls */
 #controls select {
-    padding: 4px;
-    min-width: 110px;
-    vertical-align: middle;
-    height: 28px;
-    background-color: rgba(0, 0, 0, 0.5);
+    padding: 6px 10px;
+    min-width: 140px;
+    height: 32px;
+    background-color: var(--control-input-bg);
     color: var(--control-text-color);
     border: 1px solid var(--control-border-color);
-    border-radius: 4px;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    box-shadow: var(--control-input-shadow);
+    transition: var(--input-transition);
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px;
+    padding-right: 30px;
+}
+
+#controls select:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+#controls select:focus {
+    outline: none;
+    border-color: var(--control-focus-border);
+    box-shadow: 0 0 0 2px var(--control-focus-shadow);
 }
 
 #controls input[type="text"] {
-    padding: 4px;
-    height: 28px;
-    vertical-align: middle;
-    background-color: rgba(0, 0, 0, 0.3);
+    padding: 6px 10px;
+    height: 32px;
+    background-color: var(--control-input-bg);
     color: var(--control-text-color);
     border: 1px solid var(--control-border-color);
-    border-radius: 4px;
+    border-radius: 6px;
+    box-shadow: var(--control-input-shadow);
+    transition: var(--input-transition);
+    width: 140px;
+}
+
+#controls input[type="text"]:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+#controls input[type="text"]:focus {
+    outline: none;
+    border-color: var(--control-focus-border);
+    box-shadow: 0 0 0 2px var(--control-focus-shadow);
 }
 
 #controls input[type="color"] {
     padding: 2px;
-    height: 28px;
+    height: 32px;
     width: 50px;
-    vertical-align: middle;
     cursor: pointer;
     border: 1px solid var(--control-border-color);
+    border-radius: 6px;
     background: none;
+    transition: var(--input-transition);
+}
+
+#controls input[type="color"]:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+#controls input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background-color: var(--control-input-bg);
+    border: 1px solid var(--control-border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--input-transition);
+    position: relative;
+}
+
+#controls input[type="checkbox"]:checked {
+    background-color: var(--control-checkbox-checked);
+    border-color: var(--control-focus-border);
+}
+
+#controls input[type="checkbox"]:checked::after {
+    content: '';
+    width: 6px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    position: absolute;
+    top: 2px;
+}
+
+#controls input[type="checkbox"]:hover {
+    border-color: rgba(255, 255, 255, 0.4);
 }
 
 #controls input[type="range"] {
-    vertical-align: middle;
-    width: 120px;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    width: 140px;
+    background: var(--control-range-bg);
+    border-radius: 3px;
     cursor: pointer;
     margin-left: 5px;
+    transition: var(--input-transition);
+}
+
+#controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: var(--input-transition);
+}
+
+#controls input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: var(--input-transition);
+    border: none;
+}
+
+#controls input[type="range"]:hover {
+    background: var(--control-range-hover-bg);
+}
+
+#controls input[type="range"]:hover::-webkit-slider-thumb {
+    background: var(--control-button-color);
+    transform: scale(1.1);
+}
+
+#controls input[type="range"]:hover::-moz-range-thumb {
+    background: var(--control-button-color);
+    transform: scale(1.1);
 }
 
 #controls button {
-    padding: 5px 12px;
+    padding: 8px 14px;
     cursor: pointer;
     background-color: var(--control-button-color);
-    color: white;
-    border: 1px solid var(--control-border-color);
-    border-radius: 4px;
+    color: var(--control-text-color);
+    border: 1px solid rgba(100, 150, 255, 0.2);
+    border-radius: 6px;
     transition: var(--button-transition);
-    margin-left: auto;
-}
-
-.control-group button {
-    margin-left: 10px;
+    font-weight: 500;
+    box-shadow: var(--control-button-shadow);
 }
 
 #controls button:hover {
     background-color: var(--control-button-hover-color);
+    transform: translateY(-1px);
+    box-shadow: var(--control-button-hover-shadow);
 }
 
 #controls button:active {
     background-color: var(--control-button-active-color);
+    transform: translateY(0);
+    box-shadow: var(--control-button-shadow);
 }
 
 /* Custom category link styling */
@@ -127,38 +307,38 @@
     text-decoration: none;
     cursor: pointer;
     transition: var(--button-transition);
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-left: 5px;
 }
 
 #apply-custom-category:hover {
     color: var(--link-hover-color);
-    text-decoration: underline;
+    background-color: var(--link-hover-bg);
 }
 
 #apply-custom-category:active {
-    color: var(--link-active-color);
-}
-
-#controls p {
-    margin-top: 10px;
-    font-size: 12px;
-    color: #ccc;
-    text-align: center;
+    background-color: var(--link-active-bg);
 }
 
 /* Reset button styling */
 #reset-button {
-    background-color: #d9534f;
-    border-color: #d43f3a;
+    background-color: var(--reset-button-color);
+    border-color: rgba(220, 53, 69, 0.2);
 }
 
 #reset-button:hover {
-    background-color: #c9302c;
-    border-color: #ac2925;
+    background-color: var(--reset-button-hover-color);
 }
 
 #reset-button:active {
-    background-color: #ac2925;
-    border-color: #761c19;
+    background-color: var(--reset-button-active-color);
+}
+
+/* Next Background button styling */
+#next-background-button {
+    width: 100%;
+    margin-top: 5px;
 }
 
 /* Controls Hint */
@@ -166,18 +346,63 @@
     position: fixed;
     bottom: 20px;
     left: 20px;
-    background-color: rgba(0, 0, 0, 0.3); /* More transparent background */
-    color: rgba(255, 255, 255, 0.7); /* More transparent text */
+    background-color: rgba(20, 20, 30, 0.5);
+    color: var(--control-text-color);
     padding: 8px 12px;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 14px;
     z-index: 95;
     opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none; /* Don't capture mouse events */
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Lighter shadow for more subtle appearance */
+    transition: var(--fade-transition);
+    pointer-events: auto; /* Allow mouse events for clickability */
+    cursor: pointer; /* Show pointer cursor on hover */
+    box-shadow: var(--control-input-shadow);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border: 1px solid var(--control-section-border);
+}
+
+.controls-hint:hover {
+    background-color: rgba(30, 30, 40, 0.6);
+    box-shadow: var(--control-button-hover-shadow);
 }
 
 .controls-hint.visible {
-    opacity: 0.7; /* Semi-transparent even when visible */
+    opacity: 0.9;
+}
+
+/* Date Container */
+#date-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 50; /* Ensure it's above the background but below controls */
+    white-space: nowrap; /* Prevent text wrapping */
+    width: auto; /* Allow the container to size to its content */
+    display: inline-block;
+    pointer-events: none; /* Allow clicks to pass through to elements below */
+}
+
+/* Date Face */
+.date-face {
+    font-size: 5vw; /* Responsive font size similar to clean clock but smaller */
+    text-align: center;
+    cursor: move; /* Indicate it's draggable */
+    user-select: none; /* Prevent text selection during drag */
+    color: #FFFFFF; /* Default color */
+    padding: 0; /* Remove padding to make container fit content exactly */
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5); /* Add shadow for better visibility */
+    width: auto; /* Allow the container to size to its content */
+    transform-origin: center center; /* Ensure scaling happens from the center */
+    transition: opacity 0.2s ease; /* Smooth transition for opacity changes */
+    font-family: var(--clean-clock-font, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif); /* Match clean clock font */
+    font-weight: bold; /* Match clean clock weight */
+    letter-spacing: 0.05em; /* Match clean clock letter spacing */
+    pointer-events: auto; /* Ensure the date text itself remains interactive */
+}
+
+/* Date Face when being dragged */
+.date-face.dragging {
+    opacity: 0.8; /* Slightly transparent when dragging */
+    cursor: grabbing; /* Change cursor when dragging */
 }

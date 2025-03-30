@@ -37,9 +37,22 @@ export function initAnalogClock() {
  * @param {Object} state - The current state
  */
 function handleStateChange(state) {
-    // Update if showSeconds changes
-    if (state.showSeconds !== getState().showSeconds) {
-        updateAnalogClock();
+    const currentState = getState();
+    
+    // Check if global section exists
+    if (state.global) {
+        // Update if showSeconds changes
+        if (state.global.showSeconds !== undefined && 
+            state.global.showSeconds !== currentState.showSeconds) {
+            updateAnalogClock();
+        }
+    } else {
+        // Backward compatibility
+        // Update if showSeconds changes
+        if (state.showSeconds !== undefined && 
+            state.showSeconds !== currentState.showSeconds) {
+            updateAnalogClock();
+        }
     }
 }
 
@@ -47,8 +60,31 @@ function handleStateChange(state) {
  * Updates the analog clock display
  */
 export function updateAnalogClock() {
+    // Ensure DOM elements are initialized
+    if (!hourHand || !minuteHand || !secondHand) {
+        // Re-initialize elements if they're not already initialized
+        hourHand = getElement('analog-hour');
+        minuteHand = getElement('analog-minute');
+        secondHand = getElement('analog-second');
+        
+        if (!hourHand || !minuteHand || !secondHand) {
+            console.error("Analog clock elements not found in updateAnalogClock");
+            return;
+        }
+    }
+    
     const { hours, minutes, seconds } = getCurrentTime();
-    const { showSeconds } = getState();
+    const state = getState();
+    
+    // Check if showSeconds is explicitly defined in state
+    let showSeconds;
+    if (state.showSeconds !== undefined) {
+        showSeconds = state.showSeconds;
+    } else if (state.global && state.global.showSeconds !== undefined) {
+        showSeconds = state.global.showSeconds;
+    } else {
+        showSeconds = true; // Default value if not specified
+    }
     
     // Calculate rotation degrees for each hand
     const { hoursDeg, minutesDeg, secondsDeg } = calculateHandDegrees(hours, minutes, seconds);
@@ -68,4 +104,6 @@ export function updateAnalogClock() {
             secondHand.style.display = 'none';
         }
     }
+    
+    // No need to log the seconds display state anymore
 }

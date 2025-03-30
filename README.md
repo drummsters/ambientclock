@@ -9,7 +9,8 @@ A customizable ambient clock application with various display styles and backgro
 - Background zoom effect to prevent screen burn-in
 - Adjustable clock opacity and position
 - Keyboard shortcuts for quick adjustments
-- Auto-hiding controls panel with helpful hints
+- Auto-hiding controls panel with logical organization and visual hierarchy
+- Clickable hint message for easy access to controls
 - Settings persistence via localStorage
 - API rate limit management for reliable performance
 
@@ -27,18 +28,34 @@ A customizable ambient clock application with various display styles and backgro
 
 ## Configuration
 
-The clock can be customized through the controls panel:
+The clock can be customized through the controls panel, which is organized into logical sections:
 
+**Clock Section:**
 - **Clock Face**: Choose between Clean, Analog, or LED styles
-- **Style**: Select visual effects (Flat, Raised, Reflected)
-- **Image Source**: Select between Unsplash or Pexels for background images
-- **Background**: Choose from preset categories or enter custom search terms
-- **Clock Opacity**: Adjust transparency of the clock face
-- **Background Opacity**: Control the opacity of the background overlay
-- **Font**: Select from various font options and toggle bold style
 - **Time Format**: Switch between 12-hour and 24-hour formats
 - **Show Seconds**: Toggle seconds display
-- **Background Zoom**: Toggle the slow zoom effect to prevent screen burn-in
+- **Clock Font**: Select from various font options
+- **Bold**: Toggle bold text style
+- **Clock Color**: Choose color for the clock (for Clean clock face)
+- **Clock Opacity**: Adjust transparency of the clock face
+
+**Date Section:**
+- **Display Date**: Toggle date display on/off
+- **Date Format**: Choose from various date formats
+- **Date Color**: Select color for the date display
+- **Date Opacity**: Adjust transparency of the date display
+
+**Background Section:**
+- **Image Source**: Select between Unsplash or Pexels for background images
+- **Category**: Choose from preset categories or enter custom search terms
+- **Opacity**: Control the opacity of the background overlay
+- **Zoom Effect**: Toggle the slow zoom effect to prevent screen burn-in
+- **Next Background**: Manually trigger a new background image
+
+**Effects Section:**
+- **Style**: Select visual effects (Flat, Raised, Reflected)
+
+**Settings Section:**
 - **Reset All Settings**: Restore all settings to defaults
 
 ## Keyboard Shortcuts
@@ -48,6 +65,24 @@ The clock can be customized through the controls panel:
 - Arrow keys: Move clock position
 - `Ctrl` + `+`/`-`: Adjust clock size
 
+
+## Development and Debugging
+
+The application includes a comprehensive debugging framework:
+
+- **Debug Mode**: Add `?debug=true` to the URL to enable debug mode
+- **Console Commands**:
+  - `ambientClock.clearLocalStorage()` - Clear saved settings
+  - `ambientClock.resetAndReload()` - Reset settings and reload
+  - `ambientClock.toggleDebugMode()` - Toggle debug mode
+
+When debug mode is enabled:
+- Visual indicators show timer operations and hover states
+- Color-coded console logging provides detailed information
+- Interactive elements are highlighted when hovered
+- State transitions are visually indicated
+
+This framework is built on core debugging principles documented in `cline_docs/`.
 
 ## License
 

@@ -16,6 +16,19 @@ let overlay;
 // Background cycling interval ID
 let backgroundIntervalId = null;
 
+// Debug mode flag - set to false to disable verbose logging
+const DEBUG = false;
+
+/**
+ * Conditional logger that only logs when DEBUG is true
+ * @param {...any} args - Arguments to log
+ */
+function debugLog(...args) {
+    if (DEBUG) {
+        console.log(...args);
+    }
+}
+
 /**
  * Initializes the background component
  */
@@ -24,8 +37,8 @@ export function initBackground() {
     backgroundContainer = getElement('background-container');
     overlay = getElement('overlay');
     
-    console.log("Background container:", backgroundContainer);
-    console.log("Overlay:", overlay);
+    debugLog("Background container:", backgroundContainer);
+    debugLog("Overlay:", overlay);
     
     if (!backgroundContainer || !overlay) {
         console.error("Background elements not found");
@@ -37,19 +50,35 @@ export function initBackground() {
     
     // Initial setup based on current state
     const state = getState();
-    console.log("Initial state:", state);
-    updateOverlayOpacity(state.overlayOpacity);
+    debugLog("Initial state:", state);
+    
+    // Get overlay opacity from state (check both new and old state structure)
+    const overlayOpacity = state.overlayOpacity || 
+                          (state.background && state.background.overlayOpacity) || 
+                          0.5;
+    
+    updateOverlayOpacity(overlayOpacity);
     
     // Initialize _prevCategory to prevent background from changing on first state change
     updateState({ _prevCategory: state.category }, false, true);
     
+    // Get zoom enabled from state (check both new and old state structure)
+    const zoomEnabled = state.zoomEnabled !== undefined ? state.zoomEnabled : 
+                       (state.background && state.background.zoomEnabled !== undefined ? 
+                        state.background.zoomEnabled : DEFAULT_ZOOM_ENABLED);
+    
     // Initialize zoom effect if not already in state
-    if (state.zoomEnabled === undefined) {
-        updateState({ zoomEnabled: DEFAULT_ZOOM_ENABLED }, false, true);
+    if (state.zoomEnabled === undefined && 
+        (!state.background || state.background.zoomEnabled === undefined)) {
+        updateState({
+            background: {
+                zoomEnabled: DEFAULT_ZOOM_ENABLED
+            }
+        }, false, true);
     }
     
     // Apply zoom effect based on state
-    updateZoomEffect(state.zoomEnabled);
+    updateZoomEffect(zoomEnabled);
     
     // Start background cycling if needed, but don't force a new image on page load
     startBackgroundCycling(true, false);
@@ -61,12 +90,32 @@ export function initBackground() {
  * @param {Object} prevState - The previous state (for comparison)
  */
 function handleStateChange(state, prevState = {}) {
-    // Update the overlay opacity based on the state
-    updateOverlayOpacity(state.overlayOpacity, false);
+    // Update the overlay opacity based on the state (check both new and old state structure)
+    // Only update if the opacity has actually changed to avoid resetting it unnecessarily
+    const newOverlayOpacity = state.overlayOpacity || 
+                             (state.background && state.background.overlayOpacity);
+    const prevOverlayOpacity = prevState.overlayOpacity || 
+                              (prevState.background && prevState.background.overlayOpacity);
     
-    // Update zoom effect if it changed
-    if (prevState.zoomEnabled !== undefined && state.zoomEnabled !== prevState.zoomEnabled) {
-        updateZoomEffect(state.zoomEnabled);
+    debugLog("State change - new opacity:", newOverlayOpacity, "prev opacity:", prevOverlayOpacity);
+    
+    // Only update if the opacity has changed or if it's explicitly defined in the new state
+    if (newOverlayOpacity !== undefined && (newOverlayOpacity !== prevOverlayOpacity || prevOverlayOpacity === undefined)) {
+        debugLog("Updating overlay opacity from state change to:", newOverlayOpacity);
+        updateOverlayOpacity(newOverlayOpacity, false);
+    }
+    
+    // Update zoom effect if it changed (check both new and old state structure)
+    const newZoomEnabled = state.zoomEnabled !== undefined ? state.zoomEnabled : 
+                          (state.background && state.background.zoomEnabled !== undefined ? 
+                           state.background.zoomEnabled : null);
+    
+    const prevZoomEnabled = prevState.zoomEnabled !== undefined ? prevState.zoomEnabled : 
+                           (prevState.background && prevState.background.zoomEnabled !== undefined ? 
+                            prevState.background.zoomEnabled : null);
+    
+    if (newZoomEnabled !== null && prevZoomEnabled !== null && newZoomEnabled !== prevZoomEnabled) {
+        updateZoomEffect(newZoomEnabled);
     }
     
     // Get the previous category from the state
@@ -74,7 +123,11 @@ function handleStateChange(state, prevState = {}) {
     
     // If category is 'None', set background color and stop cycling
     if (state.category === 'None') {
-        setBackgroundColor(state.backgroundColor, false);
+        const backgroundColor = state.backgroundColor || 
+                               (state.background && state.background.backgroundColor) || 
+                               '#000000';
+        
+        setBackgroundColor(backgroundColor, false);
         stopBackgroundCycling();
     } 
     // Only restart background cycling if the category has changed
@@ -89,7 +142,7 @@ function handleStateChange(state, prevState = {}) {
     
     // If the image source has changed, clear the cached image URL and fetch a new image
     if (prevState.imageSource !== undefined && state.imageSource !== prevState.imageSource) {
-        console.log(`Image source changed from ${prevState.imageSource} to ${state.imageSource}`);
+        debugLog(`Image source changed from ${prevState.imageSource} to ${state.imageSource}`);
         
         // Clear the cached image URL
         updateState({ backgroundImageUrl: null }, false, true);
@@ -107,11 +160,27 @@ function handleStateChange(state, prevState = {}) {
  * @param {boolean} [updateStateFlag=true] - Whether to update the state
  */
 export function updateOverlayOpacity(opacity, updateStateFlag = true) {
+    debugLog("updateOverlayOpacity called with opacity:", opacity);
+    
+    // Ensure overlay and backgroundContainer are initialized
+    if (!overlay || !backgroundContainer) {
+        overlay = getElement('overlay');
+        backgroundContainer = getElement('background-container');
+        
+        if (!overlay || !backgroundContainer) {
+            console.error("Background elements not found in updateOverlayOpacity");
+            return;
+        }
+    }
+    
     // Clamp opacity between 0.0 and 1.0
     const clampedOpacity = Math.max(0.0, Math.min(1.0, opacity));
+    debugLog("Clamped opacity:", clampedOpacity);
 
     // Get the current background color from state
-    const { backgroundColor } = getState();
+    const state = getState();
+    const backgroundColor = state.backgroundColor || (state.background && state.background.backgroundColor) || '#000000';
+    debugLog("Background color:", backgroundColor);
     
     // Helper function to convert hex color to RGB components
     const hexToRgb = (hex) => {
@@ -136,27 +205,41 @@ export function updateOverlayOpacity(opacity, updateStateFlag = true) {
     };
     
     // Default to black if backgroundColor is not a valid hex color
-    let overlayColor = `rgba(0, 0, 0, ${clampedOpacity})`;
+    let overlayColor = `rgba(0, 0, 0, 1)`;
     
     // Try to parse the backgroundColor if it's a hex color
     if (backgroundColor && backgroundColor.match(/^#([0-9A-F]{3}){1,2}$/i)) {
         const { r, g, b } = hexToRgb(backgroundColor);
-        overlayColor = `rgba(${r}, ${g}, ${b}, ${clampedOpacity})`;
+        overlayColor = `rgba(${r}, ${g}, ${b}, 1)`;
     }
     
-    // Update the --overlay-color CSS variable
+    debugLog("Overlay color:", overlayColor);
+    
+    // Update the --overlay-color CSS variable with full opacity
     document.documentElement.style.setProperty('--overlay-color', overlayColor);
     
+    // Invert the opacity value for the overlay
+    // When slider is 0, overlay should be fully opaque (1.0)
+    // When slider is 1, overlay should be fully transparent (0.0)
+    const invertedOpacity = 1.0 - clampedOpacity;
+    
+    // Apply inverted opacity directly to the overlay element
+    overlay.style.opacity = invertedOpacity;
+    debugLog("Slider value:", clampedOpacity);
+    debugLog("Set overlay.style.opacity to:", invertedOpacity);
+    
     // Apply opacity directly to the background image
-    if (backgroundContainer) {
-        updateStyle(backgroundContainer, {
-            opacity: 1 // Reset opacity to full
-        });
-    }
+    updateStyle(backgroundContainer, {
+        opacity: 1 // Reset opacity to full
+    });
 
     // Update state only if flag is true
     if (updateStateFlag) {
-        updateState({ overlayOpacity: clampedOpacity });
+        updateState({
+            background: {
+                overlayOpacity: clampedOpacity
+            }
+        });
     }
 }
 
@@ -166,33 +249,47 @@ export function updateOverlayOpacity(opacity, updateStateFlag = true) {
  * @param {boolean} [updateStateFlag=true] - Whether to update the state
  */
 export function setBackgroundColor(color, updateStateFlag = true) {
-    console.log("Setting background color to:", color);
-    console.log("Background container exists:", !!backgroundContainer);
+    debugLog("Setting background color to:", color);
     
-    if (backgroundContainer) {
-        // Use direct style assignment instead of updateStyle
-        backgroundContainer.style.backgroundImage = 'none';
-        backgroundContainer.style.backgroundColor = color;
-        backgroundContainer.style.opacity = '1'; // Reset opacity to full when using a solid color
-        
-        // Force a repaint
-        backgroundContainer.offsetHeight;
-        
-        console.log("Background color applied directly:", color);
-        console.log("Current background-color:", backgroundContainer.style.backgroundColor);
-    } else {
-        console.error("Cannot set background color: backgroundContainer is null");
+    // Ensure backgroundContainer is initialized
+    if (!backgroundContainer) {
+        backgroundContainer = getElement('background-container');
+        if (!backgroundContainer) {
+            console.error("Background container not found in setBackgroundColor");
+            return;
+        }
     }
+    
+    // Use direct style assignment instead of updateStyle
+    backgroundContainer.style.backgroundImage = 'none';
+    backgroundContainer.style.backgroundColor = color;
+    backgroundContainer.style.opacity = '1'; // Reset opacity to full when using a solid color
+    
+    // Force a repaint
+    backgroundContainer.offsetHeight;
+    
+    debugLog("Background color applied:", color);
     
     // Update state only if flag is true
     if (updateStateFlag) {
-        updateState({ backgroundColor: color });
+        updateState({
+            background: {
+                backgroundColor: color
+            }
+        });
     }
     
     // Update the overlay color to match the new background color
     // This ensures the overlay color changes when the background color changes
-    const { overlayOpacity } = getState();
-    updateOverlayOpacity(overlayOpacity, false);
+    const state = getState();
+    const overlayOpacity = state.overlayOpacity || 
+                          (state.background && state.background.overlayOpacity);
+    
+    // Only update the overlay opacity if it's explicitly defined in the state
+    if (overlayOpacity !== undefined) {
+        debugLog("Updating overlay opacity from setBackgroundColor to:", overlayOpacity);
+        updateOverlayOpacity(overlayOpacity, false);
+    }
 }
 
 /**
@@ -200,14 +297,21 @@ export function setBackgroundColor(color, updateStateFlag = true) {
  * @param {string} imageUrl - The image URL
  */
 export function setBackgroundImage(imageUrl) {
-    if (backgroundContainer) {
-        updateStyle(backgroundContainer, {
-            backgroundImage: `url(${imageUrl})`
-        });
-        
-        // Store the image URL in the state for caching
-        updateState({ backgroundImageUrl: imageUrl });
+    // Ensure backgroundContainer is initialized
+    if (!backgroundContainer) {
+        backgroundContainer = getElement('background-container');
+        if (!backgroundContainer) {
+            console.error("Background container not found in setBackgroundImage");
+            return;
+        }
     }
+    
+    updateStyle(backgroundContainer, {
+        backgroundImage: `url(${imageUrl})`
+    });
+    
+    // Store the image URL in the state for caching
+    updateState({ backgroundImageUrl: imageUrl });
 }
 
 /**
@@ -219,8 +323,8 @@ function getImageService() {
     const service = imageSource === 'pexels' ? pexelsService : unsplashService;
     
     // Log which service is being used
-    console.log(`Using image service: ${imageSource}`);
-    console.log(`Service methods available:`, Object.keys(service));
+    debugLog(`Using image service: ${imageSource}`);
+    debugLog(`Service methods available:`, Object.keys(service));
     
     return service;
 }
@@ -248,28 +352,26 @@ export async function fetchNewBackground() {
     
     // Get the appropriate image service
     const imageService = getImageService();
-    console.log(`Using ${imageSource} API for fetching background image`);
+    debugLog(`Using ${imageSource} API for fetching background image`);
     
     try {
-        console.log(`Fetching image for category "${categoryToUse}" using ${imageSource} API...`);
+        debugLog(`Fetching image for category "${categoryToUse}" using ${imageSource} API...`);
         
         // Fetch image URL
         const imageUrl = await imageService.fetchRandomImage(categoryToUse);
-        console.log(`Successfully fetched image URL from ${imageSource}:`, imageUrl);
+        debugLog(`Successfully fetched image URL from ${imageSource}:`, imageUrl);
         
         // Preload image
-        console.log(`Preloading image from URL: ${imageUrl}`);
+        debugLog(`Preloading image from URL: ${imageUrl}`);
         await imageService.preloadImage(imageUrl);
-        console.log(`Successfully preloaded image`);
+        debugLog(`Successfully preloaded image`);
         
         // Set as background
-        console.log(`Setting background image to: ${imageUrl}`);
+        debugLog(`Setting background image to: ${imageUrl}`);
         setBackgroundImage(imageUrl);
-        console.log(`Background image set successfully`);
+        debugLog(`Background image set successfully`);
     } catch (error) {
         console.error(`Failed to fetch background from ${imageSource}:`, error);
-        console.error(`Error details:`, error.message);
-        console.error(`Error stack:`, error.stack);
         
         // Check if this is a rate limit error
         if (error.message && error.message.includes('rate limit exceeded')) {
@@ -278,24 +380,24 @@ export async function fetchNewBackground() {
             try {
                 // Switch to the alternative API
                 if (imageSource === 'pexels') {
-                    console.log('Switching to Unsplash API due to Pexels rate limit...');
+                    debugLog('Switching to Unsplash API due to Pexels rate limit...');
                     
                     // Temporarily switch to Unsplash
                     const unsplashUrl = await unsplashService.fetchRandomImage(categoryToUse);
                     await unsplashService.preloadImage(unsplashUrl);
                     setBackgroundImage(unsplashUrl);
                     
-                    console.log('Successfully fetched image from Unsplash as fallback');
+                    debugLog('Successfully fetched image from Unsplash as fallback');
                     return; // Exit early since we successfully got an image
                 } else if (imageSource === 'unsplash') {
-                    console.log('Switching to Pexels API due to Unsplash rate limit...');
+                    debugLog('Switching to Pexels API due to Unsplash rate limit...');
                     
                     // Temporarily switch to Pexels
                     const pexelsUrl = await pexelsService.fetchRandomImage(categoryToUse);
                     await pexelsService.preloadImage(pexelsUrl);
                     setBackgroundImage(pexelsUrl);
                     
-                    console.log('Successfully fetched image from Pexels as fallback');
+                    debugLog('Successfully fetched image from Pexels as fallback');
                     return; // Exit early since we successfully got an image
                 }
             } catch (fallbackError) {
@@ -352,30 +454,14 @@ export function startBackgroundCycling(fetchImmediately = true, forceNewImage = 
     if (fetchImmediately) {
         // Check if we have a cached image URL and we're not forcing a new image
         if (backgroundImageUrl && !forceNewImage) {
-            console.log("CACHING: Using cached background image");
-            console.log("- Cached URL:", backgroundImageUrl);
-            console.log("- Force New Image:", forceNewImage);
-            console.log("- Category:", categoryToUse);
+            debugLog("Using cached background image:", backgroundImageUrl);
             
-            // Get the appropriate image service
-            const imageService = getImageService();
-            
-            // Use the cached image
-            imageService.preloadImage(backgroundImageUrl)
-                .then(() => {
-                    console.log("CACHING: Successfully loaded cached image");
-                    setBackgroundImage(backgroundImageUrl);
-                })
-                .catch(error => {
-                    console.error("CACHING: Failed to load cached image, fetching new one:", error);
-                    fetchNewBackground();
-                });
+            // Apply the cached image directly without preloading again
+            // This avoids unnecessary network requests and image loading
+            setBackgroundImage(backgroundImageUrl);
         } else {
             // Fetch a new image
-            console.log("CACHING: Fetching new background image");
-            console.log("- Has Cached URL:", !!backgroundImageUrl);
-            console.log("- Force New Image:", forceNewImage);
-            console.log("- Category:", categoryToUse);
+            debugLog("Fetching new background image (cached:", !!backgroundImageUrl, ", force:", forceNewImage, ")");
             fetchNewBackground();
         }
     }
@@ -383,9 +469,9 @@ export function startBackgroundCycling(fetchImmediately = true, forceNewImage = 
     // Set interval for cycling
     if (BACKGROUND_CYCLE_INTERVAL > 0) {
         backgroundIntervalId = setInterval(() => fetchNewBackground(), BACKGROUND_CYCLE_INTERVAL);
-        console.log(`Background cycling started. Interval: ${BACKGROUND_CYCLE_INTERVAL / 1000}s`);
+        debugLog(`Background cycling started. Interval: ${BACKGROUND_CYCLE_INTERVAL / 1000}s`);
     } else {
-        console.log("Background cycling disabled (interval is zero or negative).");
+        debugLog("Background cycling disabled (interval is zero or negative).");
     }
 }
 
@@ -396,7 +482,7 @@ export function stopBackgroundCycling() {
     if (backgroundIntervalId) {
         clearInterval(backgroundIntervalId);
         backgroundIntervalId = null;
-        console.log("Background cycling stopped");
+        debugLog("Background cycling stopped");
     }
 }
 
@@ -405,18 +491,29 @@ export function stopBackgroundCycling() {
  * @param {boolean} enabled - Whether the zoom effect is enabled
  */
 export function updateZoomEffect(enabled) {
-    if (!backgroundContainer) return;
+    // Ensure backgroundContainer is initialized
+    if (!backgroundContainer) {
+        backgroundContainer = getElement('background-container');
+        if (!backgroundContainer) {
+            console.error("Background container not found in updateZoomEffect");
+            return;
+        }
+    }
     
     if (enabled) {
         backgroundContainer.classList.add('zoom-effect');
-        console.log("Background zoom effect enabled");
+        debugLog("Background zoom effect enabled");
     } else {
         backgroundContainer.classList.remove('zoom-effect');
-        console.log("Background zoom effect disabled");
+        debugLog("Background zoom effect disabled");
     }
     
-    // Update state
-    updateState({ zoomEnabled: enabled }, false, true);
+    // Update state using the new structure
+    updateState({
+        background: {
+            zoomEnabled: enabled
+        }
+    }, false, true);
 }
 
 /**

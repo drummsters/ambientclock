@@ -42,12 +42,28 @@ function handleStateChange(state) {
     // Only update if values have changed
     const currentState = getState();
     
-    if (state.positionIndex !== currentState.positionIndex) {
-        updateClockPosition(state.positionIndex);
-    }
-    
-    if (state.scale !== currentState.scale) {
-        updateClockSize(state.scale);
+    // Check if clock section exists
+    if (state.clock) {
+        if (state.clock.positionIndex !== undefined && 
+            state.clock.positionIndex !== currentState.positionIndex) {
+            updateClockPosition(state.clock.positionIndex);
+        }
+        
+        if (state.clock.scale !== undefined && 
+            state.clock.scale !== currentState.scale) {
+            updateClockSize(state.clock.scale);
+        }
+    } else {
+        // Backward compatibility
+        if (state.positionIndex !== undefined && 
+            state.positionIndex !== currentState.positionIndex) {
+            updateClockPosition(state.positionIndex);
+        }
+        
+        if (state.scale !== undefined && 
+            state.scale !== currentState.scale) {
+            updateClockSize(state.scale);
+        }
     }
 }
 
@@ -71,7 +87,11 @@ export function updateClockPosition(positionIndex) {
     // Handle custom position separately
     if (positionIndex === CUSTOM_POSITION_INDEX) {
         // Set to custom position
-        updateState({ positionIndex: CUSTOM_POSITION_INDEX });
+        updateState({
+            clock: {
+                positionIndex: CUSTOM_POSITION_INDEX
+            }
+        });
         
         // Apply custom position styles
         clockContainer.style.position = 'absolute';
@@ -96,7 +116,11 @@ export function updateClockPosition(positionIndex) {
     
     // Update state if needed
     if (validIndex !== getState().positionIndex) {
-        updateState({ positionIndex: validIndex });
+        updateState({
+            clock: {
+                positionIndex: validIndex
+            }
+        });
     }
     
     console.log(`Clock position changed to: ${position.name}`);
@@ -108,7 +132,18 @@ export function updateClockPosition(positionIndex) {
 function applyCustomPosition() {
     if (!clockContainer) return;
     
-    const { customPositionX, customPositionY } = getState();
+    const state = getState();
+    let customPositionX, customPositionY;
+    
+    // Check if clock section exists
+    if (state.clock && state.clock.customPositionX !== undefined && state.clock.customPositionY !== undefined) {
+        customPositionX = state.clock.customPositionX;
+        customPositionY = state.clock.customPositionY;
+    } else {
+        // Backward compatibility
+        customPositionX = state.customPositionX;
+        customPositionY = state.customPositionY;
+    }
     
     // Convert percentage to pixels
     const left = (window.innerWidth * customPositionX / 100);
@@ -134,11 +169,13 @@ export function updateCustomPosition(x, y) {
     const clampedX = Math.max(-50, Math.min(150, x));
     const clampedY = Math.max(-50, Math.min(150, y));
     
-    // Update state
+    // Update state using the new structure
     updateState({
-        positionIndex: CUSTOM_POSITION_INDEX,
-        customPositionX: clampedX,
-        customPositionY: clampedY
+        clock: {
+            positionIndex: CUSTOM_POSITION_INDEX,
+            customPositionX: clampedX,
+            customPositionY: clampedY
+        }
     });
     
     // Apply the new position
@@ -165,7 +202,11 @@ export function updateClockSize(scale) {
     
     // Update state if needed
     if (clampedScale !== getState().scale) {
-        updateState({ scale: clampedScale });
+        updateState({
+            clock: {
+                scale: clampedScale
+            }
+        });
     }
     
     console.log(`Clock size changed to: ${Math.round(clampedScale * 100)}%`);

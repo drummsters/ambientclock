@@ -4,6 +4,19 @@
 
 import { UNSPLASH_ACCESS_KEY } from '../config.js';
 
+// Debug mode flag - set to false to disable verbose logging
+const DEBUG = false;
+
+/**
+ * Conditional logger that only logs when DEBUG is true
+ * @param {...any} args - Arguments to log
+ */
+function debugLog(...args) {
+    if (DEBUG) {
+        console.log(...args);
+    }
+}
+
 /**
  * Checks if we're within the rate limits for the Unsplash API
  * @returns {boolean} True if we can make a request, false if we should wait
@@ -100,7 +113,7 @@ export async function fetchRandomImage(category) {
     if (processedCategory.includes(' ')) {
         // Replace spaces with plus signs for multi-word searches
         processedCategory = processedCategory.replace(/\s+/g, '+');
-        console.log("Multi-word search detected, formatted as:", processedCategory);
+        debugLog("Multi-word search detected, formatted as:", processedCategory);
     } else {
         // Use standard URL encoding for single-word terms
         processedCategory = encodeURIComponent(processedCategory);
@@ -109,13 +122,13 @@ export async function fetchRandomImage(category) {
     const url = `https://api.unsplash.com/photos/random?query=${processedCategory}&orientation=landscape&client_id=${UNSPLASH_ACCESS_KEY}`;
     
     // Log the API request details
-    console.log("Unsplash API Request:");
-    console.log("- Original Category:", category);
-    console.log("- Processed Category:", processedCategory);
-    console.log("- Full URL:", url);
+    debugLog("Unsplash API Request:");
+    debugLog("- Original Category:", category);
+    debugLog("- Processed Category:", processedCategory);
+    debugLog("- Full URL:", url);
 
     try {
-        console.log("Sending API request to Unsplash...");
+        debugLog("Sending API request to Unsplash...");
         const response = await fetch(url);
         if (!response.ok) {
             let errorMsg = `Unsplash API error: ${response.status} ${response.statusText}.`;
@@ -144,7 +157,7 @@ export async function fetchRandomImage(category) {
             remaining: response.headers.get('X-Ratelimit-Remaining')
         };
         
-        // Log rate limit information
+        // Log rate limit information - keep this in regular console for monitoring
         console.log("Unsplash API Rate Limits:");
         console.log("- Limit:", rateLimit.limit, "requests per hour");
         console.log("- Remaining:", rateLimit.remaining, "requests");
@@ -167,17 +180,18 @@ export async function fetchRandomImage(category) {
         const data = await response.json();
         
         // Log the API response details
-        console.log("Unsplash API Response:");
-        console.log("- Response Status:", response.status);
-        console.log("- Image ID:", data.id);
-        console.log("- Image Description:", data.description || data.alt_description || "No description");
-        console.log("- Image URLs:", data.urls);
+        debugLog("Unsplash API Response:");
+        debugLog("- Response Status:", response.status);
+        debugLog("- Image ID:", data.id);
+        debugLog("- Image Description:", data.description || data.alt_description || "No description");
+        debugLog("- Image URLs:", data.urls);
 
         if (data.urls && data.urls.regular) {
             // Modify the URL to use the window's inner width for better quality
             const imageUrl = data.urls.regular.replace(/\&w.+/g, `&w=${window.innerWidth}`);
+            // Keep attribution in regular console for legal compliance
             console.log(`Photo by ${data.user.name} on Unsplash: ${data.links.html}`); // Attribution
-            console.log("- Selected Image URL:", imageUrl);
+            debugLog("- Selected Image URL:", imageUrl);
             return imageUrl;
         } else {
             console.error("No image URL found in Unsplash response:", data);

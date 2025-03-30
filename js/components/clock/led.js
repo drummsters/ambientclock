@@ -40,9 +40,26 @@ export function initLedClock() {
  * @param {Object} state - The current state
  */
 function handleStateChange(state) {
-    // Update if time format or showSeconds changes
-    if (state.timeFormat !== getState().timeFormat || state.showSeconds !== getState().showSeconds) {
-        updateLedClock();
+    const currentState = getState();
+    
+    // Check if global section exists
+    if (state.global) {
+        // Update if time format or showSeconds changes
+        if ((state.global.timeFormat !== undefined && 
+             state.global.timeFormat !== currentState.timeFormat) || 
+            (state.global.showSeconds !== undefined && 
+             state.global.showSeconds !== currentState.showSeconds)) {
+            updateLedClock();
+        }
+    } else {
+        // Backward compatibility
+        // Update if time format or showSeconds changes
+        if ((state.timeFormat !== undefined && 
+             state.timeFormat !== currentState.timeFormat) || 
+            (state.showSeconds !== undefined && 
+             state.showSeconds !== currentState.showSeconds)) {
+            updateLedClock();
+        }
     }
 }
 
@@ -50,8 +67,33 @@ function handleStateChange(state) {
  * Updates the LED clock display
  */
 export function updateLedClock() {
+    // Ensure DOM elements are initialized
+    if (!hoursElement || !minutesElement || !secondsElement || !ampmElement) {
+        // Re-initialize elements if they're not already initialized
+        hoursElement = getElement('led-hours');
+        minutesElement = getElement('led-minutes');
+        secondsElement = getElement('led-seconds');
+        ampmElement = getElement('led-ampm');
+        
+        if (!hoursElement || !minutesElement || !secondsElement || !ampmElement) {
+            console.error("LED clock elements not found in updateLedClock");
+            return;
+        }
+    }
+    
     const { hours, minutes, seconds, ampm } = getCurrentTime();
-    const { timeFormat, showSeconds } = getState();
+    const state = getState();
+    const timeFormat = state.timeFormat || (state.global && state.global.timeFormat) || '24';
+    
+    // Check if showSeconds is explicitly defined in state
+    let showSeconds;
+    if (state.showSeconds !== undefined) {
+        showSeconds = state.showSeconds;
+    } else if (state.global && state.global.showSeconds !== undefined) {
+        showSeconds = state.global.showSeconds;
+    } else {
+        showSeconds = true; // Default value if not specified
+    }
     
     // Format hours based on time format
     const displayHours = formatHours(hours, timeFormat);
@@ -84,6 +126,8 @@ export function updateLedClock() {
             if (secondsColon) secondsColon.style.display = 'none';
         }
     }
+    
+    // No need to log the seconds display state anymore
     
     // Update AM/PM display
     if (timeFormat === '12') {

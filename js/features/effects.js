@@ -37,7 +37,16 @@ export function initEffects() {
  * @param {Object} state - The current state
  */
 function handleStateChange(state) {
-    setEffect(state.effect);
+    const currentState = getState();
+    const currentEffect = currentState.effect;
+    
+    // Check if global section exists and has effect property
+    if (state.global && state.global.effect !== undefined && state.global.effect !== currentEffect) {
+        setEffect(state.global.effect);
+    } else if (state.effect !== undefined && state.effect !== currentEffect) {
+        // Backward compatibility
+        setEffect(state.effect);
+    }
 }
 
 /**
@@ -46,6 +55,14 @@ function handleStateChange(state) {
  */
 export function setEffect(effectName) {
     if (!clockContainer) return;
+    
+    // Get current effect
+    const { effect: currentEffect } = getState();
+    
+    // If the effect hasn't changed, do nothing
+    if (effectName === currentEffect) {
+        return;
+    }
     
     // Remove previous effect classes
     removeClass(clockContainer, 'effect-flat');
@@ -56,22 +73,24 @@ export function setEffect(effectName) {
     if (VALID_EFFECTS.includes(effectName)) {
         addClass(clockContainer, `effect-${effectName}`);
         
-        // Update state if needed
-        const { effect } = getState();
-        if (effect !== effectName) {
-            updateState({ effect: effectName });
-        }
+        // Update state
+        updateState({ 
+            global: { 
+                effect: effectName 
+            } 
+        });
         
         console.log("Effect set to:", effectName);
     } else {
         // Fallback to flat if invalid
         addClass(clockContainer, 'effect-flat');
         
-        // Update state if needed
-        const { effect } = getState();
-        if (effect !== 'flat') {
-            updateState({ effect: 'flat' });
-        }
+        // Update state
+        updateState({ 
+            global: { 
+                effect: 'flat' 
+            } 
+        });
         
         console.warn("Invalid effect name, defaulting to flat.");
     }

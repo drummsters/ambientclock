@@ -12,6 +12,45 @@ export function padZero(num) {
 }
 
 /**
+ * Gets the current date
+ * @returns {Date} The current date
+ */
+export function getCurrentDate() {
+    return new Date();
+}
+
+/**
+ * Formats a date according to the specified format
+ * @param {Date} date - The date to format
+ * @param {string} format - The format to use
+ * @returns {string} The formatted date
+ */
+export function formatDate(date, format) {
+    const day = date.getDate();
+    const month = date.getMonth() + 1; // getMonth() returns 0-11
+    const year = date.getFullYear();
+    const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' }); // e.g., "Monday"
+    const monthName = date.toLocaleDateString('en-US', { month: 'long' }); // e.g., "January"
+    
+    switch (format) {
+        case 'MM/DD/YYYY':
+            return `${padZero(month)}/${padZero(day)}/${year}`;
+        case 'DD/MM/YYYY':
+            return `${padZero(day)}/${padZero(month)}/${year}`;
+        case 'YYYY-MM-DD':
+            return `${year}-${padZero(month)}-${padZero(day)}`;
+        case 'Day':
+            return dayOfWeek;
+        case 'Day, Month DD':
+            return `${dayOfWeek}, ${monthName} ${day}`;
+        case 'Month DD, YYYY':
+            return `${monthName} ${day}, ${year}`;
+        default:
+            return `${padZero(month)}/${padZero(day)}/${year}`;
+    }
+}
+
+/**
  * Gets the current time components
  * @returns {Object} Object containing hours, minutes, seconds, and AM/PM indicator
  */

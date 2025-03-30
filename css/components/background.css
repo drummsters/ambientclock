@@ -46,6 +46,8 @@
     transition: var(--overlay-transition);
     z-index: 2; /* Overlay should be above the background */
     pointer-events: none; /* Allow clicks to pass through to elements below */
+    /* Ensure no minimum opacity is enforced */
+    opacity: 0.0; /* Default to 0.0 opacity (inverted from 1.0), will be controlled by JavaScript */
 }
 
 /* Clock Container */

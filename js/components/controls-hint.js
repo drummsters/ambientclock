@@ -3,7 +3,7 @@
  * Manages the hint message that appears when the user moves the mouse
  */
 
-import { areControlsVisible } from './controls.js';
+import { areControlsVisible, showControls } from './controls.js';
 
 // DOM elements
 let controlsHint;
@@ -53,6 +53,26 @@ function setupEventListeners() {
     
     // Listen for mouse leave
     document.addEventListener('mouseleave', hideHint);
+    
+    // Add click event to the hint to show controls
+    if (controlsHint) {
+        controlsHint.addEventListener('click', handleHintClick);
+    }
+}
+
+/**
+ * Handles click on the controls hint
+ * @param {Event} event - The click event
+ */
+function handleHintClick(event) {
+    // Show the controls panel
+    showControls();
+    
+    // Hide the hint
+    hideHint();
+    
+    // Prevent default behavior
+    event.preventDefault();
 }
 
 /**
