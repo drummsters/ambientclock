@@ -8,7 +8,6 @@ A customizable ambient clock application with various display styles and backgro
 - Customizable background images from Unsplash and Pexels
 - Background zoom effect to prevent screen burn-in
 - Adjustable clock opacity and position
-- Keyboard shortcuts for quick adjustments
 - Auto-hiding controls panel with logical organization and visual hierarchy
 - Clickable hint message for easy access to controls
 - Settings persistence via localStorage
@@ -60,10 +59,7 @@ The clock can be customized through the controls panel, which is organized into 
 
 ## Keyboard Shortcuts
 
-- `+`/`-`: Adjust background dimness (now also controllable via slider)
 - `Space` or `C`: Show/hide controls panel
-- Arrow keys: Move clock position
-- `Ctrl` + `+`/`-`: Adjust clock size
 
 
 ## Development and Debugging
