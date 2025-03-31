@@ -7,8 +7,12 @@ A customizable ambient clock application with various display styles and backgro
 - Multiple clock faces (Clean, Analog, LED)
 - Customizable background images from Unsplash and Pexels
 - Background zoom effect to prevent screen burn-in
-- Favorites system to save and reuse background images
-- Random inclusion of favorite images in background rotation
+- Robust favorites system to save and reuse background images
+  - Add/remove current background to/from favorites
+  - View and select from saved favorites in a visual grid
+  - Automatic duplicate detection with URL normalization
+  - Random inclusion of favorite images in background rotation (25% chance)
+  - Favorites persistence via localStorage
 - Adjustable clock and date opacity, position, and scale
 - Auto-hiding controls panel with logical organization and visual hierarchy
 - Clickable hint message for easy access to controls

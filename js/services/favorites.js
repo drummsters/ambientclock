@@ -47,6 +47,14 @@ function saveFavorites(favorites) {
 export function addFavorite(imageData) {
     console.log("addFavorite called with data:", imageData);
     
+    if (!imageData || !imageData.url) {
+        console.error("Invalid image data - missing URL");
+        return {
+            success: false,
+            message: 'Invalid image data.'
+        };
+    }
+    
     const favorites = getFavorites();
     console.log("Current favorites count:", favorites.length);
     
@@ -59,8 +67,20 @@ export function addFavorite(imageData) {
         };
     }
     
-    // Check if this image is already a favorite
-    const isAlreadyFavorite = favorites.some(fav => fav.url === imageData.url);
+    // Normalize the URL for comparison
+    const normalizedNewUrl = normalizeUrl(imageData.url);
+    console.log("Adding favorite - Normalized URL:", normalizedNewUrl);
+    
+    // Check if this image is already a favorite (using normalized comparison)
+    const isAlreadyFavorite = favorites.some(fav => {
+        const normalizedFavUrl = normalizeUrl(fav.url);
+        const isMatch = normalizedFavUrl === normalizedNewUrl;
+        if (isMatch) {
+            console.log("Found duplicate favorite:", fav.id);
+        }
+        return isMatch;
+    });
+    
     console.log("Is already a favorite:", isAlreadyFavorite);
     
     if (isAlreadyFavorite) {
@@ -173,6 +193,23 @@ export async function setBackgroundFromFavorite(id) {
 }
 
 /**
+ * Normalizes a URL by removing query parameters that might change
+ * @param {string} url - The URL to normalize
+ * @returns {string} The normalized URL
+ */
+function normalizeUrl(url) {
+    if (!url) return '';
+    
+    try {
+        // Remove common parameters that might change but don't affect the image
+        return url.split('?')[0] || url;
+    } catch (error) {
+        console.error('Error normalizing URL:', error);
+        return url;
+    }
+}
+
+/**
  * Checks if the current background image is a favorite
  * @returns {boolean} True if current image is a favorite
  */
@@ -183,8 +220,24 @@ export function isCurrentImageFavorite() {
     
     if (!currentImageUrl) return false;
     
+    // Normalize the current URL
+    const normalizedCurrentUrl = normalizeUrl(currentImageUrl);
+    console.log("Checking if favorite - Normalized current URL:", normalizedCurrentUrl);
+    
     const favorites = getFavorites();
-    return favorites.some(fav => fav.url === currentImageUrl);
+    
+    // Check if any favorite matches the current URL (using normalized comparison)
+    const isFavorite = favorites.some(fav => {
+        const normalizedFavUrl = normalizeUrl(fav.url);
+        const isMatch = normalizedFavUrl === normalizedCurrentUrl;
+        if (isMatch) {
+            console.log("Found matching favorite:", fav.id);
+        }
+        return isMatch;
+    });
+    
+    console.log("isCurrentImageFavorite result:", isFavorite);
+    return isFavorite;
 }
 
 /**
@@ -198,8 +251,25 @@ export function getCurrentImageFavorite() {
     
     if (!currentImageUrl) return null;
     
+    // Normalize the current URL
+    const normalizedCurrentUrl = normalizeUrl(currentImageUrl);
+    console.log("Getting current image favorite - Normalized URL:", normalizedCurrentUrl);
+    
     const favorites = getFavorites();
-    return favorites.find(fav => fav.url === currentImageUrl) || null;
+    
+    // Find the favorite that matches the current URL (using normalized comparison)
+    const favorite = favorites.find(fav => {
+        const normalizedFavUrl = normalizeUrl(fav.url);
+        return normalizedFavUrl === normalizedCurrentUrl;
+    });
+    
+    if (favorite) {
+        console.log("Found matching favorite:", favorite.id);
+    } else {
+        console.log("No matching favorite found");
+    }
+    
+    return favorite || null;
 }
 
 /**

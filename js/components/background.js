@@ -318,18 +318,22 @@ export function setBackgroundImage(imageUrl) {
     const state = getState();
     const { category, imageSource } = state;
     
+    // Check immediately if this is a favorite
+    const initialIsFavorite = isCurrentImageFavorite();
+    console.log("Initial favorite check for new image:", initialIsFavorite);
+    
     // Always create a new metadata object
     // Determine which category to use
     const categoryToUse = category === 'Custom' ? state.customCategory : category;
     
-    // Create a basic metadata object
+    // Create a basic metadata object with the correct favorite status
     const metadata = {
         url: imageUrl,
         provider: imageSource || 'unsplash',
         category: categoryToUse || 'Nature',
         photographer: 'Unknown',
         photographerUrl: '#',
-        isFavorite: false
+        isFavorite: initialIsFavorite // Set initial favorite status
     };
     
     // Update the state with the new metadata
@@ -337,24 +341,45 @@ export function setBackgroundImage(imageUrl) {
         currentImageMetadata: metadata
     }, false, true);
     
-    // Check if this image is a favorite and update the state
+    // Double-check the favorite status after a delay and update UI
     setTimeout(() => {
-        const isFavorite = isCurrentImageFavorite();
-        
-        // Get the current metadata
-        const state = getState();
-        const metadata = state.currentImageMetadata;
-        
-        // If we have metadata, update the isFavorite flag
-        if (metadata) {
-            updateState({
-                currentImageMetadata: {
-                    ...metadata,
-                    isFavorite: isFavorite
-                }
-            }, false, true);
-        }
-    }, 100); // Small delay to ensure the state is updated
+        // Import directly to ensure we're using the latest version
+        import('../services/favorites.js').then(({ isCurrentImageFavorite }) => {
+            const isFavorite = isCurrentImageFavorite();
+            console.log("Delayed favorite check for image:", isFavorite);
+            
+            // Get the current metadata
+            const state = getState();
+            const metadata = state.currentImageMetadata;
+            
+            // If we have metadata and the favorite status has changed, update it
+            if (metadata && metadata.isFavorite !== isFavorite) {
+                console.log("Updating favorite status from", metadata.isFavorite, "to", isFavorite);
+                
+                import('../state.js').then(({ updateState }) => {
+                    updateState({
+                        currentImageMetadata: {
+                            ...metadata,
+                            isFavorite: isFavorite
+                        }
+                    }, false, true);
+                    
+                    // Also update the UI
+                    import('../components/background-info.js').then(({ updateFavoriteUI }) => {
+                        if (updateFavoriteUI) {
+                            updateFavoriteUI();
+                        }
+                    }).catch(err => {
+                        console.error("Error importing background-info:", err);
+                    });
+                }).catch(err => {
+                    console.error("Error importing state:", err);
+                });
+            }
+        }).catch(err => {
+            console.error("Error importing favorites:", err);
+        });
+    }, 500); // Increased delay to ensure the state is fully updated
 }
 
 /**

@@ -14,7 +14,6 @@ let backgroundInfoContainer;
 let favoriteToggle;
 let favoriteIcon;
 let favoriteText;
-let prevBackgroundButton;
 let nextBackgroundButton;
 
 // Visibility manager for background info
@@ -35,7 +34,6 @@ export function initBackgroundInfo() {
     favoriteToggle = getElement('favorite-toggle');
     favoriteIcon = getElement('favorite-icon');
     favoriteText = getElement('favorite-text');
-    prevBackgroundButton = getElement('prev-background');
     nextBackgroundButton = getElement('next-background');
     
     if (!backgroundInfoContainer) {
@@ -81,7 +79,6 @@ function createBackgroundInfoElements() {
                 <span id="favorite-text">Add to Favorites</span>
             </button>
             <div class="navigation-buttons">
-                <button id="prev-background" class="nav-button" aria-label="Previous background">◀</button>
                 <button id="next-background" class="nav-button" aria-label="Next background">▶</button>
             </div>
         </div>
@@ -246,11 +243,6 @@ function setupEventListeners() {
         addEvent(favoriteToggle, 'click', handleFavoriteToggle);
     }
     
-    // Previous background button
-    if (prevBackgroundButton) {
-        addEvent(prevBackgroundButton, 'click', handlePrevBackground);
-    }
-    
     // Next background button
     if (nextBackgroundButton) {
         addEvent(nextBackgroundButton, 'click', handleNextBackground);
@@ -343,10 +335,33 @@ function handlePrevBackground() {
     // So we'll just fetch a new one
     fetchNewBackground();
     
-    // Update the favorite UI after a short delay to allow the new image to load
+    // Update the favorite UI after a longer delay to ensure the state is fully updated
     setTimeout(() => {
-        updateFavoriteUI();
-    }, 500);
+        // Force a check of the current image's favorite status
+        import('../services/favorites.js').then(({ isCurrentImageFavorite }) => {
+            const isFavorite = isCurrentImageFavorite();
+            console.log("Prev button - checking if current image is favorite:", isFavorite);
+            
+            // Update the state to ensure it's in sync
+            const state = getState();
+            if (state.currentImageMetadata) {
+                import('../state.js').then(({ updateState }) => {
+                    updateState({
+                        currentImageMetadata: {
+                            ...state.currentImageMetadata,
+                            isFavorite: isFavorite
+                        }
+                    }, false, true);
+                    
+                    // Now update the UI
+                    updateFavoriteUI();
+                });
+            } else {
+                // If no metadata, just update the UI
+                updateFavoriteUI();
+            }
+        });
+    }, 1000); // Increased delay to ensure image is loaded and state is updated
 }
 
 /**
@@ -356,10 +371,33 @@ function handleNextBackground() {
     // Fetch a new background
     fetchNewBackground();
     
-    // Update the favorite UI after a short delay to allow the new image to load
+    // Update the favorite UI after a longer delay to ensure the state is fully updated
     setTimeout(() => {
-        updateFavoriteUI();
-    }, 500);
+        // Force a check of the current image's favorite status
+        import('../services/favorites.js').then(({ isCurrentImageFavorite }) => {
+            const isFavorite = isCurrentImageFavorite();
+            console.log("Next button - checking if current image is favorite:", isFavorite);
+            
+            // Update the state to ensure it's in sync
+            const state = getState();
+            if (state.currentImageMetadata) {
+                import('../state.js').then(({ updateState }) => {
+                    updateState({
+                        currentImageMetadata: {
+                            ...state.currentImageMetadata,
+                            isFavorite: isFavorite
+                        }
+                    }, false, true);
+                    
+                    // Now update the UI
+                    updateFavoriteUI();
+                });
+            } else {
+                // If no metadata, just update the UI
+                updateFavoriteUI();
+            }
+        });
+    }, 1000); // Increased delay to ensure image is loaded and state is updated
 }
 
 /**
@@ -388,22 +426,70 @@ function updateBackgroundInfoFromState() {
 /**
  * Updates the favorite button UI based on the current favorite status
  */
-function updateFavoriteUI() {
+export function updateFavoriteUI() {
     if (!favoriteToggle || !favoriteIcon || !favoriteText) {
         return;
     }
     
-    // Force a check of the current image's favorite status
-    const isFavorite = isCurrentImageFavorite();
-    console.log("Updating favorite UI, isFavorite:", isFavorite);
-    
-    if (isFavorite) {
-        favoriteToggle.classList.add('favorited');
-        favoriteText.textContent = 'Remove from Favorites';
-    } else {
-        favoriteToggle.classList.remove('favorited');
-        favoriteText.textContent = 'Add to Favorites';
-    }
+    // Import directly to ensure we're using the latest version
+    import('../services/favorites.js').then(({ isCurrentImageFavorite, getFavorites }) => {
+        // Force a check of the current image's favorite status
+        const isFavorite = isCurrentImageFavorite();
+        console.log("Updating favorite UI, isFavorite:", isFavorite);
+        
+        // Get the current state
+        const state = getState();
+        const currentImageUrl = state.backgroundImageUrl || 
+                              (state.currentImageMetadata && state.currentImageMetadata.url);
+        
+        // Double-check by directly comparing with favorites list
+        const favorites = getFavorites();
+        const isInFavorites = currentImageUrl && favorites.some(fav => fav.url === currentImageUrl);
+        
+        console.log("Double-check favorite status - URL:", currentImageUrl, "In favorites:", isInFavorites);
+        
+        // Use the most accurate status (direct check with favorites list)
+        const finalIsFavorite = isInFavorites;
+        
+        // Update UI based on favorite status
+        if (finalIsFavorite) {
+            favoriteToggle.classList.add('favorited');
+            favoriteText.textContent = 'Remove from Favorites';
+        } else {
+            favoriteToggle.classList.remove('favorited');
+            favoriteText.textContent = 'Add to Favorites';
+        }
+        
+        // If there's a mismatch between state and actual favorites, update the state
+        if (state.currentImageMetadata && state.currentImageMetadata.isFavorite !== finalIsFavorite) {
+            console.log("Fixing mismatch in favorite status - State:", 
+                      state.currentImageMetadata.isFavorite, "Actual:", finalIsFavorite);
+            
+            import('../state.js').then(({ updateState }) => {
+                updateState({
+                    currentImageMetadata: {
+                        ...state.currentImageMetadata,
+                        isFavorite: finalIsFavorite
+                    }
+                }, false, true);
+            }).catch(err => {
+                console.error("Error importing state:", err);
+            });
+        }
+    }).catch(err => {
+        console.error("Error importing favorites:", err);
+        
+        // Fallback to direct function call if import fails
+        const isFavorite = isCurrentImageFavorite();
+        
+        if (isFavorite) {
+            favoriteToggle.classList.add('favorited');
+            favoriteText.textContent = 'Remove from Favorites';
+        } else {
+            favoriteToggle.classList.remove('favorited');
+            favoriteText.textContent = 'Add to Favorites';
+        }
+    });
 }
 
 /**

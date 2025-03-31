@@ -5,6 +5,7 @@
 
 import { getElement, showElement, hideElement, addEvent } from '../utils/dom.js';
 import { getFavorites, getFavoritesCount, removeFavorite, setBackgroundFromFavorite, clearAllFavorites } from '../services/favorites.js';
+import { getState } from '../state.js';
 
 // DOM elements
 let favoritesTab;
@@ -201,12 +202,12 @@ function addFavoritesPanelStyles() {
             background-color: rgba(255, 255, 255, 0.4);
         }
         
-        .remove-button {
-            background-color: rgba(231, 76, 60, 0.7);
+        .favorite-action-button.remove-button {
+            background-color: rgba(255, 0, 0, 0.8) !important;
         }
         
-        .remove-button:hover {
-            background-color: rgba(231, 76, 60, 0.9);
+        .favorite-action-button.remove-button:hover {
+            background-color: rgba(255, 0, 0, 1) !important;
         }
         
         .remove-icon {
@@ -250,8 +251,94 @@ function setupEventListeners() {
  */
 function handleClearFavorites() {
     if (confirm('Are you sure you want to clear all favorites?')) {
-        clearAllFavorites();
-        renderFavorites();
+        // Get the current state
+        const state = getState();
+        const currentImageUrl = state.backgroundImageUrl || 
+                              (state.currentImageMetadata && state.currentImageMetadata.url);
+        
+        // Check if the current background is a favorite before clearing
+        import('../services/favorites.js').then(({ isCurrentImageFavorite, getFavorites }) => {
+            const currentIsFavorite = isCurrentImageFavorite();
+            console.log("Clearing favorites - Current image is favorite:", currentIsFavorite);
+            
+            // Double-check by directly comparing with favorites list
+            const favorites = getFavorites();
+            const isInFavorites = currentImageUrl && favorites.some(fav => fav.url === currentImageUrl);
+            console.log("Double-check - Current image in favorites:", isInFavorites);
+            
+            // Store whether the current image was a favorite
+            const wasAFavorite = currentIsFavorite || isInFavorites;
+            
+            // Clear all favorites
+            clearAllFavorites();
+            renderFavorites();
+            
+            // ALWAYS update the favorite UI after clearing favorites
+            console.log("Updating favorite UI after clearing favorites");
+            
+            // Get the favorite toggle button directly
+            const favoriteToggle = document.getElementById('favorite-toggle');
+            const favoriteText = document.getElementById('favorite-text');
+            
+            if (favoriteToggle && favoriteText) {
+                // If the current image was a favorite, update the UI directly
+                if (wasAFavorite) {
+                    console.log("DIRECT UPDATE: Current image was a favorite, updating UI");
+                    favoriteToggle.classList.remove('favorited');
+                    favoriteText.textContent = 'Add to Favorites';
+                    
+                    // Also update the state
+                    if (state.currentImageMetadata) {
+                        import('../state.js').then(({ updateState }) => {
+                            updateState({
+                                currentImageMetadata: {
+                                    ...state.currentImageMetadata,
+                                    isFavorite: false
+                                }
+                            }, false, true);
+                        }).catch(err => {
+                            console.error("Error importing state:", err);
+                        });
+                    }
+                }
+            }
+            
+            // Also use the standard updateFavoriteUI as a backup
+            import('../components/background-info.js').then(({ updateFavoriteUI }) => {
+                if (updateFavoriteUI) {
+                    // Call updateFavoriteUI multiple times with delays to ensure it updates
+                    updateFavoriteUI();
+                    
+                    // Call again after a short delay
+                    setTimeout(() => {
+                        updateFavoriteUI();
+                    }, 100);
+                    
+                    // And again after a longer delay
+                    setTimeout(() => {
+                        updateFavoriteUI();
+                    }, 500);
+                }
+            }).catch(err => {
+                console.error("Error importing background-info:", err);
+            });
+        }).catch(err => {
+            console.error("Error importing favorites:", err);
+            
+            // If import fails, still clear favorites and update UI
+            clearAllFavorites();
+            renderFavorites();
+            
+            // Get the favorite toggle button directly
+            const favoriteToggle = document.getElementById('favorite-toggle');
+            const favoriteText = document.getElementById('favorite-text');
+            
+            if (favoriteToggle && favoriteText) {
+                // Force UI update to "Add to Favorites" since all favorites are cleared
+                favoriteToggle.classList.remove('favorited');
+                favoriteText.textContent = 'Add to Favorites';
+            }
+        });
     }
 }
 
@@ -321,6 +408,53 @@ async function handleApplyFavorite(id) {
         if (result.success) {
             // Show toast notification
             showToast(result.message);
+            
+            // Force update of the state to ensure isFavorite is set correctly
+            import('../services/favorites.js').then(({ isCurrentImageFavorite }) => {
+                const state = getState();
+                if (state.currentImageMetadata) {
+                    import('../state.js').then(({ updateState }) => {
+                        // Always set isFavorite to true when applying a favorite
+                        updateState({
+                            currentImageMetadata: {
+                                ...state.currentImageMetadata,
+                                isFavorite: true
+                            }
+                        }, false, true);
+                        
+                        // Update the favorite UI in the background-info component
+                        import('../components/background-info.js').then(({ updateFavoriteUI }) => {
+                            if (updateFavoriteUI) {
+                                updateFavoriteUI();
+                            }
+                        }).catch(err => {
+                            console.error("Error importing background-info:", err);
+                        });
+                    }).catch(err => {
+                        console.error("Error importing state:", err);
+                    });
+                } else {
+                    // If no metadata, just update the UI
+                    import('../components/background-info.js').then(({ updateFavoriteUI }) => {
+                        if (updateFavoriteUI) {
+                            updateFavoriteUI();
+                        }
+                    }).catch(err => {
+                        console.error("Error importing background-info:", err);
+                    });
+                }
+            }).catch(err => {
+                console.error("Error importing favorites:", err);
+                
+                // If import fails, still update the UI
+                import('../components/background-info.js').then(({ updateFavoriteUI }) => {
+                    if (updateFavoriteUI) {
+                        updateFavoriteUI();
+                    }
+                }).catch(err => {
+                    console.error("Error importing background-info:", err);
+                });
+            });
         } else {
             console.error("Error applying favorite:", result.message);
             showToast("Error applying favorite");
@@ -337,6 +471,29 @@ async function handleApplyFavorite(id) {
  */
 function handleRemoveFavorite(id) {
     try {
+        // Get the current state to check if the removed favorite is the current background
+        const state = getState();
+        const currentImageUrl = state.backgroundImageUrl || 
+                              (state.currentImageMetadata && state.currentImageMetadata.url);
+        
+        // Get the favorite to be removed to check if it's the current background
+        const favorites = getFavorites();
+        const favoriteToRemove = favorites.find(fav => fav.id === id);
+        
+        if (!favoriteToRemove) {
+            console.error("Favorite not found:", id);
+            showToast("Error removing favorite");
+            return;
+        }
+        
+        // Check if the favorite being removed is the current background
+        const isCurrentBackground = favoriteToRemove && currentImageUrl === favoriteToRemove.url;
+        console.log("Removing favorite - Is current background:", isCurrentBackground);
+        
+        // Store the URL before removing (for direct comparison later)
+        const removedUrl = favoriteToRemove.url;
+        
+        // Remove the favorite
         const result = removeFavorite(id);
         
         if (result.success) {
@@ -345,6 +502,57 @@ function handleRemoveFavorite(id) {
             
             // Show toast notification
             showToast(result.message);
+            
+            // ALWAYS update the favorite UI after removing a favorite
+            // This ensures the UI is updated even if our detection logic fails
+            console.log("Updating favorite UI after removing a favorite");
+            
+            // Get the favorite toggle button directly
+            const favoriteToggle = document.getElementById('favorite-toggle');
+            const favoriteText = document.getElementById('favorite-text');
+            
+            if (favoriteToggle && favoriteText) {
+                // Direct check if the current background URL matches the removed favorite URL
+                if (currentImageUrl === removedUrl) {
+                    console.log("DIRECT MATCH: Current image was the removed favorite");
+                    favoriteToggle.classList.remove('favorited');
+                    favoriteText.textContent = 'Add to Favorites';
+                    
+                    // Also update the state
+                    if (state.currentImageMetadata) {
+                        import('../state.js').then(({ updateState }) => {
+                            updateState({
+                                currentImageMetadata: {
+                                    ...state.currentImageMetadata,
+                                    isFavorite: false
+                                }
+                            }, false, true);
+                        }).catch(err => {
+                            console.error("Error importing state:", err);
+                        });
+                    }
+                }
+            }
+            
+            // Also use the standard updateFavoriteUI as a backup
+            import('../components/background-info.js').then(({ updateFavoriteUI }) => {
+                if (updateFavoriteUI) {
+                    // Call updateFavoriteUI multiple times with delays to ensure it updates
+                    updateFavoriteUI();
+                    
+                    // Call again after a short delay
+                    setTimeout(() => {
+                        updateFavoriteUI();
+                    }, 100);
+                    
+                    // And again after a longer delay
+                    setTimeout(() => {
+                        updateFavoriteUI();
+                    }, 500);
+                }
+            }).catch(err => {
+                console.error("Error importing background-info:", err);
+            });
         } else {
             console.error("Error removing favorite:", result.message);
             showToast("Error removing favorite");
