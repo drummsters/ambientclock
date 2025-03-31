@@ -4,6 +4,8 @@
  */
 
 import { toggleControls } from '../components/controls.js';
+import { fetchNewBackground } from '../components/background.js';
+import { toggleCurrentImageFavorite } from '../services/favorites.js';
 
 /**
  * Initializes the keyboard feature
@@ -36,6 +38,24 @@ function handleKeyDown(event) {
         case 'C': // C key
             event.preventDefault(); // Prevent default browser actions
             toggleControls();
+            break;
+            
+        case 'n':
+        case 'N': // N key for Next background
+            event.preventDefault();
+            fetchNewBackground();
+            break;
+            
+        case 'f':
+        case 'F': // F key for Favorite toggle
+            event.preventDefault();
+            toggleCurrentImageFavorite()
+                .then(result => {
+                    console.log(result.message);
+                })
+                .catch(error => {
+                    console.error("Error toggling favorite:", error);
+                });
             break;
     }
 }

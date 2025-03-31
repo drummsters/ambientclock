@@ -63,7 +63,7 @@ const subscribers = [];
 
 // Debounce timer for saving to localStorage
 let saveSettingsTimeoutId = null;
-const SAVE_SETTINGS_DELAY = 5000; // 5 seconds
+const SAVE_SETTINGS_DELAY = 1000; // Reduced from 5000ms to 1000ms (1 second) to ensure settings are saved more quickly
 
 /**
  * Updates the state and notifies subscribers
@@ -200,12 +200,25 @@ export function getState() {
     // Return a flattened copy of the state for backward compatibility
     const flatState = {};
     
-    // Add all properties from each section
-    Object.entries(state).forEach(([section, sectionState]) => {
-        Object.entries(sectionState).forEach(([key, value]) => {
+    // First, copy all top-level properties
+    Object.entries(state).forEach(([key, value]) => {
+        // Skip nested objects, we'll handle those separately
+        if (key !== 'background' && key !== 'global' && key !== 'clock' && key !== 'date' && typeof value !== 'object') {
             flatState[key] = value;
-        });
+        }
     });
+    
+    // Then add all properties from each section
+    Object.entries(state).forEach(([section, sectionState]) => {
+        // Only process if sectionState is an object
+        if (sectionState && typeof sectionState === 'object') {
+            Object.entries(sectionState).forEach(([key, value]) => {
+                flatState[key] = value;
+            });
+        }
+    });
+    
+    // Removed console.log statements to reduce console spam
     
     return flatState;
 }
@@ -263,19 +276,38 @@ function saveSettings() {
  */
 export function loadSettings() {
     try {
+        console.log("Loading settings from localStorage...");
         const savedSettings = localStorage.getItem(STORAGE_KEY);
-        if (savedSettings) {
+        
+        if (!savedSettings) {
+            console.log("No saved settings found, using defaults");
+            return; // Use default state
+        }
+        
+        try {
             let parsedSettings = JSON.parse(savedSettings);
+            console.log("Successfully parsed settings from localStorage");
+            
+            // Validate the parsed settings to ensure it's a valid object
+            if (!parsedSettings || typeof parsedSettings !== 'object') {
+                console.error("Invalid settings format, using defaults");
+                return; // Use default state
+            }
             
             // Check if the saved settings use the new structure
             if (!parsedSettings.background && !parsedSettings.global && !parsedSettings.clock && !parsedSettings.date) {
-                // Convert old flat structure to new nested structure
+                console.log("Converting old flat structure to new nested structure");
                 parsedSettings = convertFlatToNested(parsedSettings);
             }
             
+            // Ensure all required sections exist
+            if (!parsedSettings.background) parsedSettings.background = JSON.parse(JSON.stringify(defaultState.background));
+            if (!parsedSettings.global) parsedSettings.global = JSON.parse(JSON.stringify(defaultState.global));
+            if (!parsedSettings.clock) parsedSettings.clock = JSON.parse(JSON.stringify(defaultState.clock));
+            if (!parsedSettings.date) parsedSettings.date = JSON.parse(JSON.stringify(defaultState.date));
+            
             // Check if date position is valid (within viewport)
-            if (parsedSettings.date && 
-                parsedSettings.date.dateCustomPositionX !== undefined && 
+            if (parsedSettings.date.dateCustomPositionX !== undefined && 
                 parsedSettings.date.dateCustomPositionY !== undefined) {
                 
                 if (parsedSettings.date.dateCustomPositionX > 100 || parsedSettings.date.dateCustomPositionY > 100 || 
@@ -293,33 +325,49 @@ export function loadSettings() {
                 parsedSettings.datePositionIndex = parsedSettings.date.datePositionIndex || 0;
             }
             
+            // Ensure clock settings are valid
+            if (parsedSettings.clock.scale !== undefined) {
+                // Ensure scale is within valid range
+                const MIN_SCALE = 0.01; // Match the value in config.js
+                const MAX_SCALE = 3.0;  // Match the value in config.js
+                
+                if (parsedSettings.clock.scale < MIN_SCALE || parsedSettings.clock.scale > MAX_SCALE) {
+                    console.log(`Invalid clock scale (${parsedSettings.clock.scale}), resetting to default`);
+                    parsedSettings.clock.scale = defaultState.clock.scale;
+                    parsedSettings.scale = defaultState.clock.scale; // Also update root state
+                }
+            }
+            
             // Ensure date opacity is consistent between date and root state
-            if (parsedSettings.date && parsedSettings.date.dateOpacity !== undefined) {
+            if (parsedSettings.date.dateOpacity !== undefined) {
                 parsedSettings.dateOpacity = parsedSettings.date.dateOpacity;
             } else if (parsedSettings.dateOpacity !== undefined) {
-                if (!parsedSettings.date) {
-                    parsedSettings.date = {};
-                }
                 parsedSettings.date.dateOpacity = parsedSettings.dateOpacity;
             }
             
             // Ensure showSeconds is consistent between global and root state
-            if (parsedSettings.global && parsedSettings.global.showSeconds !== undefined) {
+            if (parsedSettings.global.showSeconds !== undefined) {
                 parsedSettings.showSeconds = parsedSettings.global.showSeconds;
             } else if (parsedSettings.showSeconds !== undefined) {
-                if (!parsedSettings.global) {
-                    parsedSettings.global = {};
-                }
                 parsedSettings.global.showSeconds = parsedSettings.showSeconds;
             }
             
             // Update state with saved settings but don't save back to localStorage
             state = parsedSettings;
             
-            console.log("Settings loaded from localStorage");
+            // Force an immediate save to ensure the settings are properly formatted
+            saveSettings();
+            
+            console.log("Settings successfully loaded from localStorage");
+        } catch (parseError) {
+            console.error("Error parsing settings JSON:", parseError);
+            console.log("Using default settings");
+            // Don't modify the state, use defaults
         }
     } catch (error) {
         console.error("Failed to load settings from localStorage:", error);
+        console.log("Using default settings");
+        // Don't modify the state, use defaults
     }
 }
 

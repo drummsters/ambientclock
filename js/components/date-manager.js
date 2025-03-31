@@ -76,23 +76,16 @@ function initDateContainer() {
     // Set position based on state
     if (datePositionIndex === CUSTOM_POSITION_INDEX && 
         dateCustomPositionX !== undefined && dateCustomPositionY !== undefined) {
-        // Convert percentage to pixels for absolute positioning
-        const left = (window.innerWidth * dateCustomPositionX / 100);
-        const top = (window.innerHeight * dateCustomPositionY / 100);
-        
-        // Apply position directly without any centering adjustments
-        dateContainer.style.left = `${left}px`;
-        dateContainer.style.top = `${top}px`;
+        // Apply position using percentages directly for responsive positioning
+        dateContainer.style.left = `${dateCustomPositionX}%`;
+        dateContainer.style.top = `${dateCustomPositionY}%`;
         
         console.log(`Applied custom date position: ${dateCustomPositionX}%, ${dateCustomPositionY}%`);
     } else {
         // Default position in the center of the screen
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight * 0.6; // 60% from top
-        
-        // Apply default position
-        dateContainer.style.left = `${centerX}px`;
-        dateContainer.style.top = `${centerY}px`;
+        // Apply default position using percentages
+        dateContainer.style.left = `50%`;
+        dateContainer.style.top = `60%`;
         
         // Update state with default position
         updateState({
@@ -309,13 +302,9 @@ function handleStateChange(state) {
     if ((state.dateCustomPositionX !== getState().dateCustomPositionX || 
          state.dateCustomPositionY !== getState().dateCustomPositionY) && 
         dateContainer) {
-        // Convert percentage to pixels for absolute positioning
-        const left = (window.innerWidth * state.dateCustomPositionX / 100);
-        const top = (window.innerHeight * state.dateCustomPositionY / 100);
-        
-        // Apply position
-        dateContainer.style.left = `${left}px`;
-        dateContainer.style.top = `${top}px`;
+        // Apply position using percentages directly for responsive positioning
+        dateContainer.style.left = `${state.dateCustomPositionX}%`;
+        dateContainer.style.top = `${state.dateCustomPositionY}%`;
         console.log(`Updated date position to: ${state.dateCustomPositionX}%, ${state.dateCustomPositionY}%`);
         
         // Ensure position is in both state structures
@@ -392,13 +381,9 @@ export function updateDateDisplay() {
         // Apply position
         if (datePositionIndex === CUSTOM_POSITION_INDEX && 
             dateCustomPositionX !== undefined && dateCustomPositionY !== undefined) {
-            // Convert percentage to pixels for absolute positioning
-            const left = (window.innerWidth * dateCustomPositionX / 100);
-            const top = (window.innerHeight * dateCustomPositionY / 100);
-            
-            // Apply position directly without any centering adjustments
-            dateContainer.style.left = `${left}px`;
-            dateContainer.style.top = `${top}px`;
+            // Apply position using percentages directly for responsive positioning
+            dateContainer.style.left = `${dateCustomPositionX}%`;
+            dateContainer.style.top = `${dateCustomPositionY}%`;
             console.log(`Applied date position in updateDateDisplay: ${dateCustomPositionX}%, ${dateCustomPositionY}%`);
         } else if (datePositionIndex !== CUSTOM_POSITION_INDEX) {
             // Check if date position is valid (within viewport)
@@ -407,13 +392,9 @@ export function updateDateDisplay() {
                 // Reset to default position
                 resetDatePosition();
             } else {
-                // Convert percentage to pixels for absolute positioning
-                const left = (window.innerWidth * dateCustomPositionX / 100);
-                const top = (window.innerHeight * dateCustomPositionY / 100);
-                
-                // Apply position directly without any centering adjustments
-                dateContainer.style.left = `${left}px`;
-                dateContainer.style.top = `${top}px`;
+                // Apply position using percentages directly for responsive positioning
+                dateContainer.style.left = `${dateCustomPositionX}%`;
+                dateContainer.style.top = `${dateCustomPositionY}%`;
             }
         }
     }
@@ -441,13 +422,9 @@ export function resetDatePosition() {
         }
     }, true); // Save immediately, don't skip notifying subscribers
     
-    // Apply the default position
-    const left = (window.innerWidth * defaultX / 100);
-    const top = (window.innerHeight * defaultY / 100);
-    
-    // Apply position directly without any centering adjustments
-    dateContainer.style.left = `${left}px`;
-    dateContainer.style.top = `${top}px`;
+    // Apply the default position using percentages directly for responsive positioning
+    dateContainer.style.left = `${defaultX}%`;
+    dateContainer.style.top = `${defaultY}%`;
     
     // Apply transform to ensure proper positioning
     applyDateTransform();

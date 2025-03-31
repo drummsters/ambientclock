@@ -7,6 +7,10 @@ import { UNSPLASH_ACCESS_KEY } from '../config.js';
 // Debug mode flag - set to false to disable verbose logging
 const DEBUG = false;
 
+// Cache for storing multiple images
+let imageCache = [];
+let currentCategory = null;
+
 /**
  * Conditional logger that only logs when DEBUG is true
  * @param {...any} args - Arguments to log
@@ -90,11 +94,11 @@ export function getRateLimitStatus() {
 }
 
 /**
- * Fetches a random image from Unsplash based on a category
- * @param {string} category - The category or search term for the image
- * @returns {Promise<string>} A promise that resolves to the image URL
+ * Fetches a batch of images from Unsplash and stores them in the cache
+ * @param {string} category - The category or search term for the images
+ * @returns {Promise<Array>} A promise that resolves to an array of image data objects
  */
-export async function fetchRandomImage(category) {
+export async function fetchImageBatch(category) {
     // Check if API key is set
     if (!UNSPLASH_ACCESS_KEY || UNSPLASH_ACCESS_KEY === 'YOUR_UNSPLASH_ACCESS_KEY') {
         console.warn("Unsplash Access Key not set. Cannot fetch images.");
@@ -119,13 +123,15 @@ export async function fetchRandomImage(category) {
         processedCategory = encodeURIComponent(processedCategory);
     }
 
-    const url = `https://api.unsplash.com/photos/random?query=${processedCategory}&orientation=landscape&client_id=${UNSPLASH_ACCESS_KEY}`;
+    // Use the count parameter to get multiple images at once (up to 10)
+    const url = `https://api.unsplash.com/photos/random?query=${processedCategory}&orientation=landscape&count=10&client_id=${UNSPLASH_ACCESS_KEY}`;
     
     // Log the API request details
-    debugLog("Unsplash API Request:");
+    debugLog("Unsplash API Batch Request:");
     debugLog("- Original Category:", category);
     debugLog("- Processed Category:", processedCategory);
     debugLog("- Full URL:", url);
+    debugLog("- Requesting 10 images at once");
 
     try {
         debugLog("Sending API request to Unsplash...");
@@ -161,6 +167,7 @@ export async function fetchRandomImage(category) {
         console.log("Unsplash API Rate Limits:");
         console.log("- Limit:", rateLimit.limit, "requests per hour");
         console.log("- Remaining:", rateLimit.remaining, "requests");
+        console.log("- Batch size: 10 images (1 API call)");
         
         // Store rate limit information in localStorage for tracking
         try {
@@ -182,25 +189,88 @@ export async function fetchRandomImage(category) {
         // Log the API response details
         debugLog("Unsplash API Response:");
         debugLog("- Response Status:", response.status);
-        debugLog("- Image ID:", data.id);
-        debugLog("- Image Description:", data.description || data.alt_description || "No description");
-        debugLog("- Image URLs:", data.urls);
+        debugLog("- Images received:", data.length);
 
-        if (data.urls && data.urls.regular) {
+        // Process each image in the response
+        const processedImages = data.map(image => {
             // Modify the URL to use the window's inner width for better quality
-            const imageUrl = data.urls.regular.replace(/\&w.+/g, `&w=${window.innerWidth}`);
+            const imageUrl = image.urls.regular.replace(/\&w.+/g, `&w=${window.innerWidth}`);
+            
             // Keep attribution in regular console for legal compliance
-            console.log(`Photo by ${data.user.name} on Unsplash: ${data.links.html}`); // Attribution
-            debugLog("- Selected Image URL:", imageUrl);
-            return imageUrl;
-        } else {
-            console.error("No image URL found in Unsplash response:", data);
-            throw new Error("No image URL in response");
-        }
+            console.log(`Photo by ${image.user.name} on Unsplash: ${image.links.html}`); // Attribution
+            
+            // Return an object with all the image data we need
+            return {
+                url: imageUrl,
+                id: image.id,
+                description: image.description || image.alt_description || "No description",
+                photographer: image.user.name,
+                photographerUrl: image.user.links.html,
+                provider: 'unsplash',
+                category: category,
+                originalUrl: image.links.html
+            };
+        });
+        
+        // Store the processed images in the cache
+        imageCache = processedImages;
+        currentCategory = category;
+        
+        debugLog(`Cached ${imageCache.length} images for category "${category}"`);
+        
+        return processedImages;
     } catch (error) {
-        console.error("Failed to fetch or process background:", error);
+        console.error("Failed to fetch or process background batch:", error);
         throw error;
     }
+}
+
+/**
+ * Fetches a random image from Unsplash based on a category
+ * @param {string} category - The category or search term for the image
+ * @returns {Promise<string>} A promise that resolves to the image URL
+ */
+export async function fetchRandomImage(category) {
+    // If category changed or cache is empty, fetch new batch
+    if (category !== currentCategory || imageCache.length === 0) {
+        debugLog(`Fetching new image batch for category "${category}"`);
+        await fetchImageBatch(category);
+    }
+    
+    // If we still have no images in the cache, something went wrong
+    if (imageCache.length === 0) {
+        throw new Error("No images available in cache");
+    }
+    
+    // Get a random image from the cache
+    const randomIndex = Math.floor(Math.random() * imageCache.length);
+    const imageData = imageCache[randomIndex];
+    
+    // Remove the used image from the cache
+    imageCache.splice(randomIndex, 1);
+    
+    debugLog(`Using cached image ${randomIndex + 1}/${imageCache.length + 1} for category "${category}"`);
+    debugLog(`${imageCache.length} images remaining in cache`);
+    
+    // Update state with the current image metadata
+    import('../state.js').then(({ updateState }) => {
+        const metadata = {
+            url: imageData.url,
+            provider: 'unsplash',
+            category: category,
+            photographer: imageData.photographer,
+            photographerUrl: imageData.photographerUrl,
+            isFavorite: false // Will be updated by background-info component
+        };
+        
+        console.log("Setting currentImageMetadata in state:", metadata);
+        
+        updateState({
+            currentImageMetadata: metadata
+        }, false, true);
+    });
+    
+    return imageData.url;
 }
 
 /**

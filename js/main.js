@@ -4,14 +4,17 @@
  */
 
 // Import state management
-import { initState, getState } from './state.js';
+import { initState, getState, updateState } from './state.js';
+import { DEFAULT_IMAGE_SOURCE } from './config.js';
 
 // Import components
 import { initBackground } from './components/background.js';
 import { initElements } from './components/element-manager.js';
-import { initControls } from './components/controls.js';
+import { initControls } from './components/controls/index.js';
 import { initDonate } from './components/donate.js';
 import { initControlsHint } from './components/controls-hint.js';
+import { initBackgroundInfo } from './components/background-info.js';
+import { initFavoritesPanel } from './components/favorites-panel.js';
 
 // Import features
 import { initEffects } from './features/effects.js';
@@ -33,12 +36,26 @@ function initApp() {
         // Initialize state first
         initState();
         
+        // Set default image source from config if not already set
+        const state = getState();
+        if (!state.imageSource) {
+            updateState({
+                imageSource: DEFAULT_IMAGE_SOURCE,
+                background: {
+                    imageSource: DEFAULT_IMAGE_SOURCE
+                }
+            }, false, true);
+            console.log(`Set default image source to: ${DEFAULT_IMAGE_SOURCE}`);
+        }
+        
         // Initialize components
         initBackground();
         initElements(); // Initialize all elements (clocks and date display)
         initControls();
         initDonate();
         initControlsHint();
+        initBackgroundInfo();
+        initFavoritesPanel();
         
         // Initialize features
         initEffects();

@@ -7,7 +7,9 @@ A customizable ambient clock application with various display styles and backgro
 - Multiple clock faces (Clean, Analog, LED)
 - Customizable background images from Unsplash and Pexels
 - Background zoom effect to prevent screen burn-in
-- Adjustable clock opacity and position
+- Favorites system to save and reuse background images
+- Random inclusion of favorite images in background rotation
+- Adjustable clock and date opacity, position, and scale
 - Auto-hiding controls panel with logical organization and visual hierarchy
 - Clickable hint message for easy access to controls
 - Settings persistence via localStorage
@@ -36,12 +38,14 @@ The clock can be customized through the controls panel, which is organized into 
 - **Clock Font**: Select from various font options
 - **Bold**: Toggle bold text style
 - **Clock Color**: Choose color for the clock (for Clean clock face)
+- **Clock Size**: Adjust the scale of the clock display (0.08x to 3.0x)
 - **Clock Opacity**: Adjust transparency of the clock face
 
 **Date Section:**
 - **Display Date**: Toggle date display on/off
 - **Date Format**: Choose from various date formats
 - **Date Color**: Select color for the date display
+- **Date Size**: Adjust the scale of the date display (0.08x to 3.0x)
 - **Date Opacity**: Adjust transparency of the date display
 
 **Background Section:**
@@ -50,6 +54,10 @@ The clock can be customized through the controls panel, which is organized into 
 - **Opacity**: Control the opacity of the background overlay
 - **Zoom Effect**: Toggle the slow zoom effect to prevent screen burn-in
 - **Next Background**: Manually trigger a new background image
+- **Favorites**: Save and manage favorite background images
+  - Add current background to favorites
+  - View and select from saved favorites
+  - Favorites are randomly included in background rotation
 
 **Effects Section:**
 - **Style**: Select visual effects (Flat, Raised, Reflected)
@@ -60,7 +68,77 @@ The clock can be customized through the controls panel, which is organized into 
 ## Keyboard Shortcuts
 
 - `Space` or `C`: Show/hide controls panel
+- `N`: Load next background image
+- `F`: Toggle current image as favorite
 
+## Project Structure
+
+The application follows a modular architecture for better maintainability and separation of concerns:
+
+### Core Components
+
+- **main.js**: Application entry point and initialization
+- **state.js**: State management with pub/sub pattern for reactive updates
+- **config.js**: Configuration settings and constants
+
+### UI Components
+
+- **components/**: UI components organized by functionality
+  - **clock/**: Clock face implementations (Clean, Analog, LED)
+  - **controls/**: Modular control panel implementation
+    - **index.js**: Main coordinator for all control modules
+    - **clock-controls.js**: Clock-specific controls
+    - **date-controls.js**: Date-specific controls
+    - **background-controls.js**: Background-specific controls
+    - **global-controls.js**: Global settings controls
+    - **visibility-controls.js**: Controls panel visibility management
+  - **background.js**: Background image management
+  - **date-display.js**: Date display component
+  - **donate.js**: Donation widget component
+  - **element-manager.js**: Base class for UI element management
+  - **element.js**: Generic UI element component
+
+### Features
+
+- **features/**: Cross-cutting features and behaviors
+  - **drag.js**: Drag functionality for UI elements
+  - **effects.js**: Visual effects implementation
+  - **element-drag.js**: Element-specific drag behavior
+  - **element-position.js**: Element positioning and sizing
+  - **keyboard.js**: Keyboard shortcuts
+  - **position.js**: Position management utilities
+
+### Services
+
+- **services/**: External service integrations
+  - **favorites.js**: Favorites management
+  - **pexels.js**: Pexels API integration
+  - **unsplash.js**: Unsplash API integration
+
+### Utilities
+
+- **utils/**: Utility functions and helpers
+  - **debug.js**: Debugging utilities
+  - **dom.js**: DOM manipulation helpers
+  - **time.js**: Time formatting and management
+  - **visibility.js**: Element visibility management
+  - **wheel.js**: Mouse wheel event handling
+
+## Size/Scale Controls
+
+The application provides precise control over the size of both the clock and date displays:
+
+- **Clock Size Slider**: Located in the Clock section of the controls panel
+  - Range: 0.08x to 3.0x (8% to 300% of original size)
+  - Step: 0.05 (5% increments)
+  - Default: 1.4x (140% of original size)
+
+- **Date Size Slider**: Located in the Date section of the controls panel
+  - Range: 0.08x to 3.0x (8% to 300% of original size)
+  - Step: 0.05 (5% increments)
+  - Default: 1.0x (100% of original size)
+
+These sliders allow users to fine-tune the appearance of the clock and date displays to match their preferences and screen size.
 
 ## Development and Debugging
 

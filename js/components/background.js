@@ -8,6 +8,7 @@ import * as unsplashService from '../services/unsplash.js';
 import * as pexelsService from '../services/pexels.js';
 import { getElement, updateStyle } from '../utils/dom.js';
 import { BACKGROUND_CYCLE_INTERVAL, DEFAULT_ZOOM_ENABLED, ZOOM_ANIMATION_DURATION } from '../config.js';
+import { isCurrentImageFavorite } from '../services/favorites.js';
 
 // DOM elements
 let backgroundContainer;
@@ -80,8 +81,8 @@ export function initBackground() {
     // Apply zoom effect based on state
     updateZoomEffect(zoomEnabled);
     
-    // Start background cycling if needed, but don't force a new image on page load
-    startBackgroundCycling(true, false);
+    // Start background cycling and force a new image on page load
+    startBackgroundCycling(true, true);
 }
 
 /**
@@ -312,6 +313,48 @@ export function setBackgroundImage(imageUrl) {
     
     // Store the image URL in the state for caching
     updateState({ backgroundImageUrl: imageUrl });
+    
+    // Get the current state
+    const state = getState();
+    const { category, imageSource } = state;
+    
+    // Always create a new metadata object
+    // Determine which category to use
+    const categoryToUse = category === 'Custom' ? state.customCategory : category;
+    
+    // Create a basic metadata object
+    const metadata = {
+        url: imageUrl,
+        provider: imageSource || 'unsplash',
+        category: categoryToUse || 'Nature',
+        photographer: 'Unknown',
+        photographerUrl: '#',
+        isFavorite: false
+    };
+    
+    // Update the state with the new metadata
+    updateState({
+        currentImageMetadata: metadata
+    }, false, true);
+    
+    // Check if this image is a favorite and update the state
+    setTimeout(() => {
+        const isFavorite = isCurrentImageFavorite();
+        
+        // Get the current metadata
+        const state = getState();
+        const metadata = state.currentImageMetadata;
+        
+        // If we have metadata, update the isFavorite flag
+        if (metadata) {
+            updateState({
+                currentImageMetadata: {
+                    ...metadata,
+                    isFavorite: isFavorite
+                }
+            }, false, true);
+        }
+    }, 100); // Small delay to ensure the state is updated
 }
 
 /**
@@ -330,10 +373,77 @@ function getImageService() {
 }
 
 /**
+ * Modifies the image cache to include favorites
+ * @param {Array} imageCache - The current image cache
+ * @returns {Promise<Array>} The modified image cache with favorites included
+ */
+async function injectFavoritesIntoCache(imageCache) {
+    try {
+        // Import the favorites service
+        const favoritesService = await import('../services/favorites.js');
+        const favorites = favoritesService.getFavorites();
+        
+        // Only proceed if we have favorites
+        if (favorites && favorites.length > 0) {
+            debugLog(`Injecting favorites into image cache (${favorites.length} favorites available)`);
+            
+            // Create a copy of the image cache
+            const modifiedCache = [...imageCache];
+            
+            // Determine how many favorites to inject (about 30% of the cache size)
+            const numFavoritesToInject = Math.min(Math.ceil(modifiedCache.length * 0.3), favorites.length);
+            
+            // Randomly select favorites to inject
+            const selectedFavorites = [];
+            const favoritesCopy = [...favorites];
+            
+            for (let i = 0; i < numFavoritesToInject; i++) {
+                if (favoritesCopy.length === 0) break;
+                
+                const randomIndex = Math.floor(Math.random() * favoritesCopy.length);
+                selectedFavorites.push(favoritesCopy[randomIndex]);
+                favoritesCopy.splice(randomIndex, 1);
+            }
+            
+            // Inject the selected favorites at random positions in the cache
+            for (const favorite of selectedFavorites) {
+                const position = Math.floor(Math.random() * (modifiedCache.length + 1));
+                
+                // Create an image data object compatible with the cache format
+                const favoriteImageData = {
+                    url: favorite.url,
+                    id: favorite.id,
+                    description: "Favorite image",
+                    photographer: favorite.photographer || "Unknown",
+                    photographerUrl: favorite.photographerUrl || "#",
+                    provider: favorite.provider || "favorite",
+                    category: favorite.category || "Favorite",
+                    isFavorite: true
+                };
+                
+                modifiedCache.splice(position, 0, favoriteImageData);
+            }
+            
+            debugLog(`Injected ${selectedFavorites.length} favorites into the image cache`);
+            return modifiedCache;
+        }
+        
+        // If no favorites, return the original cache
+        return imageCache;
+    } catch (error) {
+        console.error('Error injecting favorites into cache:', error);
+        // Return the original cache if there's an error
+        return imageCache;
+    }
+}
+
+/**
  * Fetches a new background image
  */
 export async function fetchNewBackground() {
     const { category, customCategory, imageSource } = getState();
+    
+    debugLog(`Fetching new background with category: ${category} and image source: ${imageSource}`);
     
     // Handle "None" category specially
     if (category === 'None') {
@@ -348,6 +458,61 @@ export async function fetchNewBackground() {
     if (!categoryToUse) {
         console.warn("No category selected for background");
         return;
+    }
+    
+    // Randomly show a favorite image (25% chance)
+    // Only if we have favorites saved
+    const showFavorite = Math.random() < 0.25;
+    
+    if (showFavorite) {
+        try {
+            // Import the favorites service
+            const favoritesService = await import('../services/favorites.js');
+            const favorites = favoritesService.getFavorites();
+            
+            // Only proceed if we have favorites
+            if (favorites && favorites.length > 0) {
+                debugLog(`Showing a random favorite image (${favorites.length} favorites available)`);
+                
+                // Pick a random favorite
+                const randomIndex = Math.floor(Math.random() * favorites.length);
+                const randomFavorite = favorites[randomIndex];
+                
+                // Preload the image
+                debugLog(`Preloading favorite image from URL: ${randomFavorite.url}`);
+                await import('../services/unsplash.js').then(module => module.preloadImage(randomFavorite.url));
+                
+                // Set as background
+                debugLog(`Setting background image to favorite: ${randomFavorite.url}`);
+                
+                // Update state with the favorite metadata
+                const metadata = {
+                    url: randomFavorite.url,
+                    provider: randomFavorite.provider || 'favorite',
+                    category: randomFavorite.category || 'Favorite',
+                    photographer: randomFavorite.photographer || 'Unknown',
+                    photographerUrl: randomFavorite.photographerUrl || '#',
+                    isFavorite: true
+                };
+                
+                // Set the background image with the favorite
+                updateStyle(backgroundContainer, {
+                    backgroundImage: `url(${randomFavorite.url})`
+                });
+                
+                // Store the image URL in the state for caching
+                updateState({ 
+                    backgroundImageUrl: randomFavorite.url,
+                    currentImageMetadata: metadata
+                });
+                
+                debugLog(`Favorite background image set successfully`);
+                return; // Exit early since we've set a favorite as the background
+            }
+        } catch (error) {
+            console.error('Error showing random favorite:', error);
+            // Continue with normal image fetching if there's an error
+        }
     }
     
     // Get the appropriate image service

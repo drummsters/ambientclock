@@ -7,6 +7,10 @@ import { PEXELS_API_KEY } from '../config.js';
 // Debug mode flag - set to false to disable verbose logging
 const DEBUG = false;
 
+// Cache for storing multiple images
+let imageCache = [];
+let currentCategory = null;
+
 /**
  * Conditional logger that only logs when DEBUG is true
  * @param {...any} args - Arguments to log
@@ -53,11 +57,11 @@ function checkRateLimit() {
 }
 
 /**
- * Fetches a random image from Pexels based on a category
- * @param {string} category - The category or search term for the image
- * @returns {Promise<string>} A promise that resolves to the image URL
+ * Fetches a batch of images from Pexels and stores them in the cache
+ * @param {string} category - The category or search term for the images
+ * @returns {Promise<Array>} A promise that resolves to an array of image data objects
  */
-export async function fetchRandomImage(category) {
+export async function fetchImageBatch(category) {
     // Check if API key is set
     if (!PEXELS_API_KEY || PEXELS_API_KEY === 'YOUR_PEXELS_API_KEY') {
         console.warn("Pexels API Key not set. Cannot fetch images.");
@@ -83,13 +87,15 @@ export async function fetchRandomImage(category) {
     }
 
     // Pexels API requires a different endpoint for search
+    // We're already fetching 10 images at once
     const url = `https://api.pexels.com/v1/search?query=${processedCategory}&orientation=landscape&per_page=10`;
     
     // Log the API request details
-    debugLog("Pexels API Request:");
+    debugLog("Pexels API Batch Request:");
     debugLog("- Original Category:", category);
     debugLog("- Processed Category:", processedCategory);
     debugLog("- Full URL:", url);
+    debugLog("- Requesting 10 images at once");
 
     try {
         debugLog("Sending API request to Pexels...");
@@ -132,6 +138,7 @@ export async function fetchRandomImage(category) {
         console.log("- Limit:", rateLimit.limit, "requests per hour");
         console.log("- Remaining:", rateLimit.remaining, "requests");
         console.log("- Reset in:", rateLimit.reset, "seconds");
+        console.log("- Batch size: 10 images (1 API call)");
         
         // Store rate limit information in localStorage for tracking
         try {
@@ -154,33 +161,94 @@ export async function fetchRandomImage(category) {
         debugLog("Pexels API Response:");
         debugLog("- Response Status:", response.status);
         debugLog("- Total Results:", data.total_results);
+        debugLog("- Images received:", data.photos ? data.photos.length : 0);
         
         // Check if we have photos in the response
         if (data.photos && data.photos.length > 0) {
-            // Select a random photo from the results
-            const randomIndex = Math.floor(Math.random() * data.photos.length);
-            const photo = data.photos[randomIndex];
+            // Process each image in the response
+            const processedImages = data.photos.map(photo => {
+                // Pexels provides multiple image sizes, we'll use the large one with improved quality
+                const imageUrl = photo.src.large.replace(/\&w.+/g, '').replace(/\&h.+/g, `&h${window.innerWidth}`);
+                
+                // Keep attribution in regular console for legal compliance
+                console.log(`Photo by ${photo.photographer} on Pexels: ${photo.url}`); // Attribution
+                
+                // Return an object with all the image data we need
+                return {
+                    url: imageUrl,
+                    id: photo.id.toString(),
+                    description: photo.alt || "No description",
+                    photographer: photo.photographer,
+                    photographerUrl: photo.photographer_url,
+                    provider: 'pexels',
+                    category: category,
+                    originalUrl: photo.url
+                };
+            });
             
-            debugLog("- Image ID:", photo.id);
-            debugLog("- Photographer:", photo.photographer);
-            debugLog("- Image URLs:", photo.src);
-            debugLog("- Selected Index:", randomIndex, "of", data.photos.length);
+            // Store the processed images in the cache
+            imageCache = processedImages;
+            currentCategory = category;
             
-            // Pexels provides multiple image sizes, we'll use the large one with improved quality
-            const imageUrl = photo.src.large.replace(/\&w.+/g, '').replace(/\&h.+/g, `&h${window.innerWidth}`);
-            debugLog("- Selected Image URL:", imageUrl);
-            // Keep attribution in regular console for legal compliance
-            console.log(`Photo by ${photo.photographer} on Pexels: ${photo.url}`); // Attribution
+            debugLog(`Cached ${imageCache.length} images for category "${category}"`);
             
-            return imageUrl;
+            return processedImages;
         } else {
             console.error("No images found in Pexels response for category:", category);
             throw new Error("No images found for the given category");
         }
     } catch (error) {
-        console.error("Failed to fetch or process background from Pexels:", error);
+        console.error("Failed to fetch or process background batch from Pexels:", error);
         throw error;
     }
+}
+
+/**
+ * Fetches a random image from Pexels based on a category
+ * @param {string} category - The category or search term for the image
+ * @returns {Promise<string>} A promise that resolves to the image URL
+ */
+export async function fetchRandomImage(category) {
+    // If category changed or cache is empty, fetch new batch
+    if (category !== currentCategory || imageCache.length === 0) {
+        debugLog(`Fetching new image batch for category "${category}"`);
+        await fetchImageBatch(category);
+    }
+    
+    // If we still have no images in the cache, something went wrong
+    if (imageCache.length === 0) {
+        throw new Error("No images available in cache");
+    }
+    
+    // Get a random image from the cache
+    const randomIndex = Math.floor(Math.random() * imageCache.length);
+    const imageData = imageCache[randomIndex];
+    
+    // Remove the used image from the cache
+    imageCache.splice(randomIndex, 1);
+    
+    debugLog(`Using cached image ${randomIndex + 1}/${imageCache.length + 1} for category "${category}"`);
+    debugLog(`${imageCache.length} images remaining in cache`);
+    
+    // Update state with the current image metadata
+    import('../state.js').then(({ updateState }) => {
+        const metadata = {
+            url: imageData.url,
+            provider: 'pexels',
+            category: category,
+            photographer: imageData.photographer,
+            photographerUrl: imageData.photographerUrl,
+            isFavorite: false // Will be updated by background-info component
+        };
+        
+        console.log("Setting currentImageMetadata in state:", metadata);
+        
+        updateState({
+            currentImageMetadata: metadata
+        }, false, true);
+    });
+    
+    return imageData.url;
 }
 
 /**
