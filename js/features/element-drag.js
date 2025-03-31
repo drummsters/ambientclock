@@ -57,8 +57,10 @@ export function startElementDrag(elementType, container, element, event) {
     // Add dragging class
     addClass(element, 'dragging');
     
-    // Prevent text selection during drag
-    event.preventDefault();
+    // Prevent text selection during drag (if event is preventable)
+    if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+    }
     
     return { isDragging: true, offsetX, offsetY };
 }
@@ -159,8 +161,15 @@ export function stopElementDrag(elementType, container, element, applyTransform 
  * @param {Function} startDragFn - The function to call with the touch point
  */
 export function handleElementTouchStart(event, startDragFn) {
-    event.preventDefault();
-    startDragFn(event.touches[0]);
+    // Safely prevent default if possible
+    if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+    }
+    
+    // Make sure event and touches exist before proceeding
+    if (event && event.touches && event.touches.length > 0) {
+        startDragFn(event.touches[0]);
+    }
 }
 
 /**
@@ -169,6 +178,13 @@ export function handleElementTouchStart(event, startDragFn) {
  * @param {Function} handleDragFn - The function to call with the touch point
  */
 export function handleElementTouchMove(event, handleDragFn) {
-    event.preventDefault();
-    handleDragFn(event.touches[0]);
+    // Safely prevent default if possible
+    if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+    }
+    
+    // Make sure event and touches exist before proceeding
+    if (event && event.touches && event.touches.length > 0) {
+        handleDragFn(event.touches[0]);
+    }
 }

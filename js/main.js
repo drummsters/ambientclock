@@ -23,8 +23,9 @@ import { initKeyboard } from './features/keyboard.js';
 import { initDrag } from './features/drag.js';
 import { handleWindowResize } from './features/element-position.js';
 
-// Import debug utilities (for console access)
+// Import utilities
 import './utils/debug.js';
+import { initMobileHandlers } from './utils/mobile.js';
 
 /**
  * Initializes the application
@@ -62,6 +63,9 @@ function initApp() {
         initPosition();
         initKeyboard();
         initDrag();
+        
+        // Initialize mobile-specific handlers
+        initMobileHandlers();
         
         // Show the clock container after a small delay to ensure all styles are applied
         setTimeout(() => {

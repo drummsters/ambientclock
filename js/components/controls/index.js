@@ -52,7 +52,26 @@ export function initControls() {
  * @param {Object} state - The current state
  */
 function handleStateChange(state) {
+    console.log("handleStateChange - Current category in state:", state.category);
+    console.log("handleStateChange - Current category in background:", state.background.category);
+    
+    // Store the current category dropdown value before updating
+    const categorySelect = document.getElementById('category-select');
+    const currentCategoryValue = categorySelect ? categorySelect.value : null;
+    console.log("handleStateChange - Current category dropdown value before update:", currentCategoryValue);
+    
+    // Update all controls based on the new state
     updateControlsFromState();
+    
+    // Check if the category dropdown value changed
+    const newCategoryValue = categorySelect ? categorySelect.value : null;
+    console.log("handleStateChange - Category dropdown value after update:", newCategoryValue);
+    
+    if (currentCategoryValue !== newCategoryValue) {
+        console.log("handleStateChange - Category dropdown value changed from", currentCategoryValue, "to", newCategoryValue);
+    } else {
+        console.log("handleStateChange - Category dropdown value did not change");
+    }
 }
 
 /**

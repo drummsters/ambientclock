@@ -41,6 +41,120 @@ export function initFavoritesPanel() {
     
     // Add the CSS styles
     addFavoritesPanelStyles();
+    
+    // Set up visibility observer to update favorites when tab becomes visible
+    setupVisibilityObserver();
+}
+
+/**
+ * Sets up an observer to detect when the favorites panel becomes visible
+ */
+function setupVisibilityObserver() {
+    // Use MutationObserver to detect when the favorites tab becomes visible
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                const controls = document.getElementById('controls');
+                // Check if controls are visible and favorites tab is the active tab
+                if (controls && controls.classList.contains('visible') && 
+                    favoritesTab && !favoritesTab.classList.contains('hidden')) {
+                    console.log("Favorites panel became visible, updating favorites status");
+                    updateFavoritesStatus();
+                }
+            }
+        });
+    });
+    
+    // Observe the controls element for class changes
+    const controls = document.getElementById('controls');
+    if (controls) {
+        observer.observe(controls, { attributes: true });
+    }
+    
+    // Also observe tab visibility changes
+    if (favoritesTab) {
+        observer.observe(favoritesTab, { attributes: true });
+    }
+    
+    // Add event listener for tab clicks to ensure we update when switching to favorites tab
+    document.addEventListener('click', (event) => {
+        // Check if a tab header was clicked
+        if (event.target.closest('.section-title')) {
+            // Small delay to allow the UI to update
+            setTimeout(() => {
+                const controls = document.getElementById('controls');
+                // Check if controls are visible and favorites tab is the active tab
+                if (controls && controls.classList.contains('visible') && 
+                    favoritesTab && !favoritesTab.classList.contains('hidden')) {
+                    console.log("Favorites tab clicked, updating favorites status");
+                    updateFavoritesStatus();
+                }
+            }, 50);
+        }
+    });
+}
+
+/**
+ * Updates the favorites status when the panel becomes visible
+ */
+function updateFavoritesStatus() {
+    // Re-render favorites to ensure the grid is up to date
+    renderFavorites();
+    
+    // Check if the current background is a favorite and update UI accordingly
+    import('../services/favorites.js').then(({ isCurrentImageFavorite }) => {
+        const isFavorite = isCurrentImageFavorite();
+        console.log("Updating favorites status - Current image is favorite:", isFavorite);
+        
+        // Update the state to ensure it's in sync
+        const state = getState();
+        if (state.currentImageMetadata) {
+            import('../state.js').then(({ updateState }) => {
+                if (state.currentImageMetadata.isFavorite !== isFavorite) {
+                    console.log("Fixing mismatch in favorite status - State:", 
+                              state.currentImageMetadata.isFavorite, "Actual:", isFavorite);
+                    
+                    updateState({
+                        currentImageMetadata: {
+                            ...state.currentImageMetadata,
+                            isFavorite: isFavorite
+                        }
+                    }, false, true);
+                }
+                
+                // Update the favorite UI in the background-info component
+                import('../components/background-info.js').then(({ updateFavoriteUI }) => {
+                    if (updateFavoriteUI) {
+                        updateFavoriteUI();
+                    }
+                }).catch(err => {
+                    console.error("Error importing background-info:", err);
+                });
+            }).catch(err => {
+                console.error("Error importing state:", err);
+            });
+        } else {
+            // If no metadata, just update the UI
+            import('../components/background-info.js').then(({ updateFavoriteUI }) => {
+                if (updateFavoriteUI) {
+                    updateFavoriteUI();
+                }
+            }).catch(err => {
+                console.error("Error importing background-info:", err);
+            });
+        }
+    }).catch(err => {
+        console.error("Error importing favorites:", err);
+        
+        // If import fails, still try to update the UI
+        import('../components/background-info.js').then(({ updateFavoriteUI }) => {
+            if (updateFavoriteUI) {
+                updateFavoriteUI();
+            }
+        }).catch(err => {
+            console.error("Error importing background-info:", err);
+        });
+    });
 }
 
 /**

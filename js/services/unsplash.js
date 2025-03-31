@@ -228,12 +228,18 @@ export async function fetchImageBatch(category) {
 /**
  * Fetches a random image from Unsplash based on a category
  * @param {string} category - The category or search term for the image
+ * @param {boolean} [forceNewBatch=false] - Whether to force fetching a new batch even if the category hasn't changed
  * @returns {Promise<string>} A promise that resolves to the image URL
  */
-export async function fetchRandomImage(category) {
-    // If category changed or cache is empty, fetch new batch
-    if (category !== currentCategory || imageCache.length === 0) {
-        debugLog(`Fetching new image batch for category "${category}"`);
+export async function fetchRandomImage(category, forceNewBatch = false) {
+    console.log("Unsplash fetchRandomImage - Category:", category);
+    console.log("Unsplash fetchRandomImage - Current category:", currentCategory);
+    console.log("Unsplash fetchRandomImage - Force new batch:", forceNewBatch);
+    console.log("Unsplash fetchRandomImage - Cache size:", imageCache.length);
+    
+    // If category changed, cache is empty, or force new batch is true, fetch new batch
+    if (category !== currentCategory || imageCache.length === 0 || forceNewBatch) {
+        console.log(`Fetching new image batch for category "${category}"`);
         await fetchImageBatch(category);
     }
     

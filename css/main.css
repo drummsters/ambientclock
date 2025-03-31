@@ -15,6 +15,7 @@
 @import 'components/controls.css';
 @import 'components/donate.css';
 @import 'components/favorites.css';
+@import 'components/responsive.css'; /* Added responsive design enhancements */
 
 /* Feature styles */
 @import 'features/effects.css';

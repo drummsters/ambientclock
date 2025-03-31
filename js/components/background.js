@@ -133,12 +133,23 @@ function handleStateChange(state, prevState = {}) {
     } 
     // Only restart background cycling if the category has changed
     else if (prevCategory !== state.category && state.category !== undefined) {
+        console.log("Category changed from", prevCategory, "to", state.category, "- fetching new background");
+        
         // Store the current category for future comparison
         // Use the third parameter to skip notifying subscribers to avoid infinite recursion
         updateState({ _prevCategory: state.category }, false, true);
         
-        // Start background cycling with a new image, but force a new image since category changed
-        startBackgroundCycling(true, true);
+        // Check if we're already in the middle of a category change
+        // This prevents multiple background changes when the category is changed
+        if (!window._changingCategory) {
+            console.log("Starting background cycling due to category change");
+            // Start background cycling with a new image, but force a new image since category changed
+            startBackgroundCycling(true, true);
+        } else {
+            console.log("Skipping duplicate background cycling - already changing category");
+        }
+    } else if (state.category !== undefined && state.category !== 'None') {
+        console.log("Category is", state.category, "but hasn't changed from previous value", prevCategory);
     }
     
     // If the image source has changed, clear the cached image URL and fetch a new image
@@ -477,8 +488,22 @@ export async function fetchNewBackground() {
         return;
     }
     
-    // Determine which category to use
-    const categoryToUse = category === 'Custom' ? customCategory : category;
+    // Check if the dropdown has a different category than the state
+    const categoryDropdown = document.getElementById('category-select');
+    let categoryToUse;
+    
+    if (categoryDropdown && categoryDropdown.value && categoryDropdown.value !== 'Custom') {
+        // Use the category from the dropdown instead of the state
+        categoryToUse = categoryDropdown.value;
+        console.log("fetchNewBackground - Using category from dropdown:", categoryToUse);
+    } else {
+        // Fall back to the state category
+        categoryToUse = category === 'Custom' ? customCategory : category;
+        console.log("fetchNewBackground - Category from state:", category);
+        console.log("fetchNewBackground - Custom category from state:", customCategory);
+    }
+    
+    console.log("fetchNewBackground - Using category for image search:", categoryToUse);
     
     if (!categoryToUse) {
         console.warn("No category selected for background");
@@ -547,8 +572,8 @@ export async function fetchNewBackground() {
     try {
         debugLog(`Fetching image for category "${categoryToUse}" using ${imageSource} API...`);
         
-        // Fetch image URL
-        const imageUrl = await imageService.fetchRandomImage(categoryToUse);
+        // Fetch image URL - pass true to force a new batch of images
+        const imageUrl = await imageService.fetchRandomImage(categoryToUse, true);
         debugLog(`Successfully fetched image URL from ${imageSource}:`, imageUrl);
         
         // Preload image

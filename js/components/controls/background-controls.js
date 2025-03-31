@@ -47,6 +47,54 @@ export function initBackgroundControls() {
     zoomEffectCheckbox = getElement('zoom-effect-checkbox');
     nextBackgroundButton = getElement('next-background-button');
     
+    // Set initial category in the dropdown (only on first load)
+    if (categorySelect) {
+        const state = getState();
+        const initialCategory = state.category || 
+                              (state.background && state.background.category) || 
+                              'Nature';
+        console.log("Setting initial category dropdown value to:", initialCategory);
+        categorySelect.value = initialCategory;
+    }
+    
+    // Add a direct event listener to the category dropdown
+    if (categorySelect) {
+        console.log("Adding direct event listener to category dropdown");
+        
+        // Ensure the dropdown is not disabled
+        categorySelect.disabled = false;
+        categorySelect.readOnly = false;
+        
+        // Add a direct event listener
+        categorySelect.onchange = function(event) {
+            console.log("Direct onchange event triggered with value:", this.value);
+            handleCategoryChange(event);
+        };
+        
+        // Add focus and blur event listeners to track when the dropdown is being interacted with
+        categorySelect.addEventListener('focus', function() {
+            console.log("Category dropdown focused");
+            this.setAttribute('data-is-focused', 'true');
+        });
+        
+        categorySelect.addEventListener('blur', function() {
+            console.log("Category dropdown blurred");
+            this.removeAttribute('data-is-focused');
+            
+            // Get the current state category
+            const state = getState();
+            const stateCategory = state.category || 
+                               (state.background && state.background.category) || 
+                               'Nature';
+            
+            // If the dropdown value doesn't match the state after blur, update the state
+            if (this.value !== stateCategory) {
+                console.log("Category dropdown value changed after blur:", this.value);
+                updateState({ category: this.value });
+            }
+        });
+    }
+    
     // Set up event listeners
     setupEventListeners();
 }
@@ -62,7 +110,19 @@ function setupEventListeners() {
     
     // Category select change
     if (categorySelect) {
+        console.log("Setting up change event listener for category dropdown");
+        
+        // First, remove any existing event listeners to avoid duplicates
+        categorySelect.removeEventListener('change', handleCategoryChange);
+        
+        // Add the event listener
         addEvent(categorySelect, 'change', handleCategoryChange);
+        
+        // Verify the event listener was added by checking if the dropdown is disabled
+        console.log("Category dropdown disabled:", categorySelect.disabled);
+        console.log("Category dropdown readOnly:", categorySelect.readOnly);
+    } else {
+        console.error("Category dropdown element not found during event setup");
     }
     
     // Background color input change
@@ -116,12 +176,12 @@ export function updateBackgroundControlsFromState() {
         imageSourceSelect.value = imageSource;
     }
     
-    // Update category select
+    // We're intentionally NOT updating the category dropdown when the background image changes
+    // This allows the user to keep their selected category even when the background changes
     if (categorySelect) {
-        const category = state.category || 
-                       (state.background && state.background.category) || 
-                       'Nature';
-        categorySelect.value = category;
+        console.log("updateBackgroundControlsFromState - NOT updating category dropdown to match state");
+        console.log("updateBackgroundControlsFromState - Current dropdown value:", categorySelect.value);
+        console.log("updateBackgroundControlsFromState - State category value:", state.category);
     }
     
     // Update custom category input
@@ -195,11 +255,41 @@ function handleImageSourceChange(event) {
  * Handles category select change
  * @param {Event} event - The change event
  */
-function handleCategoryChange(event) {
+export function handleCategoryChange(event) {
+    console.log("handleCategoryChange called with value:", event.target.value);
+    
+    // Check if we're updating from a favorite - if so, don't trigger background changes
+    if (categorySelect.hasAttribute('data-updating-from-favorite')) {
+        console.log("Skipping category change handler - updating from favorite");
+        return;
+    }
+    
+    // Get the current value before changing
+    const currentValue = categorySelect.value;
+    console.log("Current dropdown value before change:", currentValue);
+    
     const category = event.target.value;
+    console.log("New category value:", category);
+    
+    // Store the original value as a data attribute
+    if (!categorySelect.hasAttribute('data-original-value')) {
+        categorySelect.setAttribute('data-original-value', currentValue);
+    }
     
     // Update state
     updateState({ category });
+    
+    // Log after state update
+    console.log("State updated with category:", category);
+    console.log("Dropdown value after state update:", categorySelect.value);
+    
+    // Force the dropdown to keep the new value
+    setTimeout(() => {
+        if (categorySelect.value !== category) {
+            console.log("Forcing category dropdown value to:", category);
+            categorySelect.value = category;
+        }
+    }, 0);
     
     // Show/hide custom category input based on selection
     if (category === 'Custom' && customCategoryGroup) {
@@ -208,6 +298,9 @@ function handleCategoryChange(event) {
         if (customCategoryInput) {
             customCategoryInput.focus();
         }
+        
+        // Don't fetch a new image yet for Custom category - wait for the user to enter a custom category
+        console.log("Custom category selected, waiting for user input");
     } else if (category === 'None' && colorPickerGroup) {
         hideElement(customCategoryGroup);
         showElement(colorPickerGroup, 'flex');
@@ -218,7 +311,28 @@ function handleCategoryChange(event) {
     } else {
         hideElement(customCategoryGroup);
         hideElement(colorPickerGroup);
-        startBackgroundCycling(true, true); // Fetch new image immediately and force new image
+        
+        // Fetch a new image immediately with the new category
+        console.log("Fetching new background with category:", category);
+        
+        // Set a flag to indicate we're in the middle of a category change
+        // This will help prevent multiple background updates
+        window._changingCategory = true;
+        
+        // Import the background module to access startBackgroundCycling
+        import('../background.js').then(({ startBackgroundCycling }) => {
+            // Start background cycling with the new category
+            // This will handle fetching a new image
+            startBackgroundCycling(true, true); // Fetch new image immediately and force new image
+            
+            // Clear the flag after a short delay
+            setTimeout(() => {
+                window._changingCategory = false;
+            }, 500);
+        }).catch(err => {
+            console.error("Error importing background.js:", err);
+            window._changingCategory = false;
+        });
     }
 }
 

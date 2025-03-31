@@ -22,8 +22,10 @@ export function handleWheelEvent(event, isShiftPressed) {
         return;
     }
 
-    // Always prevent default scrolling behavior
-    event.preventDefault();
+    // Always prevent default scrolling behavior (if event is preventable)
+    if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+    }
     
     // Check if the event is on the date container
     const isDateEvent = event.target.id === 'date-container' || 

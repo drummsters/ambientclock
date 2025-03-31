@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Ambient Clock</title>
     <link rel="stylesheet" href="css/main.css">
 </head>
@@ -202,7 +204,7 @@
             </div>
             <div class="control-group">
                 <label for="category-select">Category:</label>
-                <select id="category-select" aria-label="Select background image category">
+                <select id="category-select" aria-label="Select background image category" onchange="console.log('Direct onchange event triggered with value:', this.value)">
                     <option value="Nature">Nature</option>
                     <option value="None">None</option>
                     <option value="Landscapes">Landscapes</option>

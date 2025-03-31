@@ -176,8 +176,47 @@ export async function setBackgroundFromFavorite(id) {
                 photographer: favorite.photographer,
                 photographerUrl: favorite.photographerUrl,
                 isFavorite: true
+            },
+            // Also update the category in the state to update the dropdown
+            category: favorite.category,
+            // Update the background section of the state
+            background: {
+                category: favorite.category
             }
         }, false, true);
+        
+        // Update the category dropdown in the UI WITHOUT triggering additional background fetches
+        setTimeout(() => {
+            const categorySelect = document.getElementById('category-select');
+            if (categorySelect && favorite.category) {
+                console.log("Updating category dropdown to:", favorite.category);
+                
+                // First, check if the option exists in the dropdown
+                let optionExists = false;
+                for (let i = 0; i < categorySelect.options.length; i++) {
+                    if (categorySelect.options[i].value === favorite.category) {
+                        optionExists = true;
+                        break;
+                    }
+                }
+                
+                // If the option exists, update the value silently (without triggering events)
+                if (optionExists) {
+                    // Set a flag to indicate we're updating from a favorite
+                    categorySelect.setAttribute('data-updating-from-favorite', 'true');
+                    
+                    // Set the value directly
+                    categorySelect.value = favorite.category;
+                    
+                    // Remove the flag after a short delay
+                    setTimeout(() => {
+                        categorySelect.removeAttribute('data-updating-from-favorite');
+                    }, 500);
+                } else {
+                    console.warn(`Category "${favorite.category}" not found in dropdown options`);
+                }
+            }
+        }, 100);
         
         return {
             success: true,

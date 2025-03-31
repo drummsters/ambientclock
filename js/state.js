@@ -143,8 +143,20 @@ export function updateState(updates, saveImmediately = true, skipNotify = false)
             } else if (key === 'category' || key === 'customCategory' || key === 'backgroundColor' || 
                       key === 'overlayOpacity' || key === 'backgroundImageUrl' || key === 'imageSource' || 
                       key === 'zoomEnabled') {
+                // Special debugging for category changes
+                if (key === 'category') {
+                    console.log("updateState - Setting category in state to:", value);
+                    console.log("updateState - Previous category in state:", newState.category);
+                }
+                
                 newState.background[key] = value;
                 newState[key] = value; // Also update root state
+                
+                // Log after update for category
+                if (key === 'category') {
+                    console.log("updateState - Category in state after update:", newState.category);
+                    console.log("updateState - Category in background after update:", newState.background.category);
+                }
             } else if (key === '_prevCategory') {
                 // Special case for internal tracking, don't copy to nested structure
                 newState[key] = value;
@@ -256,7 +268,16 @@ export function subscribe(callback) {
  * Notifies all subscribers of state changes
  */
 function notifySubscribers() {
-    subscribers.forEach(callback => callback(state));
+    console.log("notifySubscribers - Current category in state:", state.category);
+    console.log("notifySubscribers - Current category in background:", state.background.category);
+    
+    // Call each subscriber with the current state
+    subscribers.forEach(callback => {
+        console.log("notifySubscribers - Calling subscriber:", callback.name || "anonymous");
+        callback(state);
+    });
+    
+    console.log("notifySubscribers - All subscribers notified");
 }
 
 /**

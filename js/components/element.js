@@ -75,8 +75,15 @@ export class Element {
      * @param {TouchEvent} event - The touch event
      */
     handleTouchStart(event) {
-        event.preventDefault();
-        this.startDrag(event.touches[0]);
+        // Safely prevent default if possible
+        if (event && typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
+        
+        // Make sure event and touches exist before proceeding
+        if (event && event.touches && event.touches.length > 0) {
+            this.startDrag(event.touches[0]);
+        }
     }
 
     /**
@@ -84,8 +91,15 @@ export class Element {
      * @param {TouchEvent} event - The touch event
      */
     handleTouchMove(event) {
-        event.preventDefault();
-        this.handleDrag(event.touches[0]);
+        // Safely prevent default if possible
+        if (event && typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
+        
+        // Make sure event and touches exist before proceeding
+        if (event && event.touches && event.touches.length > 0) {
+            this.handleDrag(event.touches[0]);
+        }
     }
 
     /**
@@ -134,8 +148,10 @@ export class Element {
         // Set dragging state
         this.isDragging = true;
         
-        // Prevent text selection during drag
-        event.preventDefault();
+        // Prevent text selection during drag (if event is preventable)
+        if (event && typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
     }
 
     /**
@@ -229,8 +245,10 @@ export class Element {
             return;
         }
 
-        // Always prevent default scrolling behavior
-        event.preventDefault();
+        // Always prevent default scrolling behavior (if event is preventable)
+        if (event && typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
         
         // Check if shift key is pressed
         const isShiftPressed = event.shiftKey;
