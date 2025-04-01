@@ -143,14 +143,10 @@ async function initApp() {
     // 1. Initialize Configuration Manager
     const configManager = new ConfigManager(); // Instantiate
 
-    // --- Manually set API keys from v1 config ---
-    console.log('[app.js] Setting API keys from v1 config...');
-    configManager.setApiKey('unsplash', 'RxTv-EO7gwXs1sRE2Evwi5dvVMlBR7TT4G4qjnnTaGs', false); // Don't save yet
-    configManager.setApiKey('pexels', 'ilqL2UW21qByDknASpXEb83Nf26jWogwxGzEja5CgC0BOb9Cld0hy7wY', false); // Don't save yet
-    // --- End API key setting ---
+    // --- API Key Setting Removed (Handled by Backend) ---
 
-    const configReady = await configManager.init(); // Initialize and wait (will load/validate keys)
-    configManager.saveConfig(); // Save the configuration including the set keys
+    const configReady = await configManager.init(); // Initialize and wait
+    // configManager.saveConfig(); // Save call removed as keys aren't set here anymore
 
     // If essential config is missing and setup didn't complete, halt or run limited mode
     if (!configReady) {
@@ -162,21 +158,14 @@ async function initApp() {
     // 2. Initialize State Manager
     // TODO: Implement migration logic later
     // const migratedState = migrateExistingState();
-    
-    // Clear localStorage to ensure we're using the default state
-    localStorage.removeItem('ambient-clock-v2-settings');
-    console.log('[app.js] Cleared localStorage to ensure default state is used.');
-    
+
+    // localStorage.removeItem('ambient-clock-v2-settings'); // Removed development helper
+    // console.log('[app.js] Cleared localStorage to ensure default state is used.'); // Removed log
+
     const initialState = getDefaultState(); // Use default for now
     console.log('[app.js] Initial state before StateManager.init:', initialState);
     await StateManager.init(initialState); // Wait for StateManager to finish
     console.log('[app.js] State after StateManager.init:', StateManager.getState());
-
-    // Test EventBus
-    const testSubscriber = (data) => {
-      console.log('[app.js] Test subscriber received state:initialized event with data:', data);
-    };
-    EventBus.subscribe('state:initialized', testSubscriber);
 
     // 3. Register Element Types
     registerElementTypes(); // Register constructors with the registry
@@ -222,7 +211,13 @@ async function initApp() {
     setupWheelResizeHandler();
 
     console.log('Ambient Clock v2 core initialization sequence complete.');
-    EventBus.publish('app:initialized');
+
+    // Publish state:initialized AFTER all core modules are initialized
+    console.log('[app.js] Publishing state:initialized event (delayed)...');
+    EventBus.publish('state:initialized', StateManager.getState());
+    console.log('[app.js] Published state:initialized event (delayed).');
+
+    EventBus.publish('app:initialized'); // Publish general app init event
 
   } catch (error) {
     console.error('Critical error during application initialization:', error);

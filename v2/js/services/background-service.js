@@ -41,20 +41,12 @@ export class BackgroundService {
   async init() {
     console.log('BackgroundService initializing...');
 
-    // Register configured image providers
-    const unsplashApiKey = this.configManager.getApiKey('unsplash');
-    if (unsplashApiKey) {
-        this.registerProvider('unsplash', new UnsplashProvider(unsplashApiKey));
-    } else {
-        console.warn('[BackgroundService] Unsplash API key not configured.');
-    }
-    // Register Pexels if configured
-    const pexelsApiKey = this.configManager.getApiKey('pexels');
-    if (pexelsApiKey) {
-        this.registerProvider('pexels', new PexelsProvider(pexelsApiKey));
-    } else {
-        console.warn('[BackgroundService] Pexels API key not configured.');
-    }
+    // Register image providers. API keys are handled by backend proxies.
+    // We register them regardless of local key config now.
+    // The providers themselves will use the /api/... endpoints.
+    this.registerProvider('unsplash', new UnsplashProvider());
+    this.registerProvider('pexels', new PexelsProvider());
+    // Note: The check if the provider is *selected* in state still happens in applyBackground
 
     // Subscribe to the 'state:initialized' event to apply the initial background
     EventBus.subscribe('state:initialized', (fullState) => {

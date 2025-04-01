@@ -4,32 +4,33 @@
 export class UnsplashProvider {
   /**
    * Creates an UnsplashProvider instance.
-   * @param {string} apiKey - The Unsplash API key.
+   * API key is handled by the backend proxy.
    */
-  constructor(apiKey) {
-    if (!apiKey) {
-      console.warn('[UnsplashProvider] API key is missing. Provider will not function.');
-    }
-    this.apiKey = apiKey;
-    this.baseUrl = 'https://api.unsplash.com';
+  constructor() {
+    // API key is no longer needed here
+    this.baseUrl = '/api/unsplash'; // Point to our serverless function
     this.name = 'unsplash'; // Identifier for this provider
+    console.log('[UnsplashProvider] Initialized. Using backend proxy at:', this.baseUrl);
   }
 
   /**
    * Fetches a random image URL from Unsplash based on a category/query.
    * @param {string} query - The search query or category for the image.
-   * @returns {Promise<object|null>} A promise that resolves to an object containing image details (url, author, etc.) or null if an error occurs or no key is provided.
+   * @returns {Promise<object|null>} A promise that resolves to an object containing image details (url, author, etc.) or null if an error occurs.
    */
   async getImage(query = 'nature') {
-    if (!this.apiKey) {
-      console.error('[UnsplashProvider] Cannot fetch image: API key is missing.');
-      return null;
-    }
+    // API key check removed
 
     const orientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
-    const url = `${this.baseUrl}/photos/random?query=${encodeURIComponent(query)}&orientation=${orientation}&client_id=${this.apiKey}`;
+    // Construct URL for our serverless function, passing parameters
+    const params = new URLSearchParams({
+        query: query,
+        orientation: orientation,
+        count: 1 // Fetch one random image matching the query
+    });
+    const url = `${this.baseUrl}?${params.toString()}`;
 
-    console.log(`[UnsplashProvider] Fetching image from: ${url}`);
+    console.log(`[UnsplashProvider] Fetching image via proxy: ${url}`);
 
     try {
       const response = await fetch(url);
@@ -46,19 +47,21 @@ export class UnsplashProvider {
         throw new Error(errorMsg);
       }
 
-      const data = await response.json();
-      console.log('[UnsplashProvider] Received data:', data);
+      const dataArray = await response.json(); // Our API returns an array
+      console.log('[UnsplashProvider] Received data via proxy:', dataArray);
+
+      // Since the proxy asks for count=1, we expect an array with one item
+      const data = Array.isArray(dataArray) && dataArray.length > 0 ? dataArray[0] : null;
 
       if (data && data.urls && data.urls.regular && data.user) {
         return {
-          url: data.urls.regular, // Use 'regular' size for decent quality
+          url: data.urls.regular,
           authorName: data.user.name || 'Unknown',
-          authorUrl: data.user.links?.html || '#', // Link to user profile
-          source: this.name // Identify the source
-          // Add other relevant data like description if needed: data.description || data.alt_description
+          authorUrl: data.user.links?.html || '#',
+          source: this.name
         };
       } else {
-        console.error('[UnsplashProvider] Invalid data received from Unsplash API:', data);
+        console.error('[UnsplashProvider] Invalid or empty data received via proxy:', dataArray);
         return null;
       }
     } catch (error) {

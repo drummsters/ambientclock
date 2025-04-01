@@ -31,11 +31,7 @@ export const StateManager = {
     // Always save after merging/loading to ensure consistent structure
     this.scheduleSave();
 
-    // Initial notification for components that need the full state on load
-    // Publish immediately; awaiting init in app.js ensures subscribers are ready.
-    console.log('[StateManager] Publishing state:initialized event with state:', this.getState());
-    EventBus.publish('state:initialized', this.getState());
-    console.log('[StateManager] Published state:initialized event.');
+    // Event publication moved to app.js after await StateManager.init()
   },
 
   /**
