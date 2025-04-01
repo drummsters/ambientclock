@@ -45,6 +45,8 @@ export class ConfigManager {
         this.config.donationLinks.venmo = import.meta.env.VITE_DONATE_VENMO || this.config.donationLinks.venmo;
         this.config.donationLinks.cashapp = import.meta.env.VITE_DONATE_CASHAPP || this.config.donationLinks.cashapp;
         this.config.donationLinks.googlepay = import.meta.env.VITE_DONATE_GOOGLEPAY || this.config.donationLinks.googlepay;
+        // Log the result after attempting to read
+        console.log('[ConfigManager] Donation links after attempting env var read:', JSON.stringify(this.config.donationLinks));
     } catch (e) {
         // import.meta.env might not exist in all environments/builds
         console.warn('Could not read build-time environment variables for donation links.');

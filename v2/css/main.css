@@ -571,15 +571,22 @@ html, body {
     font-size: 13px; /* Slightly smaller font */
     z-index: 95;
     opacity: 0; /* Start hidden */
-     visibility: hidden; /* Start hidden */
-     transition: opacity 0.5s ease, visibility 0.5s ease; /* Match V1 fade duration (adjust JS fadeOutDuration too) */
-     /* pointer-events: none; /* REMOVED - Make it interactive */
-     cursor: pointer; /* Add pointer cursor */
-     box-shadow: var(--control-input-shadow);
-     backdrop-filter: blur(5px);
+    visibility: hidden; /* Start hidden */
+    transition: opacity 0.5s ease, visibility 0.5s ease; /* Match V1 fade duration */
+    cursor: pointer; /* Add pointer cursor */
+    box-shadow: var(--control-input-shadow);
+    backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
     border: 1px solid var(--control-section-border);
     white-space: nowrap;
+    pointer-events: none; /* Don't capture events when hidden */
+}
+
+/* Control visibility with the 'visible' class */
+.controls-hint-element.visible {
+    opacity: 0.9; /* Match v1 style */
+    visibility: visible;
+    pointer-events: auto; /* Allow interactions when visible */
 }
 
 .controls-hint-element p {
@@ -630,8 +637,9 @@ html, body {
     pointer-events: none; /* Don't capture mouse events when hidden */
 }
 
-.donate-element.visible { /* Added by VisibilityManager */
+.donate-element.visible {
     opacity: 1;
+    visibility: visible;
     pointer-events: auto; /* Capture mouse events when visible */
 }
 

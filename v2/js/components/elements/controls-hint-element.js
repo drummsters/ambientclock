@@ -1,6 +1,6 @@
 import { BaseUIElement } from '../base/base-ui-element.js';
-import { StateManager } from '../../core/state-manager.js'; // Import StateManager again
-import { EventBus } from '../../core/event-bus.js';
+import { StateManager } from '../../core/state-manager.js';
+import { EventBus } from '../../core/event-bus.js'; // Keep for toggle event
 
 /**
  * @class ControlsHintElement
@@ -8,27 +8,35 @@ import { EventBus } from '../../core/event-bus.js';
  * @extends BaseUIElement
  */
 export class ControlsHintElement extends BaseUIElement {
-    constructor(id, options) {
-        super(id, options);
-        this.hintTimeout = null;
+    constructor({ id, type, options, stateManager }) {
+        super({ id, type, options });
+        
+        // Follow the architectural principles: StateManager must be dependency-injected
+        if (!stateManager) {
+            throw new Error('ControlsHintElement requires a StateManager instance');
+        }
+        this.stateManager = stateManager;
+
         this.isVisible = false; // Internal visibility state
-        this.initialShowDelay = 3000; // V1: Show 3 seconds after load
-        this.mouseIdleHideDelay = 5000; // V1: Hide 5 seconds after mouse stops
-        this.mouseMoveShowDelay = 200; // V1: Show 0.2 seconds after mouse moves
-        this.fadeOutDuration = 500; // Match CSS transition duration (0.5s)
-        this.subscriptions = []; // Array to store subscription objects
-        this.activityListeners = []; // Store activity listener references for removal
-        this.mouseMoveTimer = null; // Timer for showing hint after mouse move
-        this.mouseIdleTimer = null; // Timer for hiding hint after mouse idle
+        this.hideTimeout = null; // Timer for fade-out completion
+        this.mouseIdleTimer = null; // Timer for hiding after mouse idle
+        this.mouseMoveTimer = null; // Timer for showing after mouse move
+        this.initialShowDelay = 3000;
+        this.mouseIdleHideDelay = 5000;
+        this.mouseMoveShowDelay = 200;
+        this.fadeOutDuration = 500; // Matches CSS transition
+        this.activityListeners = [];
+        this.unsubscribeControlsVisibility = null; // For state subscription
     }
 
     /**
      * @override
      * Initializes the element, creates the DOM structure, and sets up initial state.
      */
-    async init() { // Make async
-        const success = await super.init(); // Await the base init
-        if (!success || !this.container) { // Check base success and container
+    async init() {
+        // Use BaseUIElement's init which creates the container
+        const success = await super.init();
+        if (!success || !this.container) {
             console.error(`[ControlsHintElement ${this.id}] Base init failed or container missing.`);
              return false;
          }
@@ -36,163 +44,163 @@ export class ControlsHintElement extends BaseUIElement {
          this.container.classList.add('controls-hint-element');
          this.container.innerHTML = `<p>${this.options.text || "Press 'Space' or 'c' to toggle controls"}</p>`;
 
-           // V1 Initial display logic: Show after delay, then hide after idle period
-           setTimeout(() => {
-               // Check state BEFORE showing initially
-               if (!StateManager.getState().settings.controls.isOpen) {
-                   this.showHint(); // Attempt to show
-                   this.resetIdleTimer(); // Start timer to hide it
-               }
-         }, this.initialShowDelay);
+        // Initial display logic: After a delay, check controls state and show if appropriate
+        setTimeout(() => {
+            const controlsOpen = this.stateManager.getState().settings.controls.isOpen;
+            if (!controlsOpen) {
+                this.showHint();
+                this.resetIdleTimer();
+            }
+        }, this.initialShowDelay);
 
-        // Listen ONLY for control panel OPEN event to hide immediately
-        this.subscriptions.push(
-            EventBus.subscribe('controls:opened', this.hideHintImmediately.bind(this))
+        // Follow the Event-Driven Messaging principle
+        // Subscribe to control panel visibility state through StateManager
+        this.unsubscribeControlsVisibility = this.stateManager.subscribe(
+            'settings.controls.isOpen', 
+            this.handleControlsVisibilityChange.bind(this)
         );
 
-        // V1 Listeners: mousemove, mouseleave, click on hint
+        // Activity Listeners
         const mouseMoveHandler = this.handleMouseMove.bind(this);
-        const mouseLeaveHandler = this.hideHint.bind(this); // V1 hides on mouseleave
+        const mouseLeaveHandler = this.handleMouseLeave.bind(this); // Use internal hide
         const hintClickHandler = this.handleHintClick.bind(this);
-
-        document.addEventListener('mousemove', mouseMoveHandler);
-        document.addEventListener('mouseleave', mouseLeaveHandler);
-        this.container.addEventListener('click', hintClickHandler);
 
         // Store listeners for removal
         this.activityListeners.push({ target: document, type: 'mousemove', handler: mouseMoveHandler });
-        this.activityListeners.push({ target: document, type: 'mouseleave', handler: mouseLeaveHandler });
+        this.activityListeners.push({ target: document, type: 'mouseleave', handler: mouseLeaveHandler }); // Hides on leaving window
         this.activityListeners.push({ target: this.container, type: 'click', handler: hintClickHandler });
 
-        return true; // Signal successful initialization
+        // Add listeners
+        this.activityListeners.forEach(listener => {
+            listener.target.addEventListener(listener.type, listener.handler);
+        });
+
+        return true;
     }
 
-    // --- V1 Style Visibility Logic ---
+    // --- Visibility Logic ---
 
-    /**
-     * Shows the hint element, but only if controls are closed.
-      */
-     showHint() {
-           // Add back the check for controlsOpen state
-           const controlsOpen = StateManager.getState().settings.controls.isOpen;
-           if (controlsOpen || this.isVisible) {
-               return; // Don't show if controls are open or already visible
-          }
-         clearTimeout(this.mouseMoveTimer); // Clear any pending show timer
-
-         this.container.style.opacity = '1';
-        this.container.style.visibility = 'visible';
+    // Simplified visibility methods following the architectural principles
+    showHint() {
+        if (!this.container || this.isVisible) return;
+        
+        // Check if controls are open - if yes, don't show hint
+        if (this.stateManager.getState().settings.controls.isOpen) {
+            return; // Don't show when controls are open
+        }
+        
+        // Apply the visible CSS class for state-driven rendering
+        clearTimeout(this.hideTimeout);
+        clearTimeout(this.mouseMoveTimer);
+        this.container.classList.add('visible');
         this.isVisible = true;
     }
 
-    /**
-     * Fades out the hint element.
-     */
     hideHint() {
-        if (!this.isVisible) return;
-        clearTimeout(this.hintTimeout);
-         clearTimeout(this.mouseMoveTimer); // Clear pending show timer
-         clearTimeout(this.mouseIdleTimer); // Clear pending hide timer
-
-         this.container.style.opacity = '0';
-        // Use timeout matching CSS transition to set visibility hidden
-        this.hintTimeout = setTimeout(() => {
-            // Double check opacity in case it was shown again quickly
-            if (this.container && this.container.style.opacity === '0') {
-                 this.container.style.visibility = 'hidden';
-                 this.isVisible = false;
-            }
-        }, this.fadeOutDuration);
-     }
-
-    /**
-     * Hides the hint element immediately without fading.
-     */
-    hideHintImmediately() {
-        clearTimeout(this.hintTimeout);
-         clearTimeout(this.mouseMoveTimer);
-         clearTimeout(this.mouseIdleTimer);
-         if (this.container) {
-             this.container.style.opacity = '0';
-            this.container.style.visibility = 'hidden';
-        }
+        if (!this.isVisible || !this.container) return;
+        clearTimeout(this.hideTimeout);
+        clearTimeout(this.mouseMoveTimer);
+        clearTimeout(this.mouseIdleTimer);
+        // Let CSS handle the transition via class removal
+        this.container.classList.remove('visible');
         this.isVisible = false;
+        console.log(`[ControlsHint ${this.id}] hideHint called, isVisible:`, this.isVisible); // DEBUG LOG
     }
 
-    /**
-       * Handles mouse movement over the document (V1 style).
-       */
-      handleMouseMove() {
-           // Check if controls are open BEFORE setting timer
-           if (StateManager.getState().settings.controls.isOpen) {
-               this.hideHint(); // Ensure hint is hidden if controls are open
-               return; // Exit if controls are open
-           }
-
-          // If hint isn't visible, set a timer to show it
-          if (!this.isVisible) {
-              clearTimeout(this.mouseMoveTimer); // Clear previous show timer
-              this.mouseMoveTimer = setTimeout(() => {
-                  this.showHint(); // showHint will double-check controls state
-                  this.resetIdleTimer(); // Start hide timer once shown
-              }, this.mouseMoveShowDelay);
-        } else {
-            // If already visible, just reset the idle timer to keep it shown
-            this.resetIdleTimer();
-        }
+    hideHintImmediately() {
+        if (!this.container) return;
+        clearTimeout(this.hideTimeout);
+        clearTimeout(this.mouseMoveTimer);
+        clearTimeout(this.mouseIdleTimer);
+        this.container.classList.remove('visible');
+        this.isVisible = false;
+        console.log(`[ControlsHint ${this.id}] hideHintImmediately called, isVisible:`, this.isVisible); // DEBUG LOG
     }
 
-    /**
-     * Resets the timer that hides the hint after mouse inactivity.
-     */
     resetIdleTimer() {
         clearTimeout(this.mouseIdleTimer);
         this.mouseIdleTimer = setTimeout(this.hideHint.bind(this), this.mouseIdleHideDelay);
     }
 
-    /**
-     * Handles clicking on the hint element (V1 style).
-     */
-    handleHintClick() {
-        EventBus.publish('controls:toggle'); // Use event bus to request toggle
-        this.hideHint(); // Hide hint after click
+    // --- Event Handlers ---
+
+    handleMouseMove() {
+        // If controls panel is open, always keep the hint hidden
+        const controlsOpen = this.stateManager.getState().settings.controls.isOpen;
+        if (controlsOpen) {
+            this.hideHintImmediately();
+            return;
+        }
+
+        // If hint is not visible, set timer to show it
+        if (!this.isVisible) {
+            clearTimeout(this.mouseMoveTimer);
+            this.mouseMoveTimer = setTimeout(() => {
+                this.showHint();
+                this.resetIdleTimer();
+            }, this.mouseMoveShowDelay);
+        } else {
+            // If already visible, just reset idle timer
+            this.resetIdleTimer();
+        }
     }
 
-    /**
-     * @override
-     * Cleans up timers and event listeners.
-     */
+     handleMouseLeave() {
+        // Hide when mouse leaves the document window if controls are closed
+        if (!this.stateManager.getState().settings.controls.isOpen) {
+             this.hideHint();
+        }
+    }
+
+    handleHintClick() {
+        EventBus.publish('controls:toggle'); // Still use EventBus to request toggle
+        this.hideHintImmediately(); // Hide hint after click
+    }
+
+    // Centralize control panel state handling
+    handleControlsVisibilityChange(controlsOpen) {
+        if (controlsOpen) {
+            // When controls open, immediately hide the hint
+            this.hideHintImmediately();
+            clearTimeout(this.mouseIdleTimer);
+            clearTimeout(this.mouseMoveTimer);
+        } else {
+            // When controls close, let mouse activity determine visibility
+            if (this.isVisible) {
+                this.resetIdleTimer(); // If hint is showing, start timer to hide it
+            }
+        }
+    }
+
     destroy() {
-        clearTimeout(this.hintTimeout);
+        clearTimeout(this.hideTimeout);
         clearTimeout(this.mouseMoveTimer);
         clearTimeout(this.mouseIdleTimer);
 
-        // Unsubscribe from EventBus events
-        this.subscriptions.forEach(sub => sub.unsubscribe());
-        this.subscriptions = [];
+        // Unsubscribe from StateManager
+        if (typeof this.unsubscribeControlsVisibility === 'function') {
+            this.unsubscribeControlsVisibility();
+        }
+        this.unsubscribeControlsVisibility = null;
 
-        // Remove V1 style activity listeners
+        // Remove activity listeners
         this.activityListeners.forEach(listener => {
             listener.target.removeEventListener(listener.type, listener.handler);
         });
         this.activityListeners = [];
 
+        // Call base destroy AFTER cleaning up own listeners/subscriptions
         super.destroy();
     }
 
-    /**
-     * @override
-     * Handles state updates (e.g., text changes). Currently minimal.
-     * @param {object} changedPaths - Object indicating which state paths have changed.
-     */
     _onStateUpdate(changedPaths) {
-        // Example: Update text if options change
+        // Update text if options change
         if (this.container && changedPaths[`elements.${this.id}.options.text`]) {
             const pElement = this.container.querySelector('p');
             if (pElement) {
                 pElement.textContent = this.options.text;
             }
         }
-        // Note: Visibility is handled internally by mouse/control events, not direct state binding.
+        // Visibility handled by internal logic + state subscription
     }
 }
