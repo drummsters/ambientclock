@@ -80,7 +80,6 @@ export class VisibilityManager {
     handleMouseEnter() {
         this.isHovering = true;
         this.clearHideTimer();
-        // console.log('[VisibilityManager] Mouse Enter - Hovering:', this.isHovering);
     }
 
     /**
@@ -89,7 +88,6 @@ export class VisibilityManager {
     handleMouseLeave() {
         this.isHovering = false;
         this.startHideTimer();
-        // console.log('[VisibilityManager] Mouse Leave - Hovering:', this.isHovering);
     }
 
     /**
@@ -98,7 +96,6 @@ export class VisibilityManager {
     show() {
         if (this.isVisible) return; // Already visible
 
-        // console.log('[VisibilityManager] Showing element');
         addClass(this.element, 'visible');
         // Use requestAnimationFrame to ensure the class is applied before setting opacity
         requestAnimationFrame(() => {
@@ -126,11 +123,9 @@ export class VisibilityManager {
     hide(force = false) {
         if (!this.isVisible) return; // Already hidden
         if (this.isHovering && !force) {
-            // console.log('[VisibilityManager] Hide prevented by hover');
             return; // Don't hide if hovering unless forced
         }
 
-        // console.log('[VisibilityManager] Hiding element (Force:', force, ')');
         removeClass(this.element, 'is-open'); // Remove is-open first for transition
         // Wait for transition to finish before removing 'visible' (adjust time if needed)
         // Using a timeout slightly longer than the CSS transition duration
@@ -179,17 +174,14 @@ export class VisibilityManager {
     startHideTimer(forceHideAfterDelay = false) {
         // If not forcing hide after delay, only start timer if not hovering
         if (!forceHideAfterDelay && this.isHovering) {
-            // console.log('[VisibilityManager] StartHideTimer prevented by hover');
             return;
         }
 
         // Clear any existing timer
         this.clearHideTimer();
 
-        // console.log('[VisibilityManager] Starting hide timer (Delay:', this.hideDelay, 'Force:', forceHideAfterDelay, ')');
         // Set new timer
         this.hideTimerId = setTimeout(() => {
-            // console.log('[VisibilityManager] Hide timer expired');
             if (forceHideAfterDelay) {
                 this.forceHide();
             } else {
@@ -204,7 +196,6 @@ export class VisibilityManager {
      */
     clearHideTimer() {
         if (this.hideTimerId) {
-            // console.log('[VisibilityManager] Clearing hide timer');
             clearTimeout(this.hideTimerId);
             this.hideTimerId = null;
         }

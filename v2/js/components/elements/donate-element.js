@@ -115,15 +115,15 @@ export class DonateElement extends BaseUIElement {
         let hasLinks = false;
         availablePlatforms.forEach(platform => {
             const accountId = links[platform.key];
-            if (accountId && !accountId.startsWith('YOUR_')) {
+            // Check if accountId is not null, undefined, or an empty string
+            if (accountId) {
                 hasLinks = true;
                 const url = platform.urlPrefix ? `${platform.urlPrefix}${accountId}` : accountId;
-                dropdownHTML += `...`; // Keep existing HTML generation
                  dropdownHTML += `
                     <div class="payment-option">
                         <a href="${url}" target="_blank" rel="noopener noreferrer">
                             <span class="payment-icon">
-                                <img src="v2/assets/icons/${platform.icon}" alt="${platform.name}" width="24" height="24">
+                                <img src="assets/icons/${platform.icon}" alt="${platform.name}" width="24" height="24">
                             </span>
                             <span class="payment-name">${platform.name}</span>
                         </a>
@@ -132,7 +132,6 @@ export class DonateElement extends BaseUIElement {
             }
         });
         if (hasLinks) {
-            this.container.innerHTML = `...`; // Keep existing HTML generation
              this.container.innerHTML = `
                 <div class="donate-content">
                     <div class="coffee-icon">☕</div>
@@ -197,12 +196,10 @@ export class DonateElement extends BaseUIElement {
         clearTimeout(this.mouseMoveTimer); // Clear any pending show timer
         this.container.classList.add('visible'); // Use class for CSS
         this.isVisible = true;
-        // console.log('[DonateElement] Shown');
     }
 
     hideDonate() {
         if (!this.isVisible || !this.container) return;
-        // console.log('[DonateElement] Hiding (fade)');
         clearTimeout(this.hideTimeout);
         clearTimeout(this.mouseMoveTimer);
         clearTimeout(this.mouseIdleTimer);
@@ -214,14 +211,12 @@ export class DonateElement extends BaseUIElement {
                 this.container.classList.remove('visible');
                 this.container.style.opacity = ''; // Reset style attribute
                 this.isVisible = false;
-                // console.log('[DonateElement] Hidden (fade complete)');
             }
         }, this.fadeOutDuration);
     }
 
     hideDonateImmediately() {
         if (!this.container) return;
-        // console.log('[DonateElement] Hiding Immediately');
         clearTimeout(this.hideTimeout);
         clearTimeout(this.mouseMoveTimer);
         clearTimeout(this.mouseIdleTimer);
@@ -233,7 +228,6 @@ export class DonateElement extends BaseUIElement {
     resetIdleTimer() {
         clearTimeout(this.mouseIdleTimer);
         this.mouseIdleTimer = setTimeout(this.hideDonate.bind(this), this.mouseIdleHideDelay);
-        // console.log('[DonateElement] Idle timer reset');
     }
 
     // --- Event Handlers ---
@@ -243,7 +237,6 @@ export class DonateElement extends BaseUIElement {
         this.showDonate(); // Show immediately on hover
         clearTimeout(this.mouseIdleTimer); // Clear hide timer
         clearTimeout(this.mouseMoveTimer); // Clear any pending show timer
-        // console.log('[DonateElement] Mouse Enter');
     }
 
     handleMouseLeave() {
@@ -252,13 +245,11 @@ export class DonateElement extends BaseUIElement {
         if (!this.stateManager.getState().settings.controls.isOpen) {
             this.resetIdleTimer(); // Start timer to hide it
         }
-        // console.log('[DonateElement] Mouse Leave');
     }
 
     handleBlur() {
         // Hide immediately when window loses focus
         this.hideDonateImmediately();
-        // console.log('[DonateElement] Window Blur');
     }
 
     handleActivity() {
@@ -295,7 +286,6 @@ export class DonateElement extends BaseUIElement {
                 this.resetIdleTimer();
             }
         }
-        // console.log(`[DonateElement] Controls visibility changed: ${controlsOpen}`);
     }
 
     _onStateUpdate(changedPaths) {

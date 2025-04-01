@@ -29,14 +29,27 @@ export class ConfigManager {
         disableAnimations: false,
         lowResBackgrounds: false,
       },
-      donationLinks: { // Add donation links section
-        paypal: 'drummster',
-        venmo: 'YOUR_VENMO_USERNAME',
-        cashapp: 'YOUR_CASHAPP_CASHTAG',
-        googlepay: 'YOUR_GOOGLE_PAY_LINK' // Or relevant identifier
+      donationLinks: { // Initialize with empty/null values
+        paypal: null,
+        venmo: null,
+        cashapp: null,
+        googlepay: null
       },
       version: '2.0.0' // App version
     };
+
+    // Attempt to read build-time environment variables (Vite example)
+    // These will be undefined if not set or if using a different build tool
+    try {
+        this.config.donationLinks.paypal = import.meta.env.VITE_DONATE_PAYPAL || this.config.donationLinks.paypal;
+        this.config.donationLinks.venmo = import.meta.env.VITE_DONATE_VENMO || this.config.donationLinks.venmo;
+        this.config.donationLinks.cashapp = import.meta.env.VITE_DONATE_CASHAPP || this.config.donationLinks.cashapp;
+        this.config.donationLinks.googlepay = import.meta.env.VITE_DONATE_GOOGLEPAY || this.config.donationLinks.googlepay;
+    } catch (e) {
+        // import.meta.env might not exist in all environments/builds
+        console.warn('Could not read build-time environment variables for donation links.');
+    }
+
 
     this.setupComplete = false;
     this.CONFIG_STORAGE_KEY = 'ambient-clock-v2-config';
