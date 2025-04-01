@@ -45,13 +45,35 @@ export class ControlsHintElement extends BaseUIElement {
          this.container.innerHTML = `<p>${this.options.text || "Press 'Space' or 'c' to toggle controls"}</p>`;
 
         // Initial display logic: After a delay, check controls state and show if appropriate
-        setTimeout(() => {
+        // Ensure the hint displays after a delay, with special handling for production
+        // environments where timing might be different
+        const initialDelayMs = 1000; // Show sooner than original 3s delay
+        const displayInitialHint = () => {
+            console.log('[ControlsHint] Attempting to show initial hint');
+            
+            // Force hint to display if controls aren't open
             const controlsOpen = this.stateManager.getState().settings.controls.isOpen;
             if (!controlsOpen) {
-                this.showHint();
+                // Always ensure visibility is handled correctly
+                this.container.classList.add('visible');
+                this.isVisible = true;
                 this.resetIdleTimer();
+                
+                // Schedule a check to make sure hint becomes visible even in production builds
+                setTimeout(() => {
+                    if (!this.container.classList.contains('visible')) {
+                        console.log('[ControlsHint] Re-applying visibility class');
+                        this.container.classList.add('visible');
+                    }
+                }, 500);
             }
-        }, this.initialShowDelay);
+        };
+        
+        // Initial display with shorter delay
+        setTimeout(displayInitialHint, initialDelayMs);
+        
+        // Additional display attempt after standard delay (backup for production)
+        setTimeout(displayInitialHint, this.initialShowDelay);
 
         // Follow the Event-Driven Messaging principle
         // Subscribe to control panel visibility state through StateManager
@@ -104,7 +126,7 @@ export class ControlsHintElement extends BaseUIElement {
         // Let CSS handle the transition via class removal
         this.container.classList.remove('visible');
         this.isVisible = false;
-        console.log(`[ControlsHint ${this.id}] hideHint called, isVisible:`, this.isVisible); // DEBUG LOG
+        // Removed excessive logging
     }
 
     hideHintImmediately() {
@@ -114,7 +136,7 @@ export class ControlsHintElement extends BaseUIElement {
         clearTimeout(this.mouseIdleTimer);
         this.container.classList.remove('visible');
         this.isVisible = false;
-        console.log(`[ControlsHint ${this.id}] hideHintImmediately called, isVisible:`, this.isVisible); // DEBUG LOG
+        // Removed excessive logging
     }
 
     resetIdleTimer() {
@@ -124,7 +146,18 @@ export class ControlsHintElement extends BaseUIElement {
 
     // --- Event Handlers ---
 
+    // Track last movement time to throttle processing
+    lastMoveTime = 0;
+    moveThrottleMs = 100; // Only process mouse movements every 100ms
+
     handleMouseMove() {
+        // Throttle mouse move handler to reduce processing
+        const now = Date.now();
+        if (now - this.lastMoveTime < this.moveThrottleMs) {
+            return; // Skip this movement, too soon after the last one
+        }
+        this.lastMoveTime = now;
+        
         // If controls panel is open, always keep the hint hidden
         const controlsOpen = this.stateManager.getState().settings.controls.isOpen;
         if (controlsOpen) {
