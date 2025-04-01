@@ -114,23 +114,44 @@ export class ControlPanel extends BaseUIElement {
     console.log(`ControlPanel (${this.id}): Creating child elements...`);
     this.container.innerHTML = ''; // Clear any existing content
 
-    // --- Background Section ---
+    // --- Create Sections in V1 Order ---
+
+    // 1. Clock Section (Placeholder)
+    this.elements.clockSectionPlaceholder = this.createSectionContainer('Clock');
+    this.container.appendChild(this.elements.clockSectionPlaceholder);
+
+    // 2. Date Section (Placeholder)
+    this.elements.dateSectionPlaceholder = this.createSectionContainer('Date');
+    this.container.appendChild(this.elements.dateSectionPlaceholder);
+
+    // 3. Background Section
     const backgroundSection = this.createSectionContainer('Background');
     const backgroundControls = new BackgroundControls(backgroundSection, this.configManager, this.backgroundService);
     await backgroundControls.init();
     this.elements.backgroundControls = backgroundControls; // Store reference
     this.container.appendChild(backgroundSection);
 
-    // --- Element Sections (Placeholders or added dynamically) ---
-    // We'll append clock/date controls directly to this.container for now
-    // Or create placeholder divs:
-    // this.elements.clockSectionPlaceholder = this.createSectionContainer('Clock');
-    // this.container.appendChild(this.elements.clockSectionPlaceholder);
-    // this.elements.dateSectionPlaceholder = this.createSectionContainer('Date');
-    // this.container.appendChild(this.elements.dateSectionPlaceholder);
+    // 4. Effects Section (Placeholder for now)
+    const effectsSection = this.createSectionContainer('Effects');
+    // TODO: Add effect controls if needed (V2 handles effects per-element)
+    const effectsPlaceholderText = document.createElement('p');
+    effectsPlaceholderText.textContent = 'Element effects are controlled individually.';
+    effectsPlaceholderText.style.fontSize = '0.9em';
+    effectsPlaceholderText.style.opacity = '0.7';
+    effectsSection.appendChild(effectsPlaceholderText);
+    this.container.appendChild(effectsSection);
 
+    // 5. Favorites Section (Placeholder for now)
+    const favoritesSection = this.createSectionContainer('Favorites');
+    // TODO: Implement Favorites functionality
+    const favoritesPlaceholderText = document.createElement('p');
+    favoritesPlaceholderText.textContent = 'Favorites feature coming soon.';
+    favoritesPlaceholderText.style.fontSize = '0.9em';
+    favoritesPlaceholderText.style.opacity = '0.7';
+    favoritesSection.appendChild(favoritesPlaceholderText);
+    this.container.appendChild(favoritesSection);
 
-    // --- Settings Section ---
+    // 6. Settings Section
     const settingsSection = this.createSectionContainer('Settings');
     const resetButton = document.createElement('button');
     resetButton.textContent = 'Reset All Settings';
@@ -266,15 +287,42 @@ export class ControlPanel extends BaseUIElement {
 
     let controlsInstance = null;
     let success = false;
+    let targetContainer = null;
 
     if (elementType === 'clock') {
         console.log(`[ControlPanel] Adding ClockControls for ${elementId}`);
-        controlsInstance = new ClockControls(this.container, elementId);
-        success = await controlsInstance.init();
+        targetContainer = this.elements.clockSectionPlaceholder;
+        if (targetContainer) {
+            // Clear placeholder text if any
+            targetContainer.innerHTML = '';
+             // Re-add title if cleared
+            const title = document.createElement('h3');
+            title.className = 'section-title';
+            title.textContent = 'Clock';
+            targetContainer.appendChild(title);
+            // Add controls
+            controlsInstance = new ClockControls(targetContainer, elementId);
+            success = await controlsInstance.init();
+        } else {
+             console.error(`[ControlPanel] Clock section placeholder not found for ${elementId}`);
+        }
     } else if (elementType === 'date') {
         console.log(`[ControlPanel] Adding DateControls for ${elementId}`);
-        controlsInstance = new DateControls(this.container, elementId);
-        success = await controlsInstance.init();
+        targetContainer = this.elements.dateSectionPlaceholder;
+         if (targetContainer) {
+            // Clear placeholder text if any
+            targetContainer.innerHTML = '';
+             // Re-add title if cleared
+            const title = document.createElement('h3');
+            title.className = 'section-title';
+            title.textContent = 'Date';
+            targetContainer.appendChild(title);
+            // Add controls
+            controlsInstance = new DateControls(targetContainer, elementId);
+            success = await controlsInstance.init();
+        } else {
+             console.error(`[ControlPanel] Date section placeholder not found for ${elementId}`);
+        }
     }
     // Add more 'else if' blocks for other element types
 

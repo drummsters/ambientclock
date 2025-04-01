@@ -76,7 +76,7 @@ export class ClockControls {
     // this.container.appendChild(idLabel);
 
     // --- Clock Face Select ---
-    const faceGroup = this.createControlGroup('Face:');
+    const faceGroup = this.createControlGroup('Clock Face:'); // V1 Label
     this.elements.faceSelect = document.createElement('select');
     this.elements.faceSelect.id = `${this.elementId}-face-select`;
     // Include implemented faces (changed 'digital' to 'led')
@@ -107,14 +107,12 @@ export class ClockControls {
     this.elements.secondsCheckbox = document.createElement('input');
     this.elements.secondsCheckbox.type = 'checkbox';
     this.elements.secondsCheckbox.id = `${this.elementId}-seconds-checkbox`;
-    secondsGroup.appendChild(this.elements.secondsCheckbox);
-    // Adjust label positioning for checkbox
-    secondsGroup.insertBefore(this.elements.secondsCheckbox, secondsGroup.firstChild);
+    secondsGroup.appendChild(this.elements.secondsCheckbox); // Append checkbox after label
     secondsGroup.querySelector('label').htmlFor = this.elements.secondsCheckbox.id; // Associate label
     this.container.appendChild(secondsGroup);
 
     // --- Font Family Select ---
-    const fontGroup = this.createControlGroup('Font:');
+    const fontGroup = this.createControlGroup('Clock Font:'); // V1 Label
     this.elements.fontSelect = document.createElement('select');
     this.elements.fontSelect.id = `${this.elementId}-font-select`;
     // Add some common web-safe fonts + the current default
@@ -137,12 +135,12 @@ export class ClockControls {
     this.elements.boldCheckbox = document.createElement('input');
     this.elements.boldCheckbox.type = 'checkbox';
     this.elements.boldCheckbox.id = `${this.elementId}-bold-checkbox`;
-    boldGroup.insertBefore(this.elements.boldCheckbox, boldGroup.firstChild);
+    boldGroup.appendChild(this.elements.boldCheckbox); // Append checkbox after label
     boldGroup.querySelector('label').htmlFor = this.elements.boldCheckbox.id;
     this.container.appendChild(boldGroup);
 
     // --- Color Picker ---
-    const colorGroup = this.createControlGroup('Color:');
+    const colorGroup = this.createControlGroup('Clock Color:'); // V1 Label
     this.elements.colorPicker = document.createElement('input');
     this.elements.colorPicker.type = 'color';
     this.elements.colorPicker.id = `${this.elementId}-color-picker`;
@@ -150,7 +148,7 @@ export class ClockControls {
     this.container.appendChild(colorGroup);
 
     // --- Size Slider ---
-    const sizeGroup = this.createControlGroup('Size:');
+    const sizeGroup = this.createControlGroup('Clock Size:'); // V1 Label
     this.elements.sizeSlider = document.createElement('input');
     this.elements.sizeSlider.type = 'range';
     this.elements.sizeSlider.id = `${this.elementId}-size-slider`;
@@ -165,7 +163,7 @@ export class ClockControls {
     this.container.appendChild(sizeGroup);
 
     // --- Opacity Slider ---
-    const opacityGroup = this.createControlGroup('Opacity:');
+    const opacityGroup = this.createControlGroup('Clock Opacity:'); // V1 Label
     this.elements.opacitySlider = document.createElement('input');
     this.elements.opacitySlider.type = 'range';
     this.elements.opacitySlider.id = `${this.elementId}-opacity-slider`;
@@ -179,7 +177,7 @@ export class ClockControls {
     this.container.appendChild(opacityGroup);
 
     // --- Effect Style Select ---
-    const effectGroup = this.createControlGroup('Effect:');
+    const effectGroup = this.createControlGroup('Effect:'); // Keep V2 control
     this.elements.effectSelect = document.createElement('select');
     this.elements.effectSelect.id = `${this.elementId}-effect-select`;
     ['flat', 'raised', 'reflected'].forEach(style => {

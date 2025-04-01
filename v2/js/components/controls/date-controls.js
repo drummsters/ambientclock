@@ -55,31 +55,25 @@ export class DateControls {
   }
 
   /**
-   * Creates the DOM elements for the date controls.
+   * Creates the DOM elements for the date controls in V1 order.
    */
   createElements() {
     if (!this.container) return;
-    console.log(`Creating date control elements for ${this.elementId}...`);
+    console.log(`Creating date control elements for ${this.elementId} in V1 order...`);
 
-    // --- Section Title Removed (Handled by ControlPanel or dynamically) ---
-    // Optionally add identifier:
-    // const idLabel = document.createElement('div');
-    // idLabel.textContent = `Element: ${this.elementId}`;
-    // idLabel.style.fontSize = '0.8em';
-    // idLabel.style.marginBottom = '10px';
-    // this.container.appendChild(idLabel);
+    // --- Controls in V1 Order ---
 
-    // --- Visibility Checkbox ---
-    const visibilityGroup = this.createControlGroup('Visible:');
+    // 1. Visibility Checkbox
+    const visibilityGroup = this.createControlGroup('Display Date:'); // V1 Label
     this.elements.visibleCheckbox = document.createElement('input');
     this.elements.visibleCheckbox.type = 'checkbox';
     this.elements.visibleCheckbox.id = `${this.elementId}-visible-checkbox`;
-    visibilityGroup.insertBefore(this.elements.visibleCheckbox, visibilityGroup.firstChild);
+    visibilityGroup.appendChild(this.elements.visibleCheckbox); // Append after label
     visibilityGroup.querySelector('label').htmlFor = this.elements.visibleCheckbox.id;
     this.container.appendChild(visibilityGroup);
 
-    // --- Date Format Select ---
-    const formatGroup = this.createControlGroup('Format:');
+    // 2. Date Format Select
+    const formatGroup = this.createControlGroup('Date Format:'); // V1 Label
     this.elements.formatSelect = document.createElement('select');
     this.elements.formatSelect.id = `${this.elementId}-format-select`;
     [
@@ -94,47 +88,19 @@ export class DateControls {
     formatGroup.appendChild(this.elements.formatSelect);
     this.container.appendChild(formatGroup);
 
-    // --- Font Family Select ---
-    const fontGroup = this.createControlGroup('Font:');
-    this.elements.fontSelect = document.createElement('select');
-    this.elements.fontSelect.id = `${this.elementId}-font-select`;
-    [
-        'Segoe UI', 'Arial', 'Helvetica', 'Verdana', 'Tahoma', 'Geneva',
-        'Times New Roman', 'Georgia', 'Garamond',
-        'Courier New', 'Lucida Console', 'Monaco',
-        'cursive', 'fantasy', 'monospace', 'sans-serif', 'serif'
-    ].forEach(font => {
-        const option = document.createElement('option');
-        option.value = font;
-        option.textContent = font;
-        this.elements.fontSelect.appendChild(option);
-    });
-    fontGroup.appendChild(this.elements.fontSelect);
-    this.container.appendChild(fontGroup);
-
-    // --- Font Weight (Bold) Checkbox ---
-    const boldGroup = this.createControlGroup('Bold:');
-    this.elements.boldCheckbox = document.createElement('input');
-    this.elements.boldCheckbox.type = 'checkbox';
-    this.elements.boldCheckbox.id = `${this.elementId}-bold-checkbox`;
-    boldGroup.insertBefore(this.elements.boldCheckbox, boldGroup.firstChild);
-    boldGroup.querySelector('label').htmlFor = this.elements.boldCheckbox.id;
-    this.container.appendChild(boldGroup);
-
-    // --- Color Picker ---
-    const colorGroup = this.createControlGroup('Color:');
+    // 3. Color Picker
+    const colorGroup = this.createControlGroup('Date Color:'); // V1 Label
     this.elements.colorPicker = document.createElement('input');
     this.elements.colorPicker.type = 'color';
     this.elements.colorPicker.id = `${this.elementId}-color-picker`;
     colorGroup.appendChild(this.elements.colorPicker);
     this.container.appendChild(colorGroup);
 
-    // --- Size Slider ---
-    const sizeGroup = this.createControlGroup('Size:');
+    // 4. Size Slider
+    const sizeGroup = this.createControlGroup('Date Size:'); // V1 Label
     this.elements.sizeSlider = document.createElement('input');
     this.elements.sizeSlider.type = 'range';
     this.elements.sizeSlider.id = `${this.elementId}-size-slider`;
-    // Use centralized scale values from BaseUIElement
     this.elements.sizeSlider.min = BaseUIElement.MIN_SCALE;
     this.elements.sizeSlider.max = BaseUIElement.MAX_SCALE;
     this.elements.sizeSlider.step = BaseUIElement.SCALE_STEP.toString();
@@ -144,8 +110,8 @@ export class DateControls {
     sizeGroup.appendChild(this.elements.sizeValue);
     this.container.appendChild(sizeGroup);
 
-    // --- Opacity Slider ---
-    const opacityGroup = this.createControlGroup('Opacity:');
+    // 5. Opacity Slider
+    const opacityGroup = this.createControlGroup('Date Opacity:'); // V1 Label
     this.elements.opacitySlider = document.createElement('input');
     this.elements.opacitySlider.type = 'range';
     this.elements.opacitySlider.id = `${this.elementId}-opacity-slider`;
@@ -157,29 +123,6 @@ export class DateControls {
     opacityGroup.appendChild(this.elements.opacitySlider);
     opacityGroup.appendChild(this.elements.opacityValue);
     this.container.appendChild(opacityGroup);
-
-    // --- Effect Style Select ---
-    const effectGroup = this.createControlGroup('Effect:');
-    this.elements.effectSelect = document.createElement('select');
-    this.elements.effectSelect.id = `${this.elementId}-effect-select`;
-    ['flat', 'raised', 'reflected'].forEach(style => {
-        const option = document.createElement('option');
-        option.value = style;
-        option.textContent = style.charAt(0).toUpperCase() + style.slice(1);
-        this.elements.effectSelect.appendChild(option);
-    });
-    effectGroup.appendChild(this.elements.effectSelect);
-    this.container.appendChild(effectGroup);
-
-    // --- Separator Line Checkbox ---
-    const separatorGroup = this.createControlGroup('Separator Line:');
-    this.elements.separatorCheckbox = document.createElement('input');
-    this.elements.separatorCheckbox.type = 'checkbox';
-    this.elements.separatorCheckbox.id = `${this.elementId}-separator-checkbox`;
-    separatorGroup.insertBefore(this.elements.separatorCheckbox, separatorGroup.firstChild);
-    separatorGroup.querySelector('label').htmlFor = this.elements.separatorCheckbox.id;
-    this.container.appendChild(separatorGroup);
-
 
     console.log(`Date control elements for ${this.elementId} created.`);
   }
@@ -206,13 +149,13 @@ export class DateControls {
 
     // Listen for top-level element changes (for scale)
     const elementStatePath = `elements.${this.elementId}`; // e.g., elements.date-default
-    const elementEventName = `state:${elementStatePath}:changed`; 
+    const elementEventName = `state:${elementStatePath}:changed`;
     const elementSubscription = EventBus.subscribe(elementEventName, (elementState) => {
         console.log(`[DateControls ${this.elementId}] Event received: ${elementEventName}`, elementState);
-        // Update scale, opacity, and effect style from the element state
+        // Update scale and opacity from the element state
         this.updateUIScale(elementState?.scale);
         this.updateUIOpacity(elementState?.opacity); // Add opacity update
-        this.updateUIEffectStyle(elementState?.effectStyle);
+        // Effect style update removed
     });
     this.unsubscribers.push(elementSubscription.unsubscribe);
 
@@ -225,7 +168,7 @@ export class DateControls {
        console.log(`[DateControls ${this.elementId}] No initial options state found at path: ${this.statePath}`);
        this.updateUIFromState({}); // Apply option defaults
     }
-    
+
     // Apply initial state for scale
     const initialElementState = StateManager.getNestedValue(StateManager.getState(), elementStatePath);
      if (initialElementState?.scale !== undefined) {
@@ -243,14 +186,7 @@ export class DateControls {
         console.log(`[DateControls ${this.elementId}] No initial opacity state found.`);
         this.updateUIOpacity(1.0); // Apply opacity default
     }
-    // Apply initial effect style
-    if (initialElementState?.effectStyle) {
-        console.log(`[DateControls ${this.elementId}] Applying initial effect style:`, initialElementState.effectStyle);
-        this.updateUIEffectStyle(initialElementState.effectStyle);
-    } else {
-        console.log(`[DateControls ${this.elementId}] No initial effect style found.`);
-        this.updateUIEffectStyle('flat'); // Default effect
-    }
+    // Effect style application removed
   }
 
   /** Updates the UI elements based on the provided options state. */
@@ -260,9 +196,9 @@ export class DateControls {
 
      if (this.elements.visibleCheckbox) this.elements.visibleCheckbox.checked = optionsState.visible ?? true;
      if (this.elements.formatSelect) this.elements.formatSelect.value = optionsState.format || 'Day, Month DD';
-     if (this.elements.fontSelect) this.elements.fontSelect.value = optionsState.fontFamily || 'Segoe UI';
-     if (this.elements.boldCheckbox) this.elements.boldCheckbox.checked = (optionsState.fontWeight === 'bold'); // Default to false if not 'bold'
-     if (this.elements.separatorCheckbox) this.elements.separatorCheckbox.checked = optionsState.showSeparator ?? false; // Update separator checkbox
+     // Font select update removed
+     // Bold checkbox update removed
+     // Separator checkbox update removed
      if (this.elements.colorPicker) this.elements.colorPicker.value = optionsState.color || '#FFFFFF';
 
      // Scale and Opacity are handled separately
@@ -296,19 +232,9 @@ export class DateControls {
                this.elements.opacityValue.textContent = parseFloat(currentOpacity).toFixed(2);
            }
        }
-   }
+    }
 
-   /**
-    * Updates only the effect style select UI element.
-    * @param {string} style - The current effect style.
-    */
-   updateUIEffectStyle(style) {
-       const currentStyle = style || 'flat'; // Default if undefined
-       console.log(`[DateControls ${this.elementId}] Updating effect style UI to:`, currentStyle);
-       if (this.elements.effectSelect) {
-           this.elements.effectSelect.value = currentStyle;
-       }
-   }
+   // updateUIEffectStyle method removed
 
   /** Adds event listeners to the UI elements. */
   addEventListeners() {
@@ -316,8 +242,8 @@ export class DateControls {
 
     this.elements.visibleCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ visible: e.target.checked }));
     this.elements.formatSelect?.addEventListener('change', (e) => this.dispatchStateUpdate({ format: e.target.value }));
-    this.elements.fontSelect?.addEventListener('change', (e) => this.dispatchStateUpdate({ fontFamily: e.target.value }));
-    this.elements.boldCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ fontWeight: e.target.checked ? 'bold' : 'normal' }));
+    // Font select listener removed
+    // Bold checkbox listener removed
     this.elements.colorPicker?.addEventListener('input', (e) => this.dispatchStateUpdate({ color: e.target.value }));
 
     // Size Slider Change
@@ -340,15 +266,9 @@ export class DateControls {
         this.dispatchElementStateUpdate({ opacity: newOpacity });
     });
 
-    // Effect Style Select Change
-    this.elements.effectSelect?.addEventListener('change', (e) => {
-        this.dispatchElementStateUpdate({ effectStyle: e.target.value });
-    });
+    // Effect Style Select listener removed
 
-    // Separator Checkbox Change
-    this.elements.separatorCheckbox?.addEventListener('change', (e) => {
-        this.dispatchStateUpdate({ showSeparator: e.target.checked });
-    });
+    // Separator Checkbox listener removed
   }
 
   /** Dispatches an update to the StateManager for options. */
@@ -363,7 +283,7 @@ export class DateControls {
     };
     StateManager.update(updatePayload);
   }
-  
+
   /** Dispatches an update to the StateManager for top-level element properties. */
   dispatchElementStateUpdate(elementChanges) {
       console.log(`[DateControls ${this.elementId}] Dispatching element state update:`, elementChanges);

@@ -71,56 +71,18 @@ export class BackgroundControls {
   }
 
   /**
-   * Creates the DOM elements for the background controls.
+   * Creates the DOM elements for the background controls in V1 order.
    */
   createElements() {
     if (!this.container) return;
-    console.log('Creating background control elements...');
+    console.log('Creating background control elements in V1 order...');
 
-    // --- Section Title Removed (Handled by ControlPanel) ---
-
-    // --- Type Selector (Radio Buttons) ---
-    const typeGroup = this.createControlGroup('Type:');
-    this.elements.typeColorRadio = this.createRadioButton('background-type', 'color', 'Color');
-    this.elements.typeImageRadio = this.createRadioButton('background-type', 'image', 'Image');
-    typeGroup.appendChild(this.elements.typeColorRadio);
-    typeGroup.appendChild(this.elements.typeImageRadio);
-    // Add labels for radios
-    const colorLabel = document.createElement('label');
-    colorLabel.htmlFor = this.elements.typeColorRadio.id;
-    colorLabel.textContent = 'Color';
-    colorLabel.style.marginLeft = '5px';
-    colorLabel.style.marginRight = '15px';
-    const imageLabel = document.createElement('label');
-    imageLabel.htmlFor = this.elements.typeImageRadio.id;
-    imageLabel.textContent = 'Image';
-    imageLabel.style.marginLeft = '5px';
-    typeGroup.appendChild(colorLabel);
-    typeGroup.appendChild(imageLabel);
-    this.container.appendChild(typeGroup);
-
-
-    // --- Color Settings (Visible when type is 'color') ---
-    this.elements.colorSettingsContainer = document.createElement('div');
-    this.elements.colorSettingsContainer.className = 'background-settings-color';
-    const colorGroup = this.createControlGroup('Color:');
-    this.elements.colorPicker = document.createElement('input');
-    this.elements.colorPicker.type = 'color';
-    this.elements.colorPicker.id = 'background-color-picker'; // Keep ID simple
-    colorGroup.appendChild(this.elements.colorPicker);
-    this.elements.colorSettingsContainer.appendChild(colorGroup);
-    this.container.appendChild(this.elements.colorSettingsContainer);
-
-
-    // --- Image Settings (Visible when type is 'image') ---
-    this.elements.imageSettingsContainer = document.createElement('div');
-    this.elements.imageSettingsContainer.className = 'background-settings-image';
-    this.elements.imageSettingsContainer.style.display = 'none'; // Hidden by default
+    // --- Controls in V1 Order ---
 
     // --- Image Source Select ---
-    const sourceGroup = this.createControlGroup('Source:');
+    const sourceGroup = this.createControlGroup('Image Source:'); // V1 Label
     this.elements.sourceSelect = document.createElement('select');
-    this.elements.sourceSelect.id = 'background-source-select';
+    this.elements.sourceSelect.id = 'background-source-select'; // Keep ID simple for potential direct targeting
 
     // Dynamically populate based on registered providers in BackgroundService
     this.elements.sourceSelect.innerHTML = ''; // Clear existing options
@@ -135,25 +97,17 @@ export class BackgroundControls {
             this.elements.sourceSelect.appendChild(option);
         });
         this.elements.sourceSelect.disabled = false;
-        if (this.elements.typeImageRadio) {
-            this.elements.typeImageRadio.disabled = false;
-        }
     } else {
-        // If no image providers are registered, disable the select and image option
+        // If no image providers are registered, disable the select
         this.elements.sourceSelect.disabled = true;
         const option = document.createElement('option');
         option.textContent = 'No Image Providers Available';
         this.elements.sourceSelect.appendChild(option);
-        // Also disable the 'Image' radio button
-        if (this.elements.typeImageRadio) {
-            this.elements.typeImageRadio.disabled = true;
-        }
     }
-
     sourceGroup.appendChild(this.elements.sourceSelect);
-    this.elements.imageSettingsContainer.appendChild(sourceGroup);
+    this.container.appendChild(sourceGroup);
 
-    // --- Peapix Country Select (Initially hidden) ---
+    // --- Peapix Country Select (Dynamically shown/hidden) ---
     this.elements.peapixCountryGroup = this.createControlGroup('Country:');
     this.elements.peapixCountrySelect = document.createElement('select');
     this.elements.peapixCountrySelect.id = 'background-peapix-country-select';
@@ -165,12 +119,10 @@ export class BackgroundControls {
     });
     this.elements.peapixCountryGroup.appendChild(this.elements.peapixCountrySelect);
     this.elements.peapixCountryGroup.style.display = 'none'; // Hide initially
-    this.elements.imageSettingsContainer.appendChild(this.elements.peapixCountryGroup);
+    this.container.appendChild(this.elements.peapixCountryGroup);
 
-
-    // --- Image Category Select ---
-    // Note: Category doesn't apply to Peapix, should be hidden when Peapix is selected
-    this.elements.categorySelectGroup = this.createControlGroup('Category:'); // Store group reference
+    // --- Image Category Select (Dynamically shown/hidden) ---
+    this.elements.categorySelectGroup = this.createControlGroup('Category:'); // V1 Label
     this.elements.categorySelect = document.createElement('select');
     this.elements.categorySelect.id = 'background-category-select';
     // Predefined categories + Other
@@ -181,11 +133,11 @@ export class BackgroundControls {
         option.textContent = cat;
         this.elements.categorySelect.appendChild(option);
     });
-    this.elements.categorySelectGroup.appendChild(this.elements.categorySelect); // Use group reference
-    this.elements.imageSettingsContainer.appendChild(this.elements.categorySelectGroup); // Use group reference
+    this.elements.categorySelectGroup.appendChild(this.elements.categorySelect);
+    this.elements.categorySelectGroup.style.display = 'none'; // Hide initially
+    this.container.appendChild(this.elements.categorySelectGroup);
 
-    // --- Custom Category Input (Initially hidden) ---
-    // Note: Also doesn't apply to Peapix
+    // --- Custom Category Input (Dynamically shown/hidden) ---
     this.elements.customCategoryGroup = this.createControlGroup('Custom:');
     this.elements.customCategoryInput = document.createElement('input');
     this.elements.customCategoryInput.type = 'text';
@@ -193,33 +145,10 @@ export class BackgroundControls {
     this.elements.customCategoryInput.placeholder = 'Enter custom category';
     this.elements.customCategoryGroup.appendChild(this.elements.customCategoryInput);
     this.elements.customCategoryGroup.style.display = 'none'; // Hide initially
-    this.elements.imageSettingsContainer.appendChild(this.elements.customCategoryGroup);
+    this.container.appendChild(this.elements.customCategoryGroup);
 
-    // --- Manual Refresh Button ---
-    const refreshGroup = this.createControlGroup(''); // No label needed? Or "Actions:"?
-    this.elements.refreshButton = document.createElement('button');
-    this.elements.refreshButton.textContent = 'New Image';
-    this.elements.refreshButton.id = 'background-refresh-button';
-    refreshGroup.appendChild(this.elements.refreshButton);
-    this.elements.imageSettingsContainer.appendChild(refreshGroup);
-
-    // --- Zoom Effect Checkbox ---
-    const zoomGroup = this.createControlGroup('Zoom Effect:');
-    this.elements.zoomCheckbox = document.createElement('input');
-    this.elements.zoomCheckbox.type = 'checkbox';
-    this.elements.zoomCheckbox.id = 'background-zoom-checkbox';
-    zoomGroup.insertBefore(this.elements.zoomCheckbox, zoomGroup.firstChild);
-    zoomGroup.querySelector('label').htmlFor = this.elements.zoomCheckbox.id;
-    this.elements.imageSettingsContainer.appendChild(zoomGroup);
-
-
-    // TODO: Add controls for image refresh interval later
-
-    this.container.appendChild(this.elements.imageSettingsContainer);
-
-
-    // --- Overlay Opacity Slider (Common to both types) ---
-    const opacityGroup = this.createControlGroup('Overlay Opacity:');
+    // --- Opacity Slider ---
+    const opacityGroup = this.createControlGroup('Opacity:'); // V1 Label (Simpler than "Overlay Opacity")
     this.elements.opacitySlider = document.createElement('input');
     this.elements.opacitySlider.type = 'range';
     this.elements.opacitySlider.id = 'background-opacity-slider'; // Keep ID simple
@@ -230,7 +159,27 @@ export class BackgroundControls {
     this.elements.opacityValue.className = 'range-value';
     opacityGroup.appendChild(this.elements.opacitySlider);
     opacityGroup.appendChild(this.elements.opacityValue);
-    this.container.appendChild(opacityGroup); // Opacity applies to both
+    this.container.appendChild(opacityGroup);
+
+    // --- Zoom Effect Checkbox ---
+    const zoomGroup = this.createControlGroup('Zoom Effect:'); // V1 Label
+    this.elements.zoomCheckbox = document.createElement('input');
+    this.elements.zoomCheckbox.type = 'checkbox';
+    this.elements.zoomCheckbox.id = 'background-zoom-checkbox';
+    zoomGroup.appendChild(this.elements.zoomCheckbox); // Append after label
+    zoomGroup.querySelector('label').htmlFor = this.elements.zoomCheckbox.id;
+    this.container.appendChild(zoomGroup);
+
+    // --- Next Background Button ---
+    const refreshGroup = this.createControlGroup(''); // No label needed
+    this.elements.refreshButton = document.createElement('button');
+    this.elements.refreshButton.textContent = 'Next Background'; // V1 Text
+    this.elements.refreshButton.id = 'background-refresh-button'; // Keep ID
+    this.elements.refreshButton.style.width = '100%'; // Make button full width like V1
+    refreshGroup.appendChild(this.elements.refreshButton);
+    this.container.appendChild(refreshGroup);
+
+    // --- Removed Type Radio Buttons and Color Picker ---
 
     console.log('Background control elements created.');
   }
@@ -255,7 +204,7 @@ export class BackgroundControls {
     group.className = 'control-group';
     const label = document.createElement('label');
     label.textContent = labelText;
-    label.style.marginRight = '10px'; // Basic spacing
+    // label.style.marginRight = '10px'; // Use CSS gap instead
     group.appendChild(label);
     return group;
   }
@@ -289,24 +238,8 @@ export class BackgroundControls {
    */
   updateUIFromState(state = {}) {
      console.log('[BackgroundControls] Updating UI from state:', state);
-    // Update Color Picker
-    // Update Type Radio Buttons
-    const currentType = state.type || 'color'; // Default to color
-    if (this.elements.typeColorRadio) this.elements.typeColorRadio.checked = (currentType === 'color');
-    if (this.elements.typeImageRadio) this.elements.typeImageRadio.checked = (currentType === 'image');
-
-    // Show/Hide specific settings containers
-    if (this.elements.colorSettingsContainer) {
-        this.elements.colorSettingsContainer.style.display = (currentType === 'color') ? 'block' : 'none';
-    }
-    if (this.elements.imageSettingsContainer) {
-        this.elements.imageSettingsContainer.style.display = (currentType === 'image') ? 'block' : 'none';
-    }
-
-    // Update Color Picker (only needs update if visible, but harmless to update always)
-    if (this.elements.colorPicker) {
-      this.elements.colorPicker.value = state.color || '#000000'; // Default black
-    }
+     // Determine current type (image or color) - needed for conditional display
+     const currentType = state.type || 'color'; // Default to color
 
     // Update Image Source Select, ensuring the selected value is available
     const currentSource = state.source || 'unsplash'; // Default source attempt
@@ -323,8 +256,8 @@ export class BackgroundControls {
         }
     }
 
-    // Show/Hide Peapix Country Select based on source
-    const showPeapixControls = currentSource === 'peapix';
+    // Show/Hide Peapix Country Select based on source AND if type is 'image'
+    const showPeapixControls = currentType === 'image' && currentSource === 'peapix';
     if (this.elements.peapixCountryGroup) {
         this.elements.peapixCountryGroup.style.display = showPeapixControls ? 'flex' : 'none';
     }
@@ -333,8 +266,8 @@ export class BackgroundControls {
         this.elements.peapixCountrySelect.value = state.peapixCountry || 'us'; // Default 'us'
     }
 
-    // Show/Hide Category controls based on source (hide for Peapix)
-    const showCategoryControls = currentSource !== 'peapix';
+    // Show/Hide Category controls based on source (hide for Peapix) AND if type is 'image'
+    const showCategoryControls = currentType === 'image' && currentSource !== 'peapix';
     if (this.elements.categorySelectGroup) {
         this.elements.categorySelectGroup.style.display = showCategoryControls ? 'flex' : 'none';
     }
@@ -353,8 +286,7 @@ export class BackgroundControls {
         this.elements.customCategoryInput.value = state.customCategory || '';
     }
 
-
-    // Update Opacity Slider (Common)
+    // Update Opacity Slider
     if (this.elements.opacitySlider) {
       const opacity = state.overlayOpacity ?? 0.5; // Default 0.5
       this.elements.opacitySlider.value = opacity;
@@ -363,10 +295,25 @@ export class BackgroundControls {
       }
     }
 
-    // Update Zoom Checkbox
+    // Update Zoom Checkbox (only relevant if type is 'image')
     if (this.elements.zoomCheckbox) {
         this.elements.zoomCheckbox.checked = state.zoomEnabled ?? true; // Default to true if missing
+        // Optionally hide/disable zoom checkbox if type is 'color'
+        const zoomGroup = this.elements.zoomCheckbox.closest('.control-group');
+        if (zoomGroup) {
+            zoomGroup.style.display = currentType === 'image' ? 'flex' : 'none';
+        }
     }
+
+    // Update visibility/disabled state of image-related controls based on type
+    const imageControlsDisabled = currentType !== 'image';
+    if (this.elements.sourceSelect) this.elements.sourceSelect.disabled = imageControlsDisabled;
+    if (this.elements.categorySelect) this.elements.categorySelect.disabled = imageControlsDisabled || currentSource === 'peapix';
+    if (this.elements.customCategoryInput) this.elements.customCategoryInput.disabled = imageControlsDisabled || currentSource === 'peapix';
+    if (this.elements.peapixCountrySelect) this.elements.peapixCountrySelect.disabled = imageControlsDisabled || currentSource !== 'peapix';
+    if (this.elements.refreshButton) this.elements.refreshButton.disabled = imageControlsDisabled;
+    // Zoom checkbox visibility handled above
+
   }
 
   /**
@@ -375,34 +322,18 @@ export class BackgroundControls {
   addEventListeners() {
     if (!this.elements) return;
 
-    // Type Radio Change
-    const typeRadios = [this.elements.typeColorRadio, this.elements.typeImageRadio];
-    typeRadios.forEach(radio => {
-        if (radio) {
-            radio.addEventListener('change', (event) => {
-                if (event.target.checked) {
-                    this.dispatchStateUpdate({ type: event.target.value });
-                    // Immediately update visibility of sections based on new type
-                    this.updateUIFromState({ type: event.target.value });
-                }
-            });
-        }
-    });
+    // --- Removed Type Radio Listener ---
 
-    // Color Picker Change
-    if (this.elements.colorPicker) {
-      this.elements.colorPicker.addEventListener('input', (event) => {
-        this.dispatchStateUpdate({ color: event.target.value });
-      });
-    }
+    // --- Removed Color Picker Listener ---
 
     // Image Source Change
     if (this.elements.sourceSelect) {
         this.elements.sourceSelect.addEventListener('change', (event) => {
             const newSource = event.target.value;
-            this.dispatchStateUpdate({ source: newSource });
-            // Immediately update UI visibility based on the new source
-            this.updateUIFromState({ ...StateManager.getNestedValue(StateManager.getState(), this.statePath), source: newSource });
+            // Dispatch update for source AND ensure type is 'image'
+            this.dispatchStateUpdate({ type: 'image', source: newSource });
+            // Immediately update UI visibility based on the new source/type
+            this.updateUIFromState({ ...StateManager.getNestedValue(StateManager.getState(), this.statePath), type: 'image', source: newSource });
         });
     }
 
@@ -419,14 +350,10 @@ export class BackgroundControls {
         this.elements.categorySelect.addEventListener('change', (event) => {
             const newCategory = event.target.value;
             this.dispatchStateUpdate({ category: newCategory });
-            // If 'Other' is not selected, clear custom category and trigger load
+            // If 'Other' is not selected, clear custom category
             if (newCategory !== 'Other') {
                 this.dispatchStateUpdate({ customCategory: '' });
-                 // Trigger image load immediately? Or let BackgroundService handle it?
-                 // For now, let BackgroundService handle it via state change.
              }
-             // No need to call updateUIFromState here, the state change listener will handle it.
-             // this.updateUIFromState({ category: newCategory }); // REMOVED
          });
      }
 
@@ -437,7 +364,6 @@ export class BackgroundControls {
             // Only update if 'Other' is the selected category type
             if (this.elements.categorySelect?.value === 'Other') {
                 this.dispatchStateUpdate({ customCategory: event.target.value });
-                // Trigger image load immediately? Or let BackgroundService handle it?
             }
         });
     }
@@ -445,10 +371,6 @@ export class BackgroundControls {
     // Manual Refresh Button Click
     if (this.elements.refreshButton) {
         this.elements.refreshButton.addEventListener('click', () => {
-            // We don't dispatch a state update, instead we directly call the service method
-            // Need access to the BackgroundService instance. How to get it?
-            // Option 1: Pass BackgroundService instance to constructor (complex dependency)
-            // Option 2: Use EventBus to publish a command event
             console.log('[BackgroundControls] Refresh button clicked. Publishing background:refresh event.');
             EventBus.publish('background:refresh');
         });
@@ -462,7 +384,7 @@ export class BackgroundControls {
     }
 
 
-    // Opacity Slider Change (Common)
+    // Opacity Slider Change
     if (this.elements.opacitySlider) {
       this.elements.opacitySlider.addEventListener('input', (event) => {
         const newOpacity = parseFloat(event.target.value);
@@ -473,8 +395,6 @@ export class BackgroundControls {
         this.dispatchStateUpdate({ overlayOpacity: newOpacity });
       });
     }
-
-    // TODO: Add listeners for other controls when added
   }
 
   /**
