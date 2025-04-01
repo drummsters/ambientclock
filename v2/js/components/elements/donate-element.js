@@ -186,34 +186,60 @@ export class DonateElement extends BaseUIElement {
         // Don't proceed if container is missing or already visible
         if (!this.container || this.isVisible) return;
         
-        // Apply the visible class for CSS-driven appearance
+        console.log(`[DonateElement ${this.id}] Showing donate element`);
+        
+        // Apply visibility with both class and direct style properties for production
         clearTimeout(this.hideTimeout);
         clearTimeout(this.mouseMoveTimer);
         this.container.classList.add('visible');
+        
+        // Force visibility with inline styles as fallback
+        this.container.style.opacity = '1';
+        this.container.style.visibility = 'visible';
+        this.container.style.pointerEvents = 'auto';
+        
         this.isVisible = true;
     }
     
     hideDonate() {
         if (!this.isVisible || !this.container) return;
         
+        console.log(`[DonateElement ${this.id}] Hiding donate element`);
+        
         // Clear all visibility-related timers
         clearTimeout(this.hideTimeout);
         clearTimeout(this.mouseMoveTimer);
         clearTimeout(this.mouseIdleTimer);
         
-        // Remove visible class to trigger CSS transition
+        // Remove visible class and set inline styles to ensure hiding
         this.container.classList.remove('visible');
+        
+        // Force invisibility with inline styles as fallback
+        this.container.style.opacity = '0';
+        this.container.style.visibility = 'hidden';
+        this.container.style.pointerEvents = 'none';
+        
         this.isVisible = false;
     }
     
     hideDonateImmediately() {
         if (!this.container) return;
         
+        console.log(`[DonateElement ${this.id}] Hiding donate element immediately`);
+        
         // Clear all timers and hide immediately
         clearTimeout(this.hideTimeout);
         clearTimeout(this.mouseMoveTimer);
         clearTimeout(this.mouseIdleTimer);
+        
+        // Remove visible class and set inline styles to ensure hiding
         this.container.classList.remove('visible');
+        
+        // Force invisibility with inline styles as fallback
+        this.container.style.opacity = '0';
+        this.container.style.visibility = 'hidden';
+        this.container.style.pointerEvents = 'none';
+        
         this.isVisible = false;
     }
 
@@ -224,6 +250,10 @@ export class DonateElement extends BaseUIElement {
     }
 
     // --- Event Handlers ---
+    
+    // Track last movement time to throttle processing
+    lastMoveTime = 0;
+    moveThrottleMs = 100; // Only process mouse movements every 100ms
 
     handleMouseEnter() {
         this.isHovering = true;
@@ -246,6 +276,13 @@ export class DonateElement extends BaseUIElement {
     }
 
     handleActivity() {
+        // Throttle mouse move handler to reduce processing
+        const now = Date.now();
+        if (now - this.lastMoveTime < this.moveThrottleMs) {
+            return; // Skip this movement, too soon after the last one
+        }
+        this.lastMoveTime = now;
+        
         // Check current control panel state from StateManager
         const controlsOpen = this.stateManager.getState().settings.controls.isOpen;
         

@@ -54,17 +54,28 @@ export class ControlsHintElement extends BaseUIElement {
             // Force hint to display if controls aren't open
             const controlsOpen = this.stateManager.getState().settings.controls.isOpen;
             if (!controlsOpen) {
-                // Always ensure visibility is handled correctly
+                // Force visibility with inline styles as backup to class-based visibility
+                console.log('[ControlsHint] Force visibility with inline styles and class');
                 this.container.classList.add('visible');
+                this.container.style.opacity = '0.9';  
+                this.container.style.visibility = 'visible';
+                this.container.style.pointerEvents = 'auto';
                 this.isVisible = true;
                 this.resetIdleTimer();
                 
-                // Schedule a check to make sure hint becomes visible even in production builds
+                // Schedule additional visibility checks
                 setTimeout(() => {
-                    if (!this.container.classList.contains('visible')) {
-                        console.log('[ControlsHint] Re-applying visibility class');
-                        this.container.classList.add('visible');
-                    }
+                    console.log('[ControlsHint] Visibility check - classList:', 
+                        this.container.classList.contains('visible'),
+                        'computedStyle:', 
+                        window.getComputedStyle(this.container).visibility,
+                        window.getComputedStyle(this.container).opacity);
+                    
+                    // Re-apply if needed
+                    this.container.classList.add('visible');
+                    this.container.style.opacity = '0.9';
+                    this.container.style.visibility = 'visible';
+                    this.container.style.pointerEvents = 'auto';
                 }, 500);
             }
         };
