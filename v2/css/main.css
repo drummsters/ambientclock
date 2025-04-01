@@ -91,7 +91,7 @@ html, body {
   width: 100%;
   overflow: hidden; /* Prevent scrollbars */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--background-color); /* Use variable */
+  /* background-color: var(--background-color); /* REMOVED - Handled by #app-background */
   color: var(--text-color); /* Use variable */
 }
 
