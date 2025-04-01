@@ -1,7 +1,10 @@
 /**
  * Visibility utility adapted from V1 for the Ambient Clock V2 application
  * Centralizes UI component visibility management with auto-hide.
+ * Integrates with StateManager and EventBus.
  */
+import { StateManager } from '../core/state-manager.js'; // Import StateManager
+import { EventBus } from '../core/event-bus.js'; // Import EventBus
 
 // --- Simple DOM Helpers (Included directly as utils/dom.js doesn't exist in V2) ---
 /**
@@ -35,28 +38,40 @@ export class VisibilityManager {
     /**
      * Creates a new VisibilityManager
      * @param {HTMLElement} element - The element to manage visibility for
+     * @param {StateManager} stateManager - The application's StateManager instance.
      * @param {number} hideDelay - Delay in milliseconds before auto-hiding
      * @param {Function} [onShow] - Optional callback when element is shown
      * @param {Function} [onHide] - Optional callback when element is hidden
      */
-    constructor(element, hideDelay, onShow = null, onHide = null) {
+    constructor(element, stateManager, hideDelay, onShow = null, onHide = null) { // Added stateManager
         if (!element) {
             throw new Error("VisibilityManager requires a valid HTML element.");
         }
+        if (!stateManager) { // Added check for stateManager
+            throw new Error("VisibilityManager requires a valid StateManager instance.");
+        }
         this.element = element;
+        this.stateManager = stateManager; // Store stateManager
         this.hideDelay = hideDelay;
         this.onShow = onShow;
         this.onHide = onHide;
         this.hideTimerId = null;
         this.isHovering = false;
-        this.isVisible = false; // Assume hidden initially
+        // Initialize isVisible based on element's current class state
+        this.isVisible = element.classList.contains('visible');
 
         // Set up hover tracking
         this.element.addEventListener('mouseenter', () => this.handleMouseEnter());
         this.element.addEventListener('mouseleave', () => this.handleMouseLeave());
 
-        // Check initial visibility based on class
-        this.isVisible = this.element.classList.contains('visible');
+        // Ensure initial class matches state
+        if (this.isVisible) {
+            addClass(this.element, 'visible');
+            addClass(this.element, 'is-open');
+        } else {
+            removeClass(this.element, 'visible');
+            removeClass(this.element, 'is-open');
+        }
     }
 
     /**
@@ -78,7 +93,7 @@ export class VisibilityManager {
     }
 
     /**
-     * Shows the element
+     * Shows the element and updates state.
      */
     show() {
         if (this.isVisible) return; // Already visible
@@ -91,6 +106,10 @@ export class VisibilityManager {
         });
         this.isVisible = true;
 
+        // --- REMOVED State Update and Event Publish ---
+        // this.stateManager.update({ settings: { controls: { isOpen: true } } });
+        // EventBus.publish('controls:opened');
+
         // Clear any existing hide timer
         this.clearHideTimer();
 
@@ -101,7 +120,7 @@ export class VisibilityManager {
     }
 
     /**
-     * Hides the element
+     * Hides the element and updates state.
      * @param {boolean} [force=false] - Whether to force hiding even if hovering
      */
     hide(force = false) {
@@ -124,6 +143,10 @@ export class VisibilityManager {
         }, 350); // Match transition duration + small buffer
 
         this.isVisible = false;
+
+        // --- REMOVED State Update and Event Publish ---
+        // this.stateManager.update({ settings: { controls: { isOpen: false } } });
+        // EventBus.publish('controls:closed');
 
         // Call onHide callback if provided
         if (this.onHide) {

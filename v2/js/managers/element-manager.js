@@ -8,18 +8,20 @@ import { EventBus } from '../core/event-bus.js';
  */
 export class ElementManager {
   /**
-   * Creates an ElementManager instance.
-   * @param {HTMLElement} containerElement - The DOM element where element containers will be appended.
-   */
-  constructor(containerElement) {
+ * Creates an ElementManager instance.
+ * @param {HTMLElement} containerElement - The DOM element where element containers will be appended.
+ * @param {object} dependencies - Object containing dependencies like configManager.
+ */
+  constructor(containerElement, dependencies = {}) {
     if (!containerElement) {
       throw new Error('ElementManager requires a valid containerElement.');
     }
     this.containerElement = containerElement;
+    this.dependencies = dependencies; // Store dependencies (e.g., { configManager })
     this.elementInstances = new Map(); // Stores active element instances, keyed by element ID
     this.unsubscribeState = null;
 
-    console.log('ElementManager created. containerElement:', containerElement);
+    console.log('ElementManager created. containerElement:', containerElement, 'Dependencies:', Object.keys(dependencies));
   }
 
   /**
@@ -99,7 +101,8 @@ export class ElementManager {
     }
 
     // Use ComponentRegistry to get the constructor and create instance
-    const elementInstance = ComponentRegistry.createElement(type, id, options);
+    // Pass dependencies along
+    const elementInstance = ComponentRegistry.createElement(type, id, options, this.dependencies);
 
     if (elementInstance) {
       // Initialize the element (which creates its DOM, binds state, etc.)

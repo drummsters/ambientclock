@@ -40,6 +40,7 @@ export class ControlPanel extends BaseUIElement {
     this.visibilityManager = null; // Add property for VisibilityManager
     this.CONTROLS_HIDE_DELAY = 3000; // V1 default was 3000ms
     this.triggerElement = null; // Add property for hover trigger
+    this.subscriptions = []; // Add array for EventBus subscriptions
     console.log(`ControlPanel constructor called with ID: ${this.id}`);
     // The main container is expected to exist in the HTML already
     this.container = document.getElementById(this.id);
@@ -65,14 +66,18 @@ export class ControlPanel extends BaseUIElement {
         // Proceed without hover trigger? Or fail? For now, proceed.
     }
 
-    // Instantiate VisibilityManager for the panel
-    this.visibilityManager = new VisibilityManager(this.container, this.CONTROLS_HIDE_DELAY);
+    // Instantiate VisibilityManager for the panel, passing StateManager
+    this.visibilityManager = new VisibilityManager(this.container, StateManager, this.CONTROLS_HIDE_DELAY);
     console.log(`[ControlPanel ${this.id}] VisibilityManager initialized.`);
 
     // Initial setup: Show controls briefly, then start hide timer
-    this.visibilityManager.show();
+    // VisibilityManager constructor now handles initial state based on StateManager
+    // this.visibilityManager.show(); // No longer needed here
     setTimeout(() => {
-        this.visibilityManager?.startHideTimer();
+        // Only start hide timer if it's currently visible (based on initial state)
+        if (this.visibilityManager?.isElementVisible()) {
+            this.visibilityManager?.startHideTimer();
+        }
     }, 2000); // Show for 2 seconds initially
 
     console.log(`[ControlPanel ${this.id}] Base init complete. Checking for existing elements...`);
@@ -246,17 +251,21 @@ export class ControlPanel extends BaseUIElement {
    */
   addEventListeners() {
     // Listen for element creation/destruction to add/remove controls dynamically
-    const createdUnsub = EventBus.subscribe('element:created', ({ id, type }) => {
+    const createdSub = EventBus.subscribe('element:created', ({ id, type }) => {
         console.log(`[ControlPanel] Received element:created event for ID: ${id}, Type: ${type}`);
         this.addElementControls(id, type);
     });
 
-    const destroyedUnsub = EventBus.subscribe('element:destroyed', ({ id }) => {
+    const destroyedSub = EventBus.subscribe('element:destroyed', ({ id }) => {
         console.log(`[ControlPanel] Received element:destroyed event for ID: ${id}`);
         this.removeElementControls(id);
     });
 
-    this.unsubscribers.push(createdUnsub.unsubscribe, destroyedUnsub.unsubscribe);
+    // Listen for the toggle event from the hint element
+    const toggleSub = EventBus.subscribe('controls:toggle', this.toggleVisibility.bind(this));
+
+    // Store unsubscribe functions
+    this.subscriptions.push(createdSub, destroyedSub, toggleSub);
 
     // Reset button listener
     this.elements.resetButton?.addEventListener('click', this.handleResetClick.bind(this));
@@ -267,10 +276,10 @@ export class ControlPanel extends BaseUIElement {
             this.visibilityManager?.show();
             this.visibilityManager?.clearHideTimer(); // Keep open while hovering trigger
         });
-        // Optional: Add mouseleave for trigger if needed, depends on desired behavior
-        // this.triggerElement.addEventListener('mouseleave', () => {
-        //     this.visibilityManager?.startHideTimer();
-        // });
+        // Add mouseleave for trigger to start the hide timer when leaving the trigger area
+        this.triggerElement.addEventListener('mouseleave', () => {
+            this.visibilityManager?.startHideTimer();
+        });
     }
   }
 
@@ -357,11 +366,23 @@ export class ControlPanel extends BaseUIElement {
     }
   }
 
+  /**
+   * Toggles the visibility of the control panel using its VisibilityManager.
+   */
+  toggleVisibility() {
+    this.visibilityManager?.toggle();
+  }
+
   /** // Keep the comment block for the correct destroy
    * Cleans up the control panel.
    */
   destroy() {
     console.log(`Destroying ControlPanel: ${this.id}`);
+
+    // Unsubscribe from EventBus listeners
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+    this.subscriptions = [];
+
     // Remove any elements created dynamically inside the panel
     if (this.container) {
         // Don't clear innerHTML, just destroy managed controls

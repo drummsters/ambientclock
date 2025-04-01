@@ -170,6 +170,15 @@ export class BackgroundControls {
     zoomGroup.querySelector('label').htmlFor = this.elements.zoomCheckbox.id;
     this.container.appendChild(zoomGroup);
 
+    // --- Show Info Checkbox ---
+    const infoGroup = this.createControlGroup('Show Info:');
+    this.elements.infoCheckbox = document.createElement('input');
+    this.elements.infoCheckbox.type = 'checkbox';
+    this.elements.infoCheckbox.id = 'background-info-checkbox';
+    infoGroup.appendChild(this.elements.infoCheckbox);
+    infoGroup.querySelector('label').htmlFor = this.elements.infoCheckbox.id;
+    this.container.appendChild(infoGroup);
+
     // --- Next Background Button ---
     const refreshGroup = this.createControlGroup(''); // No label needed
     this.elements.refreshButton = document.createElement('button');
@@ -305,6 +314,15 @@ export class BackgroundControls {
         }
     }
 
+    // Update Show Info Checkbox (only relevant if type is 'image')
+    if (this.elements.infoCheckbox) {
+        this.elements.infoCheckbox.checked = state.showInfo ?? true; // Default to true
+        const infoGroup = this.elements.infoCheckbox.closest('.control-group');
+        if (infoGroup) {
+            infoGroup.style.display = currentType === 'image' ? 'flex' : 'none';
+        }
+    }
+
     // Update visibility/disabled state of image-related controls based on type
     const imageControlsDisabled = currentType !== 'image';
     if (this.elements.sourceSelect) this.elements.sourceSelect.disabled = imageControlsDisabled;
@@ -383,6 +401,12 @@ export class BackgroundControls {
         });
     }
 
+    // Show Info Checkbox Change
+    if (this.elements.infoCheckbox) {
+        this.elements.infoCheckbox.addEventListener('change', (event) => {
+            this.dispatchStateUpdate({ showInfo: event.target.checked });
+        });
+    }
 
     // Opacity Slider Change
     if (this.elements.opacitySlider) {

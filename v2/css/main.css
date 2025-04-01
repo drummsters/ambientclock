@@ -95,18 +95,25 @@ html, body {
   color: var(--text-color); /* Use variable */
 }
 
-/* Background Layer */
-#app-background {
+/* Background Layers */
+.app-background { /* Target the class */
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: -2;
+  z-index: -3; /* Place behind overlay */
   background-color: #000; /* Fallback background */
   background-size: cover;
   background-position: center;
-  transition: var(--background-transition); /* Use variable */
+  background-repeat: no-repeat; /* Ensure no repeat */
+  opacity: 1; /* Default opacity */
+  transition: opacity 1.5s ease-in-out; /* Transition opacity */
+  will-change: opacity; /* Performance hint */
+}
+
+#app-background-b {
+  opacity: 0; /* Start second layer hidden */
 }
 
 /* Zoom Animation */
@@ -122,11 +129,13 @@ html, body {
     }
 }
 
+
 /* Zoom effect class */
-#app-background.zoom-effect {
+.app-background.zoom-effect {
     animation: v2SlowZoom 60s ease-in-out infinite;
     transform-origin: center center;
 }
+
 
 
 /* Overlay Layer */
@@ -138,7 +147,7 @@ html, body {
   height: 100%;
   /* Opacity controlled by JS, set base color */
   background-color: var(--overlay-color);
-  z-index: -1;
+  z-index: -2; /* Adjusted z-index */
   pointer-events: none; /* Allow interaction with elements below */
   transition: var(--overlay-transition); /* Use variable */
 }
@@ -548,6 +557,322 @@ html, body {
 .controls-hint.visible {
     opacity: 0.9;
 }
+
+/* --- Controls Hint Element (v2) --- */
+.controls-hint-element {
+    position: fixed;
+    bottom: 20px; /* Position like v1 hint */
+    left: 50%; /* Center horizontally */
+    transform: translateX(-50%);
+    background-color: rgba(20, 20, 30, 0.7); /* Slightly more opaque */
+    color: var(--control-text-color);
+    padding: 10px 15px; /* Slightly larger padding */
+    border-radius: 8px;
+    font-size: 13px; /* Slightly smaller font */
+    z-index: 95;
+    opacity: 0; /* Start hidden */
+     visibility: hidden; /* Start hidden */
+     transition: opacity 0.5s ease, visibility 0.5s ease; /* Match V1 fade duration (adjust JS fadeOutDuration too) */
+     /* pointer-events: none; /* REMOVED - Make it interactive */
+     cursor: pointer; /* Add pointer cursor */
+     box-shadow: var(--control-input-shadow);
+     backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border: 1px solid var(--control-section-border);
+    white-space: nowrap;
+}
+
+.controls-hint-element p {
+    margin: 0;
+}
+
+/* --- Background Info Element --- */
+.background-info-element {
+    position: fixed; /* Fixed position */
+    bottom: 15px; /* Position near bottom */
+    right: 15px; /* Position near right */
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+    color: var(--text-color);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px; /* Small font size */
+    z-index: 90; /* Below hint and controls */
+    opacity: 0.8; /* Slightly transparent */
+    transition: opacity 0.3s ease, display 0.3s ease; /* Smooth transitions */
+    pointer-events: none; /* Don't block clicks */
+    max-width: 300px; /* Limit width */
+    display: none; /* Start hidden, controlled by JS */
+}
+
+.background-info-element .info-content {
+    /* Styles for the content inside */
+}
+
+.background-info-element a {
+    color: var(--link-color);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.background-info-element a:hover {
+    color: var(--link-hover-color);
+    text-decoration: underline;
+}
+
+/* --- Donate Element (v2 - Adapted from v1) --- */
+.donate-element { /* Replaces #donate-widget */
+    position: fixed;
+    bottom: 20px; /* V1 position */
+    right: 20px; /* V1 position */
+    z-index: 100; /* V1 z-index */
+    opacity: 0; /* Start hidden */
+    transition: var(--fade-transition);
+    pointer-events: none; /* Don't capture mouse events when hidden */
+}
+
+.donate-element.visible { /* Added by VisibilityManager */
+    opacity: 1;
+    pointer-events: auto; /* Capture mouse events when visible */
+}
+
+.donate-element .donate-content { /* Matches v1 class */
+    display: flex;
+    align-items: center;
+    background-color: var(--control-bg-color);
+    padding: 8px 12px;
+    border-radius: 20px; /* V1 radius */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    transition: var(--button-transition);
+    cursor: pointer;
+    color: white;
+}
+
+.donate-element .donate-content:hover {
+    background-color: var(--control-hover-color);
+}
+
+.donate-element .coffee-icon { /* Matches v1 class */
+    font-size: 20px;
+    margin-right: 8px;
+}
+
+.donate-element .donate-text { /* Matches v1 class */
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Payment Dropdown */
+.donate-element .payment-dropdown { /* Matches v1 class */
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    margin-bottom: 10px;
+    background-color: var(--control-bg-color);
+    border-radius: 10px;
+    padding: 10px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+    min-width: 150px;
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    z-index: 101; /* Ensure it's above other elements */
+}
+
+/* Show dropdown on hover */
+.donate-element:hover .payment-dropdown {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+/* Create an invisible area to prevent mouseleave when moving to dropdown */
+.donate-element::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    height: 15px; /* Connection area between widget and dropdown */
+    background-color: transparent;
+}
+
+.donate-element .payment-option { /* Matches v1 class */
+    margin: 8px 0;
+}
+
+.donate-element .payment-option:first-child {
+    margin-top: 0;
+}
+
+.donate-element .payment-option:last-child {
+    margin-bottom: 0;
+}
+
+.donate-element .payment-option a { /* Matches v1 class */
+    display: flex;
+    align-items: center;
+    color: white;
+    text-decoration: none;
+    padding: 6px 8px;
+    border-radius: 6px;
+    transition: var(--button-transition);
+}
+
+.donate-element .payment-option a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.donate-element .payment-icon { /* Matches v1 class */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    width: 24px;
+    height: 24px;
+}
+
+.donate-element .payment-icon img { /* Matches v1 class */
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.donate-element .payment-name { /* Matches v1 class */
+    font-size: 14px;
+}
+
+
+/* --- Favorites Panel Element --- */
+.favorites-panel-element {
+    position: fixed;
+    top: 15px; /* Position near top */
+    left: 15px; /* Position near left */
+    z-index: 90; /* Below hint and controls */
+    background-color: rgba(30, 30, 40, 0.8); /* Similar to controls */
+    border-radius: 8px;
+    box-shadow: var(--control-panel-shadow);
+    border: 1px solid var(--control-section-border);
+    color: var(--control-text-color);
+    font-size: 13px;
+}
+
+.favorites-toggle-button {
+    padding: 6px 12px;
+    font-size: 12px;
+    background-color: rgba(100, 150, 255, 0.4);
+    color: var(--control-text-color);
+    border: none; /* Remove border */
+    border-radius: 8px 8px 0 0; /* Round top corners */
+    cursor: pointer;
+    transition: var(--button-transition);
+    display: block; /* Make it full width of container */
+    width: 100%;
+    text-align: center;
+}
+
+.favorites-toggle-button:hover {
+    background-color: rgba(100, 150, 255, 0.6);
+}
+
+.favorites-content {
+    padding: 10px;
+    border-top: 1px solid var(--control-section-border);
+    min-width: 250px; /* Give it some width */
+    max-height: 300px; /* Limit height */
+    overflow-y: auto; /* Allow scrolling */
+}
+
+.favorites-content h4 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    border-bottom: 1px solid var(--control-title-border);
+    padding-bottom: 5px;
+}
+
+.favorites-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 15px 0;
+}
+
+.favorites-list li {
+    padding: 5px 0;
+    border-bottom: 1px dashed var(--control-section-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 5px;
+}
+
+.favorites-list li:last-child {
+    border-bottom: none;
+}
+
+.favorites-list span {
+    flex-grow: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.favorites-list button {
+    padding: 3px 6px;
+    font-size: 11px;
+    background-color: var(--control-button-color);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: var(--button-transition);
+    flex-shrink: 0;
+}
+
+.favorites-list button:hover {
+    background-color: var(--control-button-hover-color);
+}
+
+.favorites-list .delete-favorite-button {
+    background-color: var(--reset-button-color);
+}
+.favorites-list .delete-favorite-button:hover {
+    background-color: var(--reset-button-hover-color);
+}
+
+.favorites-actions {
+    display: flex;
+    gap: 5px;
+    margin-top: 10px;
+    border-top: 1px solid var(--control-section-border);
+    padding-top: 10px;
+}
+
+.favorites-actions .favorite-name-input {
+    flex-grow: 1;
+    padding: 5px 8px;
+    font-size: 12px;
+    background-color: var(--control-input-bg);
+    color: var(--control-text-color);
+    border: 1px solid var(--control-border-color);
+    border-radius: 4px;
+}
+
+.favorites-actions .add-favorite-button {
+    padding: 5px 10px;
+    font-size: 12px;
+    background-color: var(--control-button-color);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: var(--button-transition);
+    flex-shrink: 0;
+}
+
+.favorites-actions .add-favorite-button:hover {
+    background-color: var(--control-button-hover-color);
+}
+
 
 /* Date Container */
 #date-container {

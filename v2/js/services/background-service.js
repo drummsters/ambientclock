@@ -6,24 +6,27 @@ import { PexelsProvider } from './image-providers/pexels-provider.js';
 import { PeapixProvider } from './image-providers/peapix-provider.js'; // Added Peapix
 
 /**
- * Manages the application's background (color or image) and overlay.
+ * Manages the application's background (color or image) and overlay,
+ * supporting cross-fade transitions between images.
  */
 export class BackgroundService {
   /**
    * Creates a BackgroundService instance.
-   * @param {HTMLElement} backgroundContainer - The DOM element for the background layer.
+   * @param {HTMLElement} backgroundContainerA - The first DOM element for the background layer.
+   * @param {HTMLElement} backgroundContainerB - The second DOM element for the background layer.
    * @param {HTMLElement} overlayContainer - The DOM element for the overlay layer.
    * @param {ConfigManager} configManager - The application's configuration manager.
    */
-  constructor(backgroundContainer, overlayContainer, configManager) {
-    if (!backgroundContainer || !overlayContainer) {
-      throw new Error('BackgroundService requires valid background and overlay container elements.');
+  constructor(backgroundContainerA, backgroundContainerB, overlayContainer, configManager) {
+    if (!backgroundContainerA || !backgroundContainerB || !overlayContainer) {
+      throw new Error('BackgroundService requires valid background (A & B) and overlay container elements.');
     }
     if (!configManager) {
       throw new Error('BackgroundService requires a ConfigManager instance.');
     }
 
-    this.backgroundContainer = backgroundContainer;
+    this.backgroundContainerA = backgroundContainerA; // Store ref to first element
+    this.backgroundContainerB = backgroundContainerB; // Store ref to second element
     this.overlayContainer = overlayContainer;
     this.configManager = configManager; // To check API keys later
     this.currentBackgroundHandler = null; // Instance to handle current background type (ColorBackground, ImageBackground)
@@ -131,9 +134,10 @@ export class BackgroundService {
                  return; // Stop further processing for image type
             }
 
-            // Create and initialize the handler
+            // Create and initialize the handler, passing both background elements
             this.currentBackgroundHandler = new ImageBackgroundHandler(
-                this.backgroundContainer,
+                this.backgroundContainerA,
+                this.backgroundContainerB,
                 config,
                 this.imageProviders, // Pass registered providers map
                 this.configManager
@@ -149,7 +153,11 @@ export class BackgroundService {
         if (!this.currentBackgroundHandler || this.currentBackgroundHandler.type !== 'color') {
              console.log('[BackgroundService] Switching to ColorBackgroundHandler.');
             this.currentBackgroundHandler?.destroy(); // Destroy previous handler
-            this.currentBackgroundHandler = new ColorBackgroundHandler(this.backgroundContainer);
+            // Pass both background elements to the color handler as well
+            this.currentBackgroundHandler = new ColorBackgroundHandler(
+                this.backgroundContainerA,
+                this.backgroundContainerB
+            );
             await this.currentBackgroundHandler.init(); // Initialize color handler
         }
         // Update the color handler
@@ -220,37 +228,49 @@ export class BackgroundService {
 }
 
 
-// --- Simple Handler for Color Background ---
+// --- Simple Handler for Color Background (Updated for two elements) ---
 class ColorBackgroundHandler {
-  constructor(container) {
-    this.container = container;
+  constructor(containerA, containerB) {
+    this.containerA = containerA;
+    this.containerB = containerB;
     this.type = 'color';
   }
 
   async init() {
     // No async init needed for simple color
-    this.container.style.backgroundImage = 'none'; // Ensure no image is lingering
+    // Ensure no images are lingering and set initial opacity
+    this.containerA.style.backgroundImage = 'none';
+    this.containerB.style.backgroundImage = 'none';
+    this.containerA.style.opacity = '1';
+    this.containerB.style.opacity = '0';
   }
 
   update(config) {
     const color = config.color || '#000000'; // Default to black
     console.log(`[ColorBackgroundHandler] Updating background color to: ${color}`);
-    this.container.style.backgroundColor = color;
-    
-    // Force a repaint to ensure the color is applied
-    this.container.style.display = 'none';
-    this.container.offsetHeight; // Trigger a reflow
-    this.container.style.display = 'block';
-    
+    // Apply color to both containers
+    this.containerA.style.backgroundColor = color;
+    this.containerB.style.backgroundColor = color; // Keep B's color consistent even if hidden
+
+    // Ensure A is visible and B is hidden when in color mode
+    this.containerA.style.opacity = '1';
+    this.containerB.style.opacity = '0';
+
+    // Force a repaint (optional, might not be needed for color)
+    // this.containerA.style.display = 'none';
+    // this.containerA.offsetHeight; // Trigger a reflow
+    // this.containerA.style.display = 'block';
+
     // Log the computed style to verify
-    const computedStyle = window.getComputedStyle(this.container);
-    console.log(`[ColorBackgroundHandler] Computed background color: ${computedStyle.backgroundColor}`);
+    const computedStyle = window.getComputedStyle(this.containerA);
+    console.log(`[ColorBackgroundHandler] Computed background color (A): ${computedStyle.backgroundColor}`);
   }
 
   destroy() {
     // Reset background color or leave as is? Resetting might cause flicker.
-    // this.container.style.backgroundColor = '';
-    // console.log('ColorBackgroundHandler destroyed.');
+    // this.containerA.style.backgroundColor = '';
+    // this.containerB.style.backgroundColor = '';
+    console.log('ColorBackgroundHandler destroyed.');
   }
 }
 

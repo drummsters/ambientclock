@@ -111,12 +111,12 @@ export class BaseUIElement {
     const container = document.createElement('div');
     container.id = this.id;
     // Add base class and type-specific class
-    container.className = `base-element ${this.type}-element`;
-    // Initial styles (positioning will be handled by state updates)
-    container.style.position = 'absolute';
-    container.style.visibility = 'hidden'; // Start hidden until positioned/scaled
-    return container;
-  }
+     container.className = `base-element ${this.type}-element`;
+     // Initial styles (positioning/visibility handled by CSS or state updates)
+     // container.style.position = 'absolute'; // REMOVED - Let CSS or state handle positioning
+     // container.style.visibility = 'hidden'; // REMOVED - Let CSS handle initial visibility
+     return container;
+   }
 
   /**
    * Creates the specific child DOM elements needed for this component.
@@ -159,13 +159,14 @@ export class BaseUIElement {
       console.warn(`No state found for ${this.id} at path ${this.statePath}`);
       return; // No state for this element yet
     }
-    // console.log(`Updating ${this.id} from state:`, state);
-
-    // Apply common properties managed by BaseUIElement
-    if (state.position) {
-      this.updatePosition(state.position);
-    }
-    if (state.scale !== undefined) {
+     // console.log(`Updating ${this.id} from state:`, state);
+ 
+     // Apply common properties managed by BaseUIElement
+     // Only update position if it exists in the state (prevents overriding fixed position)
+     if (state.position !== undefined) {
+       this.updatePosition(state.position);
+     }
+     if (state.scale !== undefined) {
       this.updateScale(state.scale);
     }
     if (state.opacity !== undefined) {

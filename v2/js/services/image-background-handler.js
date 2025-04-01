@@ -1,25 +1,28 @@
 /**
- * Handles loading and displaying image backgrounds.
- * Placeholder implementation.
+ * Handles loading and displaying image backgrounds with cross-fade.
  */
 export class ImageBackgroundHandler {
   /**
    * Creates an ImageBackgroundHandler instance.
-   * @param {HTMLElement} container - The DOM element to apply the background image to.
+   * @param {HTMLElement} containerA - The first DOM element for background layer.
+   * @param {HTMLElement} containerB - The second DOM element for background layer.
    * @param {object} initialConfig - The initial background configuration from state.
    * @param {Map<string, object>} providers - Map of available image provider instances.
    * @param {ConfigManager} configManager - The application's configuration manager.
    */
-  constructor(container, initialConfig, providers, configManager) {
-    this.container = container;
+  constructor(containerA, containerB, initialConfig, providers, configManager) {
+    this.containerA = containerA;
+    this.containerB = containerB;
+    this.activeContainer = containerA; // Start with A as active
+    this.inactiveContainer = containerB;
     this.config = initialConfig;
-    this.providers = providers; // Map of provider instances (e.g., 'unsplash', 'pexels')
-    this.configManager = configManager; // To check API keys, etc.
+    this.providers = providers; // Map of provider instances
+    this.configManager = configManager;
     this.type = 'image';
-    this.currentImageUrl = null;
+    this.currentImageUrl = null; // URL of the image in the *active* container
     this.isLoading = false;
 
-    console.log('[ImageBackgroundHandler] Created with config:', initialConfig);
+    console.log('[ImageBackgroundHandler] Created with config:', initialConfig, 'Container A:', containerA, 'Container B:', containerB);
   }
 
   /**
@@ -28,8 +31,13 @@ export class ImageBackgroundHandler {
    */
   async init() {
     console.log('[ImageBackgroundHandler] Initializing...');
-    this.container.style.backgroundColor = '#000'; // Set a fallback color while loading
-    await this.loadImage();
+    // Ensure initial state: A visible, B hidden, fallback color set
+    this.containerA.style.opacity = '1';
+    this.containerB.style.opacity = '0';
+    this.containerA.style.backgroundColor = '#000';
+    this.containerB.style.backgroundColor = '#000';
+    // Load the first image into the initially active container (A)
+    await this.loadImage(true); // Pass flag to indicate initial load
   }
 
   /**
@@ -73,39 +81,43 @@ export class ImageBackgroundHandler {
          needsReload = false; // Explicitly prevent reload here
     }
 
-
     if (needsReload) {
       console.log('[ImageBackgroundHandler] Conditions met, loading new image.');
-      await this.loadImage();
+      await this.loadImage(); // Load into inactive container and fade
     } else {
       console.log('[ImageBackgroundHandler] Conditions not met for reload, applying styles only.');
-      // Apply other changes like zoom if implemented later
-      this.applyStyles();
+      // Apply other changes like zoom if implemented later to the *active* container
+      this.applyStyles(this.activeContainer);
     }
   }
 
   /**
-   * Loads the next background image based on the current configuration.
-   * Placeholder implementation.
+   * Loads the next background image into the inactive container and fades it in.
+   * @param {boolean} [isInitialLoad=false] - If true, loads into the active container without fading.
    * @returns {Promise<void>}
    */
-  async loadImage() {
+  async loadImage(isInitialLoad = false) {
     if (this.isLoading) {
       console.log('[ImageBackgroundHandler] Already loading an image.');
       return;
     }
     this.isLoading = true;
-    this.currentImageUrl = null; // Clear previous image while loading
-    this.applyStyles(); // Apply fallback color while loading
+
+    // Determine target container: active for initial load, inactive otherwise
+    const targetContainer = isInitialLoad ? this.activeContainer : this.inactiveContainer;
+    console.log(`[ImageBackgroundHandler] Loading image into ${isInitialLoad ? 'active (initial)' : 'inactive'} container:`, targetContainer.id);
+
+    // Apply fallback color to target container while loading
+    targetContainer.style.backgroundImage = 'none';
+    targetContainer.style.backgroundColor = '#111';
 
     const providerName = this.config.source || 'unsplash'; // Default to unsplash
     const provider = this.providers.get(providerName);
 
     if (!provider) {
         console.error(`[ImageBackgroundHandler] Provider "${providerName}" not found or not registered.`);
+        targetContainer.style.backgroundImage = `url('https://via.placeholder.com/1920x1080.png/FF0000/FFFFFF?text=Error:+Provider+${providerName}+not+found')`;
         this.isLoading = false;
-        // Optionally display an error message on the background itself
-        this.container.style.backgroundImage = `url('https://via.placeholder.com/1920x1080.png/FF0000/FFFFFF?text=Error:+Provider+${providerName}+not+found')`;
         return;
     }
 
@@ -120,14 +132,15 @@ export class ImageBackgroundHandler {
         // **Prevent API call if category is 'Other' and customCategory is empty**
         if (this.config.category === 'Other' && !query) {
             console.warn('[ImageBackgroundHandler] Category is "Other" but custom category is empty. Skipping image fetch.');
+            targetContainer.style.backgroundImage = `url('https://via.placeholder.com/1920x1080.png/333333/FFFFFF?text=Enter+Custom+Category')`;
             this.isLoading = false;
-            // Keep the fallback color, or maybe show a specific message?
-            this.container.style.backgroundImage = `url('https://via.placeholder.com/1920x1080.png/333333/FFFFFF?text=Enter+Custom+Category')`;
             return;
         }
     }
-
      console.log(`[ImageBackgroundHandler] Using query: "${query}" for provider "${providerName}"`);
+
+    let newImageUrl = null;
+    let authorInfo = {}; // Store author info
 
     try {
         let imageData = null;
@@ -143,59 +156,96 @@ export class ImageBackgroundHandler {
         }
 
         if (imageData && imageData.url) {
-            this.currentImageUrl = imageData.url;
-            console.log(`[ImageBackgroundHandler] Image loaded from ${providerName}: ${this.currentImageUrl}`);
-            // TODO: Store and display author info (imageData.authorName, imageData.authorUrl)
+            newImageUrl = imageData.url;
+            authorInfo = { name: imageData.authorName, url: imageData.authorUrl }; // Store author info
+            console.log(`[ImageBackgroundHandler] Image URL received from ${providerName}: ${newImageUrl}`);
+            // TODO: Display author info using EventBus or another mechanism
         } else {
             console.error(`[ImageBackgroundHandler] Provider "${providerName}" returned invalid data.`);
-            // Use a fallback/error image
-             this.currentImageUrl = `https://via.placeholder.com/1920x1080.png/FF0000/FFFFFF?text=Error:+Invalid+data+from+${providerName}`;
+            newImageUrl = `https://via.placeholder.com/1920x1080.png/FF0000/FFFFFF?text=Error:+Invalid+data+from+${providerName}`;
         }
     } catch (error) {
         console.error(`[ImageBackgroundHandler] Error loading image from provider "${providerName}":`, error);
-         this.currentImageUrl = `https://via.placeholder.com/1920x1080.png/FF0000/FFFFFF?text=Error:+Failed+to+load+from+${providerName}`;
-    } finally {
-        this.applyStyles(); // Apply the loaded image (or error image)
-        this.isLoading = false;
+        newImageUrl = `https://via.placeholder.com/1920x1080.png/FF0000/FFFFFF?text=Error:+Failed+to+load+from+${providerName}`;
     }
+
+    // Preload the image before applying and fading
+    if (newImageUrl) {
+        try {
+            await this.preloadImage(newImageUrl);
+            console.log(`[ImageBackgroundHandler] Image preloaded: ${newImageUrl}`);
+            targetContainer.style.backgroundImage = `url('${newImageUrl}')`;
+            this.applyStyles(targetContainer); // Apply size/position to the target
+
+            if (!isInitialLoad) {
+                // Perform the cross-fade
+                console.log(`[ImageBackgroundHandler] Cross-fading: ${this.inactiveContainer.id} opacity -> 1, ${this.activeContainer.id} opacity -> 0`);
+                this.inactiveContainer.style.opacity = '1';
+                this.activeContainer.style.opacity = '0';
+
+                // Swap active/inactive references
+                const temp = this.activeContainer;
+                this.activeContainer = this.inactiveContainer;
+                this.inactiveContainer = temp;
+                this.currentImageUrl = newImageUrl; // Update current URL to the new active one
+            } else {
+                 this.currentImageUrl = newImageUrl; // Set initial URL
+            }
+
+        } catch (preloadError) {
+            console.error(`[ImageBackgroundHandler] Error preloading image ${newImageUrl}:`, preloadError);
+            targetContainer.style.backgroundImage = `url('https://via.placeholder.com/1920x1080.png/FF0000/FFFFFF?text=Error:+Failed+to+preload')`;
+            this.applyStyles(targetContainer);
+        }
+    }
+
+    this.isLoading = false;
   }
 
   /**
-   * Applies the current image URL and styles to the container.
+   * Preloads an image URL.
+   * @param {string} url - The image URL to preload.
+   * @returns {Promise<void>} Resolves when the image is loaded, rejects on error.
    */
-  applyStyles() {
-    if (!this.container) return;
+  preloadImage(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve();
+      img.onerror = (err) => reject(err);
+      img.src = url;
+    });
+  }
 
-    if (this.currentImageUrl) {
-      this.container.style.backgroundImage = `url('${this.currentImageUrl}')`;
-      this.container.style.backgroundSize = 'cover'; // Or handle zoom later
-      this.container.style.backgroundPosition = 'center center';
-      console.log('[ImageBackgroundHandler] Applied background image style.');
-    } else {
-      this.container.style.backgroundImage = 'none';
-      this.container.style.backgroundColor = '#111'; // Fallback color if no image
-      console.log('[ImageBackgroundHandler] No image URL, applied fallback background color.');
-    }
-    
+
+  /**
+   * Applies common background styles (size, position) to a specific container.
+   * @param {HTMLElement} container - The container element to apply styles to.
+   */
+  applyStyles(container) {
+    if (!container) return;
+
+    // Apply common styles
+    container.style.backgroundSize = 'cover'; // Or handle zoom later
+    container.style.backgroundPosition = 'center center';
+    container.style.backgroundRepeat = 'no-repeat';
+
     // Apply zoom effect based on config
     const zoomEnabled = this.config?.zoomEnabled ?? true; // Default to true if missing
     if (zoomEnabled) {
-        this.container.classList.add('zoom-effect');
-        console.log('[ImageBackgroundHandler] Zoom effect enabled.');
+        container.classList.add('zoom-effect');
+        // console.log(`[ImageBackgroundHandler] Zoom effect enabled for ${container.id}`);
     } else {
-        this.container.classList.remove('zoom-effect');
-        console.log('[ImageBackgroundHandler] Zoom effect disabled.');
+        container.classList.remove('zoom-effect');
+        // console.log(`[ImageBackgroundHandler] Zoom effect disabled for ${container.id}`);
     }
   }
-
   /**
-   * Fetches and applies the next image in the sequence (if supported by provider).
-   * Placeholder implementation.
+   * Fetches and applies the next image, triggering the cross-fade.
    * @returns {Promise<void>}
    */
   async loadNext() {
     console.log('[ImageBackgroundHandler] loadNext() called.');
-    await this.loadImage(); // For now, just reload based on current settings
+    await this.loadImage(false); // Load into inactive and fade
   }
 
   /**
@@ -203,10 +253,16 @@ export class ImageBackgroundHandler {
    */
   destroy() {
     console.log('[ImageBackgroundHandler] Destroying...');
-    // Reset container styles maybe?
-    if (this.container) {
-        this.container.style.backgroundImage = 'none';
-        this.container.classList.remove('zoom-effect'); // Remove zoom class on destroy
+    // Reset styles on both containers
+    if (this.containerA) {
+        this.containerA.style.backgroundImage = 'none';
+        this.containerA.style.opacity = '1'; // Reset opacity
+        // this.containerA.classList.remove('zoom-effect');
+    }
+     if (this.containerB) {
+        this.containerB.style.backgroundImage = 'none';
+        this.containerB.style.opacity = '0'; // Reset opacity
+        // this.containerB.classList.remove('zoom-effect');
     }
     // Cancel any ongoing fetches if implemented
   }

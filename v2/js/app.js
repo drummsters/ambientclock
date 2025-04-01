@@ -4,7 +4,11 @@ import { ComponentRegistry } from './core/component-registry.js';
 import { ConfigManager } from './core/config-manager.js';
 import { ElementManager } from './managers/element-manager.js';
 import { ClockElement } from './components/elements/clock-element.js';
-import { DateElement } from './components/elements/date-element.js'; // Import DateElement
+import { DateElement } from './components/elements/date-element.js';
+import { ControlsHintElement } from './components/elements/controls-hint-element.js';
+import { BackgroundInfoElement } from './components/elements/background-info-element.js';
+import { DonateElement } from './components/elements/donate-element.js';
+import { FavoritesPanelElement } from './components/elements/favorites-panel-element.js'; // Import FavoritesPanelElement
 import { BackgroundService } from './services/background-service.js';
 import { ControlPanel } from './components/controls/control-panel.js';
 import { BaseUIElement } from './components/base/base-ui-element.js'; // Import for scale constants
@@ -24,11 +28,11 @@ function getDefaultState() {
         category: 'Nature', // Default category
         customCategory: '', // For when 'Other' is selected
         color: '#000033', // Changed default background color to dark blue for testing
-        overlayOpacity: 0.2, // Changed default overlay opacity for testing
+        overlayOpacity: 0.2,
         zoomEnabled: true,
-        peapixCountry: 'us', // Added default country for Peapix
+        showInfo: true, // Added default for showing background info
+        peapixCountry: 'us',
       },
-      // Removed global effects settings
       // effects: {
       //   style: 'raised',
       // },
@@ -68,6 +72,36 @@ function getDefaultState() {
           visible: true,
           showSeparator: false, // Added separator option
         }
+      },
+      // Add default controls hint element state
+      'controls-hint-default': {
+        type: 'controls-hint',
+        id: 'controls-hint-default',
+        // No position, scale, opacity, or effectStyle needed for this element
+        options: {
+          text: "Press 'Space' or 'c' to toggle controls"
+        }
+      },
+      // Add default background info element state
+      'background-info-default': {
+        type: 'background-info',
+        id: 'background-info-default',
+        // No position, scale, opacity, or effectStyle needed for this element
+        options: {} // No specific options needed initially
+      },
+      // Add default donate element state
+      'donate-default': {
+        type: 'donate',
+        id: 'donate-default',
+        // Fixed position, no options needed initially
+        options: {}
+      },
+      // Add default favorites panel element state
+      'favorites-panel-default': {
+        type: 'favorites-panel',
+        id: 'favorites-panel-default',
+        // Fixed position, no options needed initially
+        options: {}
       }
     }
   };
@@ -96,47 +130,38 @@ function registerElementTypes() {
     capabilities: ['draggable', 'resizable'] // Example capabilities
   });
 
+  // Register Controls Hint element
+  ComponentRegistry.registerElementType('controls-hint', ControlsHintElement, {
+    // No control panel config or specific capabilities needed
+    controlPanelConfig: [],
+    capabilities: []
+  });
+
+  // Register Background Info element
+  ComponentRegistry.registerElementType('background-info', BackgroundInfoElement, {
+    controlPanelConfig: [], // No controls needed for this element itself
+    capabilities: [] // No special capabilities
+  });
+
+  // Register Donate element
+  ComponentRegistry.registerElementType('donate', DonateElement, {
+    controlPanelConfig: [], // No controls needed
+    capabilities: [] // No special capabilities
+  });
+
+  // Register Favorites Panel element
+  ComponentRegistry.registerElementType('favorites-panel', FavoritesPanelElement, {
+    controlPanelConfig: [], // No controls needed
+    capabilities: [] // No special capabilities
+  });
+
   console.log('Element type registration complete.');
-}
-
-// --- Version Toggle Setup ---
-function setupVersionToggle() {
-    const toggleContainer = document.getElementById('version-toggle');
-    if (!toggleContainer) return; // Exit if container not found
-
-    // Basic styling for visibility
-    toggleContainer.style.position = 'fixed';
-    toggleContainer.style.bottom = '10px';
-    toggleContainer.style.right = '10px';
-    toggleContainer.style.padding = '5px 10px';
-    toggleContainer.style.backgroundColor = 'rgba(0,0,0,0.7)';
-    toggleContainer.style.color = 'white';
-    toggleContainer.style.zIndex = '10000';
-    toggleContainer.style.fontSize = '12px';
-    toggleContainer.style.borderRadius = '4px';
-
-    toggleContainer.innerHTML = `
-      <span>Version: </span>
-      <select id="version-select" style="background: #333; color: white; border: 1px solid #555; font-size: 12px;">
-        <option value="v1">Original</option>
-        <option value="v2" selected>New (v2)</option>
-      </select>
-    `;
-
-    const selectElement = toggleContainer.querySelector('#version-select');
-    if (selectElement) {
-        selectElement.addEventListener('change', (e) => {
-            if (e.target.value === 'v1') {
-                console.log('Switching to v1...');
-                // Navigate to the root index.html for v1
-                window.location.href = '../index.html';
-            }
-        });
-    }
 }
 
 
 // --- Application Initialization ---
+let controlPanel = null; // Declare controlPanel in a higher scope
+
 async function initApp() {
   console.log('Initializing Ambient Clock v2...');
 
@@ -175,30 +200,35 @@ async function initApp() {
     // const deviceService = new DeviceService();
 
     console.log('[app.js] Initializing BackgroundService...');
-    
-    // Check if background and overlay elements exist
-    const backgroundElement = document.getElementById('app-background');
+
+    // Get background and overlay elements
+    const backgroundElementA = document.getElementById('app-background-a');
+    const backgroundElementB = document.getElementById('app-background-b');
     const overlayElement = document.getElementById('app-overlay');
-    console.log('[app.js] Background element:', backgroundElement);
+    console.log('[app.js] Background element A:', backgroundElementA);
+    console.log('[app.js] Background element B:', backgroundElementB);
     console.log('[app.js] Overlay element:', overlayElement);
-    
-    // 5. Initialize Background Service
+
+    // 5. Initialize Background Service (Pass both background elements)
     const backgroundService = new BackgroundService(
-      backgroundElement,
+      backgroundElementA,
+      backgroundElementB, // Pass second element
       overlayElement,
-      configManager // Pass config manager for API key checks etc.
+      configManager // Pass config manager
     );
     await backgroundService.init();
 
     // 6. Initialize Element Manager
     const elementManager = new ElementManager(
-      document.getElementById('elements-container')
+      document.getElementById('elements-container'),
+      { configManager, stateManager: StateManager } // Pass dependencies, including StateManager
     );
     await elementManager.init(); // Creates elements based on initial state
 
     // 7. Initialize Control Panel
     console.log('[app.js] Initializing ControlPanel...');
-    const controlPanel = new ControlPanel(
+    // Assign to the higher-scoped variable
+    controlPanel = new ControlPanel(
         { id: 'controls-panel' },
         elementManager, // Pass the ElementManager instance
         configManager, // Pass the ConfigManager instance
@@ -206,10 +236,7 @@ async function initApp() {
     );
     await controlPanel.init(); // Initialize the control panel
 
-    // 8. Setup Version Toggle UI
-    setupVersionToggle();
-    
-    // 9. Setup global wheel event handler for element resizing
+    // 8. Setup global wheel event handler for element resizing
     setupWheelResizeHandler();
 
     console.log('Ambient Clock v2 core initialization sequence complete.');
@@ -303,10 +330,21 @@ function handleWheelResize(event) {
 
 // --- Global Event Listeners ---
 function setupGlobalListeners() {
-  // Currently no global listeners needed after removing 'c' key toggle
-  // window.addEventListener('keydown', (event) => {
-  //   // Example: Handle other global key presses if needed
-  // });
+  console.log('Setting up global key listeners...');
+  window.addEventListener('keydown', (event) => {
+    // Toggle Control Panel with Space or 'c'
+    if (event.code === 'Space' || event.key === 'c') {
+      // Prevent default spacebar scroll
+      if (event.code === 'Space') {
+        event.preventDefault();
+      }
+      // Check if focus is inside an input field to avoid toggling while typing
+      if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'SELECT') {
+        controlPanel?.toggleVisibility();
+      }
+    }
+    // Example: Handle other global key presses if needed
+  });
 }
 
 

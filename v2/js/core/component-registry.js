@@ -34,9 +34,10 @@ export const ComponentRegistry = {
    * @param {string} type - The type of element to create.
    * @param {string} id - The unique ID for this element instance.
    * @param {object} [options={}] - Initial options for the element instance.
+   * @param {object} [dependencies={}] - Dependencies to inject (e.g., { configManager }).
    * @returns {object|null} An instance of the element, or null if the type is not registered.
    */
-  createElement(type, id, options = {}) {
+  createElement(type, id, options = {}, dependencies = {}) {
     const typeInfo = this.elementTypes.get(type);
     if (!typeInfo) {
       console.error(`ComponentRegistry: Attempted to create unknown element type "${type}".`);
@@ -44,12 +45,13 @@ export const ComponentRegistry = {
     }
 
     try {
-      // Pass necessary info to the constructor
+      // Pass necessary info and dependencies to the constructor
       const elementInstance = new typeInfo.constructor({
         id,
         type,
         options,
-        capabilities: typeInfo.capabilities // Pass capabilities defined during registration
+        capabilities: typeInfo.capabilities, // Pass capabilities defined during registration
+        ...dependencies // Spread dependencies (e.g., configManager) into the constructor args object
       });
       return elementInstance;
     } catch (error) {

@@ -29,6 +29,12 @@ export class ConfigManager {
         disableAnimations: false,
         lowResBackgrounds: false,
       },
+      donationLinks: { // Add donation links section
+        paypal: 'drummster',
+        venmo: 'YOUR_VENMO_USERNAME',
+        cashapp: 'YOUR_CASHAPP_CASHTAG',
+        googlepay: 'YOUR_GOOGLE_PAY_LINK' // Or relevant identifier
+      },
       version: '2.0.0' // App version
     };
 
