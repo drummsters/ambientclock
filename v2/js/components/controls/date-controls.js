@@ -35,10 +35,12 @@ export class DateControls {
   async init() {
     console.log(`Initializing DateControls for ${this.elementId}...`);
     try {
+      // 1. Create a container *within* the parent (ControlPanel)
       this.container = document.createElement('div');
-      this.container.className = 'control-section date-controls';
+      this.container.className = 'date-controls-content'; // Add a content class
       this.parentContainer.appendChild(this.container);
 
+      // 2. Create the UI elements within this new container
       this.createElements();
       this.bindToState();
       this.addEventListeners();
@@ -59,9 +61,13 @@ export class DateControls {
     if (!this.container) return;
     console.log(`Creating date control elements for ${this.elementId}...`);
 
-    const title = document.createElement('h3');
-    title.textContent = `Date Settings (${this.elementId})`;
-    this.container.appendChild(title);
+    // --- Section Title Removed (Handled by ControlPanel or dynamically) ---
+    // Optionally add identifier:
+    // const idLabel = document.createElement('div');
+    // idLabel.textContent = `Element: ${this.elementId}`;
+    // idLabel.style.fontSize = '0.8em';
+    // idLabel.style.marginBottom = '10px';
+    // this.container.appendChild(idLabel);
 
     // --- Visibility Checkbox ---
     const visibilityGroup = this.createControlGroup('Visible:');
@@ -106,6 +112,15 @@ export class DateControls {
     fontGroup.appendChild(this.elements.fontSelect);
     this.container.appendChild(fontGroup);
 
+    // --- Font Weight (Bold) Checkbox ---
+    const boldGroup = this.createControlGroup('Bold:');
+    this.elements.boldCheckbox = document.createElement('input');
+    this.elements.boldCheckbox.type = 'checkbox';
+    this.elements.boldCheckbox.id = `${this.elementId}-bold-checkbox`;
+    boldGroup.insertBefore(this.elements.boldCheckbox, boldGroup.firstChild);
+    boldGroup.querySelector('label').htmlFor = this.elements.boldCheckbox.id;
+    this.container.appendChild(boldGroup);
+
     // --- Color Picker ---
     const colorGroup = this.createControlGroup('Color:');
     this.elements.colorPicker = document.createElement('input');
@@ -128,6 +143,20 @@ export class DateControls {
     sizeGroup.appendChild(this.elements.sizeSlider);
     sizeGroup.appendChild(this.elements.sizeValue);
     this.container.appendChild(sizeGroup);
+
+    // --- Opacity Slider ---
+    const opacityGroup = this.createControlGroup('Opacity:');
+    this.elements.opacitySlider = document.createElement('input');
+    this.elements.opacitySlider.type = 'range';
+    this.elements.opacitySlider.id = `${this.elementId}-opacity-slider`;
+    this.elements.opacitySlider.min = '0';
+    this.elements.opacitySlider.max = '1';
+    this.elements.opacitySlider.step = '0.05';
+    this.elements.opacityValue = document.createElement('span');
+    this.elements.opacityValue.className = 'range-value';
+    opacityGroup.appendChild(this.elements.opacitySlider);
+    opacityGroup.appendChild(this.elements.opacityValue);
+    this.container.appendChild(opacityGroup);
 
     // --- Effect Style Select ---
     const effectGroup = this.createControlGroup('Effect:');
@@ -180,8 +209,9 @@ export class DateControls {
     const elementEventName = `state:${elementStatePath}:changed`; 
     const elementSubscription = EventBus.subscribe(elementEventName, (elementState) => {
         console.log(`[DateControls ${this.elementId}] Event received: ${elementEventName}`, elementState);
-        // Update scale and effect style from the element state
+        // Update scale, opacity, and effect style from the element state
         this.updateUIScale(elementState?.scale);
+        this.updateUIOpacity(elementState?.opacity); // Add opacity update
         this.updateUIEffectStyle(elementState?.effectStyle);
     });
     this.unsubscribers.push(elementSubscription.unsubscribe);
@@ -205,6 +235,14 @@ export class DateControls {
         console.log(`[DateControls ${this.elementId}] No initial scale state found at path: ${elementStatePath}`);
         this.updateUIScale(1.0); // Apply scale default
     }
+    // Apply initial opacity state
+    if (initialElementState?.opacity !== undefined) {
+        console.log(`[DateControls ${this.elementId}] Applying initial opacity state:`, initialElementState.opacity);
+        this.updateUIOpacity(initialElementState.opacity);
+    } else {
+        console.log(`[DateControls ${this.elementId}] No initial opacity state found.`);
+        this.updateUIOpacity(1.0); // Apply opacity default
+    }
     // Apply initial effect style
     if (initialElementState?.effectStyle) {
         console.log(`[DateControls ${this.elementId}] Applying initial effect style:`, initialElementState.effectStyle);
@@ -223,12 +261,13 @@ export class DateControls {
      if (this.elements.visibleCheckbox) this.elements.visibleCheckbox.checked = optionsState.visible ?? true;
      if (this.elements.formatSelect) this.elements.formatSelect.value = optionsState.format || 'Day, Month DD';
      if (this.elements.fontSelect) this.elements.fontSelect.value = optionsState.fontFamily || 'Segoe UI';
+     if (this.elements.boldCheckbox) this.elements.boldCheckbox.checked = (optionsState.fontWeight === 'bold'); // Default to false if not 'bold'
      if (this.elements.separatorCheckbox) this.elements.separatorCheckbox.checked = optionsState.showSeparator ?? false; // Update separator checkbox
      if (this.elements.colorPicker) this.elements.colorPicker.value = optionsState.color || '#FFFFFF';
-     
-     // Scale is handled separately by updateUIScale
+
+     // Scale and Opacity are handled separately
   }
-  
+
   /**
    * Updates only the scale slider UI element.
    * @param {number} scale - The current scale value.
@@ -240,6 +279,21 @@ export class DateControls {
            this.elements.sizeSlider.value = currentScale;
            if (this.elements.sizeValue) {
                this.elements.sizeValue.textContent = parseFloat(currentScale).toFixed(2);
+           }
+       }
+   }
+
+   /**
+    * Updates only the opacity slider UI element.
+    * @param {number} opacity - The current opacity value.
+    */
+   updateUIOpacity(opacity) {
+       const currentOpacity = opacity ?? 1.0; // Default opacity if undefined
+       console.log(`[DateControls ${this.elementId}] Updating opacity UI to:`, currentOpacity);
+       if (this.elements.opacitySlider) {
+           this.elements.opacitySlider.value = currentOpacity;
+           if (this.elements.opacityValue) {
+               this.elements.opacityValue.textContent = parseFloat(currentOpacity).toFixed(2);
            }
        }
    }
@@ -263,8 +317,9 @@ export class DateControls {
     this.elements.visibleCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ visible: e.target.checked }));
     this.elements.formatSelect?.addEventListener('change', (e) => this.dispatchStateUpdate({ format: e.target.value }));
     this.elements.fontSelect?.addEventListener('change', (e) => this.dispatchStateUpdate({ fontFamily: e.target.value }));
+    this.elements.boldCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ fontWeight: e.target.checked ? 'bold' : 'normal' }));
     this.elements.colorPicker?.addEventListener('input', (e) => this.dispatchStateUpdate({ color: e.target.value }));
-    
+
     // Size Slider Change
     this.elements.sizeSlider?.addEventListener('input', (e) => {
         const newScale = parseFloat(e.target.value);
@@ -273,6 +328,16 @@ export class DateControls {
         }
         // Dispatch scale update to the element level, not options
         this.dispatchElementStateUpdate({ scale: newScale });
+    });
+
+    // Opacity Slider Change
+    this.elements.opacitySlider?.addEventListener('input', (e) => {
+        const newOpacity = parseFloat(e.target.value);
+        if (this.elements.opacityValue) {
+            this.elements.opacityValue.textContent = newOpacity.toFixed(2);
+        }
+        // Dispatch opacity update to the element level
+        this.dispatchElementStateUpdate({ opacity: newOpacity });
     });
 
     // Effect Style Select Change
@@ -316,10 +381,11 @@ export class DateControls {
     this.unsubscribers.forEach(unsubscribe => unsubscribe());
     this.unsubscribers = [];
 
+    // Remove elements from DOM (clear the container we created)
     if (this.container && this.container.parentNode) {
       this.container.parentNode.removeChild(this.container);
     }
-    this.container = null;
+    this.container = null; // Nullify the container we created
     this.elements = {};
     console.log(`DateControls for ${this.elementId} destroyed.`);
   }

@@ -99,6 +99,7 @@ export class DateElement extends BaseUIElement {
     // Apply styles to face
     this.elements.face.style.fontFamily = this.options.fontFamily || 'Segoe UI';
     this.elements.face.style.color = this.options.color || '#FFFFFF';
+    this.elements.face.style.fontWeight = this.options.fontWeight || 'normal'; // Apply font weight
 
     // Apply styles and visibility to separator
     const showSeparator = this.options.showSeparator ?? false;
@@ -126,6 +127,7 @@ export class DateElement extends BaseUIElement {
     // Check if relevant options changed
     if (oldOptions.format !== this.options.format ||
         oldOptions.fontFamily !== this.options.fontFamily ||
+        oldOptions.fontWeight !== this.options.fontWeight || // Add fontWeight check
         oldOptions.color !== this.options.color ||
         oldOptions.visible !== this.options.visible ||
         oldOptions.showSeparator !== this.options.showSeparator) { // Check separator option

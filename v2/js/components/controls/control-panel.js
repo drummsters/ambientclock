@@ -1,6 +1,7 @@
 import { BaseUIElement } from '../base/base-ui-element.js';
 import { StateManager } from '../../core/state-manager.js';
 import { EventBus } from '../../core/event-bus.js';
+import { VisibilityManager } from '../../utils/visibility-manager.js'; // Import VisibilityManager
 import { BackgroundService } from '../../services/background-service.js'; // Import BackgroundService
 import { BackgroundControls } from './background-controls.js';
 import { ClockControls } from './clock-controls.js';
@@ -36,6 +37,9 @@ export class ControlPanel extends BaseUIElement {
     this.configManager = configManager; // Store reference
     this.backgroundService = backgroundService; // Store reference
     this.elementControls = new Map(); // Stores controls for individual elements
+    this.visibilityManager = null; // Add property for VisibilityManager
+    this.CONTROLS_HIDE_DELAY = 3000; // V1 default was 3000ms
+    this.triggerElement = null; // Add property for hover trigger
     console.log(`ControlPanel constructor called with ID: ${this.id}`);
     // The main container is expected to exist in the HTML already
     this.container = document.getElementById(this.id);
@@ -49,9 +53,27 @@ export class ControlPanel extends BaseUIElement {
   async init() {
     // Call the base class init first to set up container, static elements, listeners etc.
     const baseInitSuccess = await super.init();
-    if (!baseInitSuccess) {
-      return false; // Stop if base initialization failed
+    if (!baseInitSuccess || !this.container) {
+      console.error(`[ControlPanel ${this.id}] Base init failed or container not found.`);
+      return false; // Stop if base initialization failed or container missing
     }
+
+    // Find the trigger element
+    this.triggerElement = document.getElementById('controls-trigger'); // Assumes ID exists in HTML
+    if (!this.triggerElement) {
+        console.warn(`[ControlPanel ${this.id}] Hover trigger element #controls-trigger not found.`);
+        // Proceed without hover trigger? Or fail? For now, proceed.
+    }
+
+    // Instantiate VisibilityManager for the panel
+    this.visibilityManager = new VisibilityManager(this.container, this.CONTROLS_HIDE_DELAY);
+    console.log(`[ControlPanel ${this.id}] VisibilityManager initialized.`);
+
+    // Initial setup: Show controls briefly, then start hide timer
+    this.visibilityManager.show();
+    setTimeout(() => {
+        this.visibilityManager?.startHideTimer();
+    }, 2000); // Show for 2 seconds initially
 
     console.log(`[ControlPanel ${this.id}] Base init complete. Checking for existing elements...`);
 
@@ -90,19 +112,52 @@ export class ControlPanel extends BaseUIElement {
   async createElements() {
     if (!this.container) return;
     console.log(`ControlPanel (${this.id}): Creating child elements...`);
-    // Example: Add a title or placeholder
-    const title = document.createElement('h2');
-    title.textContent = 'Settings';
-    this.container.appendChild(title);
+    this.container.innerHTML = ''; // Clear any existing content
 
-    // Instantiate and initialize Background Controls, passing configManager and backgroundService
-    const backgroundControls = new BackgroundControls(this.container, this.configManager, this.backgroundService); // Pass backgroundService
+    // --- Background Section ---
+    const backgroundSection = this.createSectionContainer('Background');
+    const backgroundControls = new BackgroundControls(backgroundSection, this.configManager, this.backgroundService);
     await backgroundControls.init();
     this.elements.backgroundControls = backgroundControls; // Store reference
+    this.container.appendChild(backgroundSection);
 
-    // Element-specific controls will be added dynamically via event listeners
+    // --- Element Sections (Placeholders or added dynamically) ---
+    // We'll append clock/date controls directly to this.container for now
+    // Or create placeholder divs:
+    // this.elements.clockSectionPlaceholder = this.createSectionContainer('Clock');
+    // this.container.appendChild(this.elements.clockSectionPlaceholder);
+    // this.elements.dateSectionPlaceholder = this.createSectionContainer('Date');
+    // this.container.appendChild(this.elements.dateSectionPlaceholder);
+
+
+    // --- Settings Section ---
+    const settingsSection = this.createSectionContainer('Settings');
+    const resetButton = document.createElement('button');
+    resetButton.textContent = 'Reset All Settings';
+    resetButton.id = `${this.id}-reset-button`;
+    // Add class for styling instead of inline styles
+    resetButton.className = 'reset-button'; // Use class for styling
+    // Wrap button in a control group for consistent layout
+    const resetGroup = document.createElement('div');
+    resetGroup.className = 'control-group'; // Use standard group
+    resetGroup.style.justifyContent = 'center'; // Center button within group
+    resetGroup.appendChild(resetButton);
+    settingsSection.appendChild(resetGroup);
+    this.container.appendChild(settingsSection);
+    this.elements.resetButton = resetButton; // Store reference
 
     console.log(`ControlPanel (${this.id}): Static child elements created.`);
+  }
+
+  /** Helper to create a section container with title */
+  createSectionContainer(titleText) {
+      const section = document.createElement('div');
+      section.className = 'control-section';
+      const title = document.createElement('h3');
+      title.className = 'section-title'; // Use V1 class
+      title.textContent = titleText;
+      section.appendChild(title);
+      return section;
   }
 
   /** Creates controls for global effects settings */
@@ -139,37 +194,14 @@ export class ControlPanel extends BaseUIElement {
 
   /**
    * Binds the control panel to relevant state changes.
-   * For example, listening for whether the panel should be open or closed.
+   * (No longer needed for visibility, keep for potential future state bindings)
    */
   bindToState() {
-    // Example: Subscribe to a state property that controls panel visibility
-    const visibilityPath = `${this.statePath}.isOpen`; // e.g., 'settings.controls.isOpen'
-    const eventName = `state:${visibilityPath}:changed`;
-
-    const subscription = EventBus.subscribe(eventName, (isOpen) => {
-      console.log(`[${this.id}] Event received: ${eventName}`, isOpen);
-      this.updateVisibility(isOpen);
-    });
-    this.unsubscribers.push(subscription.unsubscribe);
-
-    // Apply initial visibility state
-    const initialVisibilityState = StateManager.getNestedValue(StateManager.getState(), visibilityPath);
-    console.log(`[${this.id}] Initial visibility state: ${initialVisibilityState}`);
-    this.updateVisibility(initialVisibilityState ?? false); // Default to closed if no state
-    // Removed global effect state binding
+    // No state bindings needed for visibility anymore
+    console.log(`[ControlPanel ${this.id}] Skipping state binding for visibility.`);
   }
 
-  /**
-   * Updates the visibility of the control panel.
-   * @param {boolean} isOpen - Whether the panel should be visible.
-   */
-  updateVisibility(isOpen) {
-    if (!this.container) return;
-    console.log(`[${this.id}] Updating visibility to: ${isOpen}`);
-    this.container.classList.toggle('is-open', isOpen);
-    this.container.style.display = isOpen ? 'block' : 'none'; // Or use CSS transitions
-  }
-
+  // updateVisibility method removed as VisibilityManager handles it now
 
   /**
    * Renders the control panel (potentially updating child controls).
@@ -205,8 +237,20 @@ export class ControlPanel extends BaseUIElement {
 
     this.unsubscribers.push(createdUnsub.unsubscribe, destroyedUnsub.unsubscribe);
 
-    // TODO: Add listener for a toggle button if one exists outside the panel
-    // Removed global effect listener
+    // Reset button listener
+    this.elements.resetButton?.addEventListener('click', this.handleResetClick.bind(this));
+
+    // Add hover listener for the trigger element (if found)
+    if (this.triggerElement) {
+        this.triggerElement.addEventListener('mouseenter', () => {
+            this.visibilityManager?.show();
+            this.visibilityManager?.clearHideTimer(); // Keep open while hovering trigger
+        });
+        // Optional: Add mouseleave for trigger if needed, depends on desired behavior
+        // this.triggerElement.addEventListener('mouseleave', () => {
+        //     this.visibilityManager?.startHideTimer();
+        // });
+    }
   }
 
   /**
@@ -254,7 +298,18 @@ export class ControlPanel extends BaseUIElement {
     }
   }
 
-  /**
+  handleResetClick() { // Correctly placed handleResetClick
+    // Confirm with the user first
+    if (confirm('Are you sure you want to reset all settings to their defaults? This action cannot be undone.')) {
+        console.log(`[ControlPanel ${this.id}] Reset button clicked. Publishing state:reset event.`);
+        // Publish an event that the StateManager can listen for
+        EventBus.publish('state:reset');
+        // Optionally, close the panel after reset?
+        // StateManager.update({ settings: { controls: { isOpen: false } } });
+    }
+  }
+
+  /** // Keep the comment block for the correct destroy
    * Cleans up the control panel.
    */
   destroy() {
@@ -262,7 +317,7 @@ export class ControlPanel extends BaseUIElement {
     // Remove any elements created dynamically inside the panel
     if (this.container) {
         // Don't clear innerHTML, just destroy managed controls
-        // this.container.innerHTML = ''; 
+        // this.container.innerHTML = '';
     }
     // Destroy static controls
     this.elements.backgroundControls?.destroy();
@@ -270,6 +325,9 @@ export class ControlPanel extends BaseUIElement {
     // Destroy dynamically added element controls
     this.elementControls.forEach(controls => controls.destroy());
     this.elementControls.clear();
+
+    // Clear visibility manager timer
+    this.visibilityManager?.clearHideTimer();
 
     // Call base destroy to handle subscriptions etc.
     super.destroy();

@@ -1,5 +1,82 @@
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap');
 
+/* --- V1 CSS Variables --- */
+:root {
+    /* Colors */
+    --text-color: white;
+    --background-color: #000000;
+    --overlay-color: rgba(0, 0, 0, 1); /* Full color, actual opacity controlled by JavaScript */
+
+    /* Control Panel Colors */
+    --control-bg-color: rgba(30, 30, 40, 0.85);
+    --control-hover-color: rgba(40, 40, 50, 0.9);
+    --control-text-color: #f0f0f0;
+    --control-border-color: rgba(255, 255, 255, 0.2);
+    --control-button-color: rgba(100, 150, 255, 0.6);
+    --control-button-hover-color: rgba(100, 150, 255, 0.8);
+    --control-button-active-color: rgba(80, 130, 235, 0.9);
+    --control-section-border: rgba(255, 255, 255, 0.1);
+    --control-title-border: rgba(255, 255, 255, 0.15);
+    --control-input-bg: rgba(20, 20, 30, 0.6);
+    --control-focus-border: rgba(100, 150, 255, 0.6);
+    --control-focus-shadow: rgba(100, 150, 255, 0.2);
+    --control-checkbox-checked: rgba(100, 150, 255, 0.6);
+    --control-range-bg: rgba(255, 255, 255, 0.15);
+    --control-range-hover-bg: rgba(255, 255, 255, 0.25);
+
+    /* Link Colors */
+    --link-color: rgba(100, 150, 255, 0.9);
+    --link-hover-color: #fff;
+    --link-active-color: #fff;
+    --link-hover-bg: rgba(100, 150, 255, 0.3);
+    --link-active-bg: rgba(100, 150, 255, 0.5);
+
+    /* Reset Button Colors */
+    --reset-button-color: rgba(220, 53, 69, 0.6);
+    --reset-button-hover-color: rgba(220, 53, 69, 0.8);
+    --reset-button-active-color: rgba(200, 35, 51, 0.9);
+
+    /* LED Clock Colors */
+    --led-color: #ff0000;
+    --led-glow: rgba(255, 0, 0, 0.7);
+
+    /* Analog Clock Colors */
+    --analog-border-color: white;
+    --analog-hour-hand-color: white;
+    --analog-minute-hand-color: white;
+    --analog-second-hand-color: red;
+    --analog-center-dot-color: white;
+
+    /* Flip Clock Colors */
+    --flip-card-top-color: #1f1f1f;
+    --flip-card-bottom-color: #2a2a2a;
+    --flip-card-text-color: #e0e0e0;
+    --flip-card-line-color: rgba(0, 0, 0, 0.5);
+    --flip-dot-color: #1f1f1f;
+
+    /* Spacing */
+    --control-spacing: 10px;
+    --control-padding: 18px;
+    --control-border-radius: 12px;
+    --control-section-spacing: 20px;
+    --control-section-padding: 15px;
+
+    /* Shadows */
+    --control-panel-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    --control-input-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    --control-button-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    --control-button-hover-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+
+    /* Transitions */
+    --fade-transition: opacity 0.5s ease;
+    --background-transition: background-image 1.5s ease-in-out;
+    --overlay-transition: background-color 0.3s ease;
+    --button-transition: all 0.2s ease;
+    --input-transition: all 0.2s ease;
+}
+/* --- End V1 CSS Variables --- */
+
+
 /* Basic Reset and Body Styles */
 * {
   box-sizing: border-box;
@@ -12,8 +89,8 @@ html, body {
   width: 100%;
   overflow: hidden; /* Prevent scrollbars */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  /* background-color: #111; /* Remove default dark background */
-  color: #eee;
+  background-color: var(--background-color); /* Use variable */
+  color: var(--text-color); /* Use variable */
 }
 
 /* Background Layer */
@@ -27,8 +104,7 @@ html, body {
   background-color: #000; /* Fallback background */
   background-size: cover;
   background-position: center;
-  /* Add transition for potential future effects */
-  transition: background-image 0.5s ease-in-out, background-color 0.5s ease-in-out;
+  transition: var(--background-transition); /* Use variable */
 }
 
 /* Zoom Animation */
@@ -58,9 +134,11 @@ html, body {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.2); /* Set to 0.2 opacity directly */
+  /* Opacity controlled by JS, set base color */
+  background-color: var(--overlay-color);
   z-index: -1;
   pointer-events: none; /* Allow interaction with elements below */
+  transition: var(--overlay-transition); /* Use variable */
 }
 
 /* Elements Container */
@@ -74,104 +152,358 @@ html, body {
 /* Base Element Styling (Applied by BaseUIElement class) */
 .base-element {
   position: absolute; /* Positioned by JS */
-  /* transform: translate(-50%, -50%); /* Centering handled by JS positioning */
   will-change: transform, opacity; /* Performance hint */
   cursor: grab; /* Indicate draggable */
-  /* Add transitions later if desired */
+  transition: opacity 0.3s ease; /* Add opacity transition */
 }
 
 .base-element.is-dragging {
     cursor: grabbing; /* Indicate active drag */
     user-select: none; /* Prevent text selection during drag */
-    /* Optional: Add a subtle visual cue like a border or shadow */
-    /* box-shadow: 0 0 15px rgba(255, 255, 255, 0.3); */
     z-index: 100; /* Bring to front while dragging */
 }
 
-/* Controls Panel Styling */
+/* --- V1 Controls Panel Styles (Adapted for V2 #controls-panel) --- */
 #controls-panel {
+    position: fixed;
+    /* V1 used bottom, V2 uses top - keep V2 top for now? Or switch to bottom? Let's keep top for consistency with previous V2 */
+    top: 10px;
+    left: 10px;
+    /* bottom: 20px; */
+    /* left: 20px; */
+    background-color: var(--control-bg-color);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: var(--control-padding);
+    border-radius: var(--control-border-radius);
+    z-index: 1000;
+    font-size: 14px;
+    color: var(--control-text-color);
+    opacity: 0; /* Start hidden */
+    transition: var(--fade-transition);
+    pointer-events: none; /* Don't capture mouse events when hidden */
+    min-width: 350px; /* Use V1 width */
+    max-height: calc(100vh - 20px); /* Keep V2 height constraint */
+    overflow-y: auto; /* Add scrollbar if needed */
+    box-shadow: var(--control-panel-shadow);
+    border: 1px solid var(--control-section-border);
+}
+
+#controls-panel.visible {
+    opacity: 1;
+    pointer-events: auto; /* Capture mouse events when visible */
+    /* Add transform for slide-in effect (matches previous V2 style) */
+    transform: translateX(0);
+}
+
+/* Add is-open state for transition */
+#controls-panel:not(.is-open) {
+    opacity: 0;
+    transform: translateX(-15px);
+}
+
+/* Hover Trigger Area */
+#controls-trigger {
   position: fixed;
-  top: 10px;
-  left: 10px;
-  width: 300px; /* Adjust as needed */
-  max-height: calc(100vh - 20px); /* Prevent overflow */
-  background-color: rgba(40, 40, 45, 0.95); /* Slightly lighter dark */
-  color: #e0e0e0;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.6);
-  z-index: 1000; /* Ensure it's above other elements */
-  overflow-y: auto; /* Allow scrolling if content exceeds height */
-  display: none; /* Hidden by default, controlled by JS */
-  transition: opacity 0.3s ease, transform 0.3s ease; /* Smooth transition */
-  opacity: 0;
-  transform: translateX(-10px); /* Start slightly off-screen */
+  top: 0;
+  left: 0;
+  width: 50px; /* Keep V2 size */
+  height: 50px;
+  z-index: 1001; /* Above controls panel when hidden */
 }
 
-#controls-panel.is-open {
-  display: block; /* Show when open */
-  opacity: 1;
-  transform: translateX(0); /* Slide in */
-}
-
-/* Styles for sections and groups within the control panel */
+/* Control Sections */
 .control-section {
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: var(--control-section-spacing);
+    padding-bottom: var(--control-section-padding);
+    border-bottom: 1px solid var(--control-section-border);
+    position: relative;
 }
+
+/* Optional: V1 gradient line between sections */
+/* .control-section:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 5%;
+    right: 5%;
+    height: 1px;
+    background: linear-gradient(
+        to right,
+        transparent,
+        var(--control-title-border) 20%,
+        var(--control-button-color) 50%,
+        var(--control-title-border) 80%,
+        transparent
+    );
+} */
 
 .control-section:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-  padding-bottom: 0;
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
 }
 
-.control-section h3 {
-  margin-bottom: 15px;
-  font-size: 1.1em;
-  color: #a0cff0; /* Light blue title */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  padding-bottom: 5px;
+/* Section Title (Using V1 style) */
+.section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 15px 0;
+    color: var(--control-text-color);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding-bottom: 8px;
+    position: relative;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    display: inline-block; /* Make the underline match the text width */
 }
 
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; /* Position slightly below text */
+    left: 0;
+    width: 100%;
+    height: 3px; /* V1 thickness */
+    background: var(--control-button-color); /* V1 color */
+    border-radius: 1.5px;
+}
+
+/* Control Groups */
 .control-group {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
+    margin-bottom: 8px; /* V1 spacing */
+    display: flex;
+    align-items: center;
+    gap: 10px; /* V1 gap */
+    white-space: nowrap;
 }
 
-.control-group label {
-  flex-basis: 120px; /* Fixed width for labels */
-  flex-shrink: 0;
-  margin-right: 10px;
-  font-size: 0.9em;
+.control-group:last-child {
+    margin-bottom: 0;
 }
 
-.control-group input[type="color"],
-.control-group input[type="range"],
-.control-group select {
-  flex-grow: 1;
+/* Use #controls-panel context for labels/inputs */
+#controls-panel label {
+    width: 120px; /* V1 width */
+    margin-right: 0; /* V1 spacing */
+    text-align: right; /* V1 alignment */
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 13px; /* V1 size */
+    color: rgba(255, 255, 255, 0.85); /* V1 color */
 }
 
-.control-group input[type="color"] {
-  height: 30px;
-  padding: 2px;
-  border: 1px solid #555;
-  background-color: #333;
-  cursor: pointer;
+/* Form Controls (Select, Text, Color, Checkbox, Range) - Using V1 styles */
+#controls-panel select {
+    padding: 6px 10px;
+    min-width: 140px;
+    height: 32px;
+    background-color: var(--control-input-bg);
+    color: var(--control-text-color);
+    border: 1px solid var(--control-border-color);
+    border-radius: 6px;
+    box-shadow: var(--control-input-shadow);
+    transition: var(--input-transition);
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px;
+    padding-right: 30px;
+    flex-grow: 1; /* Ensure it takes available space */
 }
 
-.control-group input[type="range"] {
-  cursor: pointer;
+#controls-panel select:hover {
+    border-color: rgba(255, 255, 255, 0.4);
 }
 
+#controls-panel select:focus {
+    outline: none;
+    border-color: var(--control-focus-border);
+    box-shadow: 0 0 0 2px var(--control-focus-shadow);
+}
+
+#controls-panel input[type="text"] { /* For custom category */
+    padding: 6px 10px;
+    height: 32px;
+    background-color: var(--control-input-bg);
+    color: var(--control-text-color);
+    border: 1px solid var(--control-border-color);
+    border-radius: 6px;
+    box-shadow: var(--control-input-shadow);
+    transition: var(--input-transition);
+    width: 140px; /* V1 width */
+    flex-grow: 1; /* Allow shrinking/growing if needed */
+}
+
+#controls-panel input[type="text"]:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+#controls-panel input[type="text"]:focus {
+    outline: none;
+    border-color: var(--control-focus-border);
+    box-shadow: 0 0 0 2px var(--control-focus-shadow);
+}
+
+#controls-panel input[type="color"] {
+    padding: 2px;
+    height: 32px; /* V1 height */
+    width: 50px; /* V1 width */
+    cursor: pointer;
+    border: 1px solid var(--control-border-color);
+    border-radius: 6px; /* V1 radius */
+    background: none; /* V1 background */
+    transition: var(--input-transition);
+    flex-grow: 0; /* Don't allow color picker to grow */
+}
+
+#controls-panel input[type="color"]:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+#controls-panel input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px; /* V1 size */
+    height: 18px; /* V1 size */
+    background-color: var(--control-input-bg);
+    border: 1px solid var(--control-border-color);
+    border-radius: 4px; /* V1 radius */
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--input-transition);
+    position: relative;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+#controls-panel input[type="checkbox"]:checked {
+    background-color: var(--control-checkbox-checked);
+    border-color: var(--control-focus-border);
+}
+
+#controls-panel input[type="checkbox"]:checked::after {
+    content: '';
+    width: 6px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    position: absolute;
+    top: 2px; /* Adjust position slightly */
+}
+
+#controls-panel input[type="checkbox"]:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+#controls-panel input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px; /* V1 height */
+    /* width: 140px; /* Let it grow */
+    flex-grow: 1;
+    background: var(--control-range-bg);
+    border-radius: 3px;
+    cursor: pointer;
+    /* margin-left: 5px; /* Use gap in control-group */
+    transition: var(--input-transition);
+}
+
+#controls-panel input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px; /* V1 size */
+    height: 16px; /* V1 size */
+    background: #fff; /* V1 color */
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); /* V1 shadow */
+    transition: var(--input-transition);
+}
+
+#controls-panel input[type="range"]::-moz-range-thumb {
+    width: 16px; /* V1 size */
+    height: 16px; /* V1 size */
+    background: #fff; /* V1 color */
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); /* V1 shadow */
+    transition: var(--input-transition);
+    border: none;
+}
+
+#controls-panel input[type="range"]:hover {
+    background: var(--control-range-hover-bg);
+}
+
+#controls-panel input[type="range"]:hover::-webkit-slider-thumb {
+    background: var(--control-button-color);
+    transform: scale(1.1);
+}
+
+#controls-panel input[type="range"]:hover::-moz-range-thumb {
+    background: var(--control-button-color);
+    transform: scale(1.1);
+}
+
+/* Range value display */
 .range-value {
   margin-left: 10px;
   font-size: 0.9em;
   min-width: 30px; /* Ensure space for value */
   text-align: right;
+  color: rgba(255, 255, 255, 0.85); /* Match label color */
 }
+
+/* Buttons (Apply to Reset and Next Background) */
+#controls-panel button {
+    padding: 8px 14px; /* V1 padding */
+    cursor: pointer;
+    background-color: var(--control-button-color);
+    color: var(--control-text-color);
+    border: 1px solid rgba(100, 150, 255, 0.2); /* V1 border */
+    border-radius: 6px; /* V1 radius */
+    transition: var(--button-transition);
+    font-weight: 500; /* V1 weight */
+    box-shadow: var(--control-button-shadow);
+}
+
+#controls-panel button:hover {
+    background-color: var(--control-button-hover-color);
+    transform: translateY(-1px);
+    box-shadow: var(--control-button-hover-shadow);
+}
+
+#controls-panel button:active {
+    background-color: var(--control-button-active-color);
+    transform: translateY(0);
+    box-shadow: var(--control-button-shadow);
+}
+
+/* Specific Button Styles */
+#controls-panel .reset-button { /* Target class added in JS */
+    background-color: var(--reset-button-color);
+    border-color: rgba(220, 53, 69, 0.2);
+}
+
+#controls-panel .reset-button:hover {
+    background-color: var(--reset-button-hover-color);
+}
+
+#controls-panel .reset-button:active {
+    background-color: var(--reset-button-active-color);
+}
+
+#background-refresh-button { /* Style the 'New Image' button */
+    width: 100%; /* Make it full width in its group */
+    margin-top: 5px;
+}
+
+
+/* --- End V1 Controls Panel Styles --- */
 
 
 /* Version Toggle (Already styled inline in app.js, but can add base styles here) */
@@ -182,7 +514,7 @@ html, body {
 /* Clock Element Styles */
 .clock-face {
   font-size: 2em; /* Base size, can be overridden by scale */
-  font-weight: bold;
+  /* font-weight: bold; /* Font weight controlled by JS option */
   text-align: center;
   color: #fff; /* Default clock color, overridden by JS */
   white-space: nowrap; /* Prevent wrapping */
@@ -253,6 +585,7 @@ html, body {
   /* Styles for the date text itself */
   display: inline-block; /* Allow positioning and separator */
   white-space: nowrap;
+  /* font-weight: bold; /* Font weight controlled by JS option */
 }
 
 .date-separator-line {
@@ -260,8 +593,8 @@ html, body {
   width: 100%; /* Span width of container */
   height: 1px;
   /* Use gradient for fade effect */
-  background-image: linear-gradient(to right, 
-      transparent 0%, 
+  background-image: linear-gradient(to right,
+      transparent 0%,
       var(--separator-color, rgba(255, 255, 255, 0.7)) 20%, /* Fade in */
       var(--separator-color, rgba(255, 255, 255, 0.7)) 80%, /* Solid middle */
       transparent 100% /* Fade out */
@@ -284,7 +617,7 @@ html, body {
 .clock-face[data-face-type="analog"] .analog-face {
   width: 100%;
   height: 100%;
-  border: 4px solid #fff; /* Default color, overridden by JS */
+  border: 4px solid var(--analog-border-color); /* Use variable */
   border-radius: 50%;
   position: relative;
   background-color: rgba(0, 0, 0, 0.1);
@@ -301,21 +634,21 @@ html, body {
 .clock-face[data-face-type="analog"] .hour-hand {
   width: 6px;
   height: 25%;
-  background-color: #fff; /* Default color, overridden by JS */
+  background-color: var(--analog-hour-hand-color); /* Use variable */
   transform: translateX(-50%) rotate(0deg);
 }
 
 .clock-face[data-face-type="analog"] .minute-hand {
   width: 4px;
   height: 35%;
-  background-color: #fff; /* Default color, overridden by JS */
+  background-color: var(--analog-minute-hand-color); /* Use variable */
   transform: translateX(-50%) rotate(0deg);
 }
 
 .clock-face[data-face-type="analog"] .second-hand {
   width: 2px;
   height: 40%;
-  background-color: #f00; /* Red second hand for visibility */
+  background-color: var(--analog-second-hand-color); /* Use variable */
   transform: translateX(-50%) rotate(0deg);
 }
 
@@ -325,7 +658,7 @@ html, body {
   left: 50%;
   width: 10px;
   height: 10px;
-  background-color: #fff; /* Default color, overridden by JS */
+  background-color: var(--analog-center-dot-color); /* Use variable */
   border-radius: 50%;
   transform: translate(-50%, -50%);
   z-index: 10; /* Above hands */
@@ -334,39 +667,39 @@ html, body {
 /* Markers for 12, 3, 6, 9 positions */
 .clock-face[data-face-type="analog"] .marker {
   position: absolute;
-  background-color: #fff; /* Default color, overridden by JS */
+  background-color: var(--analog-border-color); /* Use variable (same as border) */
 }
 
-.clock-face[data-face-type="analog"] .marker-12 { 
-  top: 5%; 
-  left: 50%; 
-  width: 3px; 
-  height: 10%; 
-  transform: translateX(-50%); 
+.clock-face[data-face-type="analog"] .marker-12 {
+  top: 5%;
+  left: 50%;
+  width: 3px;
+  height: 10%;
+  transform: translateX(-50%);
 }
 
-.clock-face[data-face-type="analog"] .marker-3 { 
-  top: 50%; 
-  right: 5%; 
-  width: 10%; 
-  height: 3px; 
-  transform: translateY(-50%); 
+.clock-face[data-face-type="analog"] .marker-3 {
+  top: 50%;
+  right: 5%;
+  width: 10%;
+  height: 3px;
+  transform: translateY(-50%);
 }
 
-.clock-face[data-face-type="analog"] .marker-6 { 
-  bottom: 5%; 
-  left: 50%; 
-  width: 3px; 
-  height: 10%; 
-  transform: translateX(-50%); 
+.clock-face[data-face-type="analog"] .marker-6 {
+  bottom: 5%;
+  left: 50%;
+  width: 3px;
+  height: 10%;
+  transform: translateX(-50%);
 }
 
-.clock-face[data-face-type="analog"] .marker-9 { 
-  top: 50%; 
-  left: 5%; 
-  width: 10%; 
-  height: 3px; 
-  transform: translateY(-50%); 
+.clock-face[data-face-type="analog"] .marker-9 {
+  top: 50%;
+  left: 5%;
+  width: 10%;
+  height: 3px;
+  transform: translateY(-50%);
 }
 
 /* --- Visual Effects --- */

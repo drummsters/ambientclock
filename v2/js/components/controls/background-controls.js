@@ -47,12 +47,12 @@ export class BackgroundControls {
   async init() {
     console.log('Initializing BackgroundControls...');
     try {
-      // 1. Create the container for background controls
-      this.container = document.createElement('div');
-      this.container.className = 'control-section background-controls';
-      this.parentContainer.appendChild(this.container);
+      // 1. Use the parent container directly (ControlPanel creates the section)
+      this.container = this.parentContainer;
+      // Ensure the container has a class for potential specific styling if needed
+      this.container.classList.add('background-controls-content'); // Add a content class
 
-      // 2. Create the UI elements (inputs, labels, etc.)
+      // 2. Create the UI elements (inputs, labels, etc.) directly in the parent
       this.createElements();
 
       // 3. Bind to relevant state changes
@@ -77,10 +77,7 @@ export class BackgroundControls {
     if (!this.container) return;
     console.log('Creating background control elements...');
 
-    // --- Section Title ---
-    const title = document.createElement('h3');
-    title.textContent = 'Background';
-    this.container.appendChild(title);
+    // --- Section Title Removed (Handled by ControlPanel) ---
 
     // --- Type Selector (Radio Buttons) ---
     const typeGroup = this.createControlGroup('Type:');
@@ -502,11 +499,11 @@ export class BackgroundControls {
     this.unsubscribers.forEach(unsubscribe => unsubscribe());
     this.unsubscribers = [];
 
-    // Remove elements from DOM
-    if (this.container && this.container.parentNode) {
-      this.container.parentNode.removeChild(this.container);
+    // Remove elements from DOM (clear the container provided by ControlPanel)
+    if (this.container) {
+        this.container.innerHTML = ''; // Clear the content we added
     }
-    this.container = null;
+    // Don't nullify this.container as it belongs to ControlPanel
     this.elements = {}; // Clear references
     console.log('BackgroundControls destroyed.');
   }

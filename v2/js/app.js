@@ -301,23 +301,12 @@ function handleWheelResize(event) {
   }
 }
 
-// --- Global Event Listeners (Example: Toggle Controls) ---
+// --- Global Event Listeners ---
 function setupGlobalListeners() {
-  window.addEventListener('keydown', (event) => {
-    // Toggle control panel on 'c' key press (ensure not typing in an input)
-    if (event.key === 'c' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
-      console.log("Toggling control panel via 'c' key...");
-      const currentState = StateManager.getState();
-      const currentVisibility = currentState.settings?.controls?.isOpen ?? false;
-      StateManager.update({
-        settings: {
-          controls: {
-            isOpen: !currentVisibility
-          }
-        }
-      });
-    }
-  });
+  // Currently no global listeners needed after removing 'c' key toggle
+  // window.addEventListener('keydown', (event) => {
+  //   // Example: Handle other global key presses if needed
+  // });
 }
 
 

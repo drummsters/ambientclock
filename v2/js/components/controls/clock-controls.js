@@ -36,12 +36,13 @@ export class ClockControls {
   async init() {
     console.log(`Initializing ClockControls for ${this.elementId}...`);
     try {
-      // 1. Create the container for clock controls
+      // 1. Create a container *within* the parent (ControlPanel)
+      // ControlPanel handles the main section structure
       this.container = document.createElement('div');
-      this.container.className = 'control-section clock-controls';
+      this.container.className = 'clock-controls-content'; // Add a content class
       this.parentContainer.appendChild(this.container);
 
-      // 2. Create the UI elements (inputs, labels, etc.)
+      // 2. Create the UI elements (inputs, labels, etc.) within this new container
       this.createElements();
 
       // 3. Bind to relevant state changes
@@ -66,11 +67,13 @@ export class ClockControls {
     if (!this.container) return;
     console.log(`Creating clock control elements for ${this.elementId}...`);
 
-    // --- Section Title ---
-    const title = document.createElement('h3');
-    // Make title more specific if controlling multiple elements later
-    title.textContent = `Clock Settings (${this.elementId})`;
-    this.container.appendChild(title);
+    // --- Section Title Removed (Handled by ControlPanel or dynamically) ---
+    // Optionally add a less prominent title/identifier if needed inside this content div
+    // const idLabel = document.createElement('div');
+    // idLabel.textContent = `Element: ${this.elementId}`;
+    // idLabel.style.fontSize = '0.8em';
+    // idLabel.style.marginBottom = '10px';
+    // this.container.appendChild(idLabel);
 
     // --- Clock Face Select ---
     const faceGroup = this.createControlGroup('Face:');
@@ -129,6 +132,15 @@ export class ClockControls {
     fontGroup.appendChild(this.elements.fontSelect);
     this.container.appendChild(fontGroup);
 
+    // --- Font Weight (Bold) Checkbox ---
+    const boldGroup = this.createControlGroup('Bold:');
+    this.elements.boldCheckbox = document.createElement('input');
+    this.elements.boldCheckbox.type = 'checkbox';
+    this.elements.boldCheckbox.id = `${this.elementId}-bold-checkbox`;
+    boldGroup.insertBefore(this.elements.boldCheckbox, boldGroup.firstChild);
+    boldGroup.querySelector('label').htmlFor = this.elements.boldCheckbox.id;
+    this.container.appendChild(boldGroup);
+
     // --- Color Picker ---
     const colorGroup = this.createControlGroup('Color:');
     this.elements.colorPicker = document.createElement('input');
@@ -151,6 +163,20 @@ export class ClockControls {
     sizeGroup.appendChild(this.elements.sizeSlider);
     sizeGroup.appendChild(this.elements.sizeValue);
     this.container.appendChild(sizeGroup);
+
+    // --- Opacity Slider ---
+    const opacityGroup = this.createControlGroup('Opacity:');
+    this.elements.opacitySlider = document.createElement('input');
+    this.elements.opacitySlider.type = 'range';
+    this.elements.opacitySlider.id = `${this.elementId}-opacity-slider`;
+    this.elements.opacitySlider.min = '0';
+    this.elements.opacitySlider.max = '1';
+    this.elements.opacitySlider.step = '0.05';
+    this.elements.opacityValue = document.createElement('span');
+    this.elements.opacityValue.className = 'range-value';
+    opacityGroup.appendChild(this.elements.opacitySlider);
+    opacityGroup.appendChild(this.elements.opacityValue);
+    this.container.appendChild(opacityGroup);
 
     // --- Effect Style Select ---
     const effectGroup = this.createControlGroup('Effect:');
@@ -201,8 +227,9 @@ export class ClockControls {
     const elementEventName = `state:${elementStatePath}:changed`; 
     const elementSubscription = EventBus.subscribe(elementEventName, (elementState) => {
         console.log(`[ClockControls ${this.elementId}] Event received: ${elementEventName}`, elementState);
-        // Update scale and effect style from the element state
+        // Update scale, opacity, and effect style from the element state
         this.updateUIScale(elementState?.scale);
+        this.updateUIOpacity(elementState?.opacity); // Add opacity update
         this.updateUIEffectStyle(elementState?.effectStyle);
     });
     this.unsubscribers.push(elementSubscription.unsubscribe);
@@ -227,6 +254,14 @@ export class ClockControls {
         console.log(`[ClockControls ${this.elementId}] No initial scale state found at path: ${elementStatePath}`);
         this.updateUIScale(1.0); // Apply scale default
     }
+    // Apply initial opacity state
+    if (initialElementState?.opacity !== undefined) {
+        console.log(`[ClockControls ${this.elementId}] Applying initial opacity state:`, initialElementState.opacity);
+        this.updateUIOpacity(initialElementState.opacity);
+    } else {
+        console.log(`[ClockControls ${this.elementId}] No initial opacity state found.`);
+        this.updateUIOpacity(1.0); // Apply opacity default
+    }
     // Apply initial effect style
     if (initialElementState?.effectStyle) {
         console.log(`[ClockControls ${this.elementId}] Applying initial effect style:`, initialElementState.effectStyle);
@@ -249,12 +284,13 @@ export class ClockControls {
      if (this.elements.faceSelect) this.elements.faceSelect.value = optionsState.face || 'led'; // Default to 'led'
      if (this.elements.formatSelect) this.elements.formatSelect.value = optionsState.timeFormat || '12';
      if (this.elements.secondsCheckbox) this.elements.secondsCheckbox.checked = optionsState.showSeconds ?? true;
-     if (this.elements.fontSelect) this.elements.fontSelect.value = optionsState.fontFamily || 'Segoe UI'; 
+     if (this.elements.fontSelect) this.elements.fontSelect.value = optionsState.fontFamily || 'Segoe UI';
+     if (this.elements.boldCheckbox) this.elements.boldCheckbox.checked = (optionsState.fontWeight === 'bold'); // Default to false if not 'bold'
      if (this.elements.colorPicker) this.elements.colorPicker.value = optionsState.color || '#FFFFFF';
-     
-     // Scale is handled separately by updateUIScale
+
+     // Scale and Opacity are handled separately
   }
-  
+
   /**
    * Updates only the scale slider UI element.
    * @param {number} scale - The current scale value.
@@ -266,6 +302,21 @@ export class ClockControls {
            this.elements.sizeSlider.value = currentScale;
            if (this.elements.sizeValue) {
                this.elements.sizeValue.textContent = parseFloat(currentScale).toFixed(2);
+           }
+       }
+   }
+
+   /**
+    * Updates only the opacity slider UI element.
+    * @param {number} opacity - The current opacity value.
+    */
+   updateUIOpacity(opacity) {
+       const currentOpacity = opacity ?? 1.0; // Default opacity if undefined
+       console.log(`[ClockControls ${this.elementId}] Updating opacity UI to:`, currentOpacity);
+       if (this.elements.opacitySlider) {
+           this.elements.opacitySlider.value = currentOpacity;
+           if (this.elements.opacityValue) {
+               this.elements.opacityValue.textContent = parseFloat(currentOpacity).toFixed(2);
            }
        }
    }
@@ -291,9 +342,10 @@ export class ClockControls {
     this.elements.faceSelect?.addEventListener('change', (e) => this.dispatchStateUpdate({ face: e.target.value }));
     this.elements.formatSelect?.addEventListener('change', (e) => this.dispatchStateUpdate({ timeFormat: e.target.value }));
     this.elements.secondsCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ showSeconds: e.target.checked }));
-    this.elements.fontSelect?.addEventListener('change', (e) => this.dispatchStateUpdate({ fontFamily: e.target.value })); // Changed from fontInput
+    this.elements.fontSelect?.addEventListener('change', (e) => this.dispatchStateUpdate({ fontFamily: e.target.value }));
+    this.elements.boldCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ fontWeight: e.target.checked ? 'bold' : 'normal' }));
     this.elements.colorPicker?.addEventListener('input', (e) => this.dispatchStateUpdate({ color: e.target.value }));
-    
+
     // Size Slider Change
     this.elements.sizeSlider?.addEventListener('input', (e) => {
         const newScale = parseFloat(e.target.value);
@@ -303,6 +355,16 @@ export class ClockControls {
         // Debounce this later if needed
         // Dispatch scale update to the element level, not options
         this.dispatchElementStateUpdate({ scale: newScale });
+    });
+
+    // Opacity Slider Change
+    this.elements.opacitySlider?.addEventListener('input', (e) => {
+        const newOpacity = parseFloat(e.target.value);
+        if (this.elements.opacityValue) {
+            this.elements.opacityValue.textContent = newOpacity.toFixed(2);
+        }
+        // Dispatch opacity update to the element level
+        this.dispatchElementStateUpdate({ opacity: newOpacity });
     });
 
     // Effect Style Select Change
@@ -351,11 +413,11 @@ export class ClockControls {
     this.unsubscribers.forEach(unsubscribe => unsubscribe());
     this.unsubscribers = [];
 
-    // Remove elements from DOM
+    // Remove elements from DOM (clear the container we created)
     if (this.container && this.container.parentNode) {
       this.container.parentNode.removeChild(this.container);
     }
-    this.container = null;
+    this.container = null; // Nullify the container we created
     this.elements = {}; // Clear references
     console.log(`ClockControls for ${this.elementId} destroyed.`);
   }

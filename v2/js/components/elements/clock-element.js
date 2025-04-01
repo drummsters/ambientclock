@@ -244,6 +244,8 @@ export class ClockElement extends BaseUIElement {
       if (!this.elements.digitalCleanContainer) return;
       this.elements.digitalCleanContainer.style.fontFamily = this.options.fontFamily || 'Segoe UI';
       this.elements.digitalCleanContainer.style.color = this.options.color || '#FFFFFF';
+      // Apply font weight
+      this.elements.digitalCleanContainer.style.fontWeight = this.options.fontWeight || 'normal'; // Default to normal
   }
 
    /** Helper to apply styles to the analog clock face */
@@ -282,6 +284,7 @@ export class ClockElement extends BaseUIElement {
         oldOptions.timeFormat !== this.options.timeFormat ||
         oldOptions.showSeconds !== this.options.showSeconds ||
         oldOptions.fontFamily !== this.options.fontFamily ||
+        oldOptions.fontWeight !== this.options.fontWeight || // Add fontWeight check
         oldOptions.color !== this.options.color) {
       this.render(); // Re-render if display options changed
     }

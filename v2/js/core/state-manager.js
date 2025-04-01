@@ -5,6 +5,7 @@ import { EventBus } from './event-bus.js';
  */
 export const StateManager = {
   state: {},
+  defaultState: {}, // Store the initial default state
   // Removed internal subscribers object - rely solely on EventBus
   STORAGE_KEY: 'ambient-clock-v2-settings',
   saveTimeoutId: null,
@@ -16,6 +17,10 @@ export const StateManager = {
    * @returns {Promise<void>} A promise that resolves when initialization is complete.
    */
   async init(initialState) {
+    // Store the provided initial state as the default
+    this.defaultState = this.deepClone(initialState);
+    console.log('Stored default state:', this.defaultState);
+
     const loadedState = this.loadState(); // Load state from storage
     const initialClone = this.deepClone(initialState); // Start with a fresh clone of defaults
 
@@ -30,6 +35,9 @@ export const StateManager = {
 
     // Always save after merging/loading to ensure consistent structure
     this.scheduleSave();
+
+    // Subscribe to the reset event
+    EventBus.subscribe('state:reset', () => this.resetState());
 
     // Event publication moved to app.js after await StateManager.init()
   },
@@ -159,6 +167,24 @@ export const StateManager = {
       console.error('Failed to load or parse state from localStorage:', error);
       return {}; // Return empty object on error
     }
+  },
+
+  /**
+   * Resets the current state to the stored default state.
+   */
+  resetState() {
+    console.log('Resetting state to default...');
+    const oldState = this.state;
+    // Replace current state with a clone of the default state
+    this.state = this.deepClone(this.defaultState);
+
+    // Notify subscribers about the changes (treat the entire state as changed)
+    // We can simulate this by passing the new state as 'changes'
+    this.notifySubscribers(this.state, oldState);
+
+    // Schedule saving the reset state
+    this.scheduleSave();
+    console.log('State reset complete.');
   },
 
   // --- Utility Methods ---
