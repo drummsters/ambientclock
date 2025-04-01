@@ -30,6 +30,15 @@ let backgroundColorInput;
 let backgroundOpacitySlider;
 let zoomEffectCheckbox;
 let nextBackgroundButton;
+// V1 Peapix additions
+let peapixCountryGroup;
+let peapixCountrySelect;
+const peapixCountries = { // Define country codes and names
+    au: 'Australia', br: 'Brazil', ca: 'Canada', cn: 'China', de: 'Germany',
+    fr: 'France', in: 'India', it: 'Italy', jp: 'Japan', es: 'Spain',
+    gb: 'United Kingdom', us: 'United States'
+};
+
 
 /**
  * Initialize background controls
@@ -46,7 +55,48 @@ export function initBackgroundControls() {
     backgroundOpacitySlider = getElement('background-opacity-slider');
     zoomEffectCheckbox = getElement('zoom-effect-checkbox');
     nextBackgroundButton = getElement('next-background-button');
-    
+
+    // --- V1 Peapix Additions ---
+    // Add Peapix option dynamically
+    if (imageSourceSelect) {
+        const peapixOption = document.createElement('option');
+        peapixOption.value = 'peapix';
+        peapixOption.textContent = 'Peapix (Bing)';
+        imageSourceSelect.appendChild(peapixOption);
+    }
+
+    // Create and append Peapix country dropdown
+    peapixCountryGroup = document.createElement('div');
+    peapixCountryGroup.id = 'peapix-country-group';
+    peapixCountryGroup.className = 'control-group'; // Use existing class
+    peapixCountryGroup.style.display = 'none'; // Hide initially
+
+    const countryLabel = document.createElement('label');
+    countryLabel.htmlFor = 'peapix-country-select';
+    countryLabel.textContent = 'Country:';
+    peapixCountryGroup.appendChild(countryLabel);
+
+    peapixCountrySelect = document.createElement('select');
+    peapixCountrySelect.id = 'peapix-country-select';
+    Object.entries(peapixCountries).forEach(([code, name]) => {
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = name;
+        peapixCountrySelect.appendChild(option);
+    });
+    peapixCountryGroup.appendChild(peapixCountrySelect);
+
+    // Insert the country group after the image source group
+    const imageSourceGroup = imageSourceSelect?.closest('.control-group');
+    if (imageSourceGroup && imageSourceGroup.parentNode) {
+        imageSourceGroup.parentNode.insertBefore(peapixCountryGroup, imageSourceGroup.nextSibling);
+    } else {
+        // Fallback: append to controls container if group not found
+        getElement('background-controls')?.appendChild(peapixCountryGroup);
+    }
+    // --- End V1 Peapix Additions ---
+
+
     // Set initial category in the dropdown (only on first load)
     if (categorySelect) {
         const state = getState();
@@ -107,7 +157,12 @@ function setupEventListeners() {
     if (imageSourceSelect) {
         addEvent(imageSourceSelect, 'change', handleImageSourceChange);
     }
-    
+
+    // Peapix Country select change
+    if (peapixCountrySelect) {
+        addEvent(peapixCountrySelect, 'change', handlePeapixCountryChange);
+    }
+
     // Category select change
     if (categorySelect) {
         console.log("Setting up change event listener for category dropdown");
@@ -169,13 +224,42 @@ export function updateBackgroundControlsFromState() {
     const state = getState();
     
     // Update image source select
+    const imageSource = state.imageSource ||
+                      (state.background && state.background.imageSource) ||
+                      DEFAULT_IMAGE_SOURCE;
     if (imageSourceSelect) {
-        const imageSource = state.imageSource || 
-                          (state.background && state.background.imageSource) || 
-                          DEFAULT_IMAGE_SOURCE;
         imageSourceSelect.value = imageSource;
     }
-    
+
+    // Update Peapix Country Select
+    if (peapixCountrySelect) {
+        const countryCode = state.peapixCountry ||
+                          (state.background && state.background.peapixCountry) ||
+                          'us';
+        peapixCountrySelect.value = countryCode;
+    }
+
+    // Show/Hide Peapix country group
+    if (peapixCountryGroup) {
+        if (imageSource === 'peapix') {
+            showElement(peapixCountryGroup, 'flex');
+        } else {
+            hideElement(peapixCountryGroup);
+        }
+    }
+
+    // Show/Hide Category controls (hide if Peapix)
+    const showCategoryControls = imageSource !== 'peapix';
+    if (categorySelect) {
+        categorySelect.closest('.control-group').style.display = showCategoryControls ? 'flex' : 'none';
+    }
+    if (customCategoryGroup) {
+        // Custom group visibility depends on category being 'Custom' AND category controls being visible
+        const category = state.category || (state.background && state.background.category) || 'Nature';
+        customCategoryGroup.style.display = (showCategoryControls && category === 'Custom') ? 'flex' : 'none';
+    }
+
+
     // We're intentionally NOT updating the category dropdown when the background image changes
     // This allows the user to keep their selected category even when the background changes
     if (categorySelect) {
@@ -184,29 +268,25 @@ export function updateBackgroundControlsFromState() {
         console.log("updateBackgroundControlsFromState - State category value:", state.category);
     }
     
-    // Update custom category input
-    if (customCategoryInput) {
-        const customCategory = state.customCategory || 
-                             (state.background && state.background.customCategory) || 
+    // Update custom category input (only if category controls are visible)
+    if (customCategoryInput && showCategoryControls) {
+        const customCategory = state.customCategory ||
+                             (state.background && state.background.customCategory) ||
                              '';
         customCategoryInput.value = customCategory;
     }
-    
-    // Show/hide custom category input based on selection
-    const category = state.category || 
-                   (state.background && state.background.category) || 
-                   'Nature';
-    if (category === 'Custom' && customCategoryGroup) {
-        showElement(customCategoryGroup, 'flex');
-        hideElement(colorPickerGroup);
-    } else if (category === 'None' && colorPickerGroup) {
-        hideElement(customCategoryGroup);
-        showElement(colorPickerGroup, 'flex');
-    } else {
-        hideElement(customCategoryGroup);
-        hideElement(colorPickerGroup);
+
+    // Show/hide color picker (only if category is 'None' AND category controls are visible)
+    const category = state.category || (state.background && state.background.category) || 'Nature';
+    if (colorPickerGroup) {
+        if (showCategoryControls && category === 'None') {
+            showElement(colorPickerGroup, 'flex');
+        } else {
+            hideElement(colorPickerGroup);
+        }
     }
-    
+
+
     // Update background color input
     if (backgroundColorInput) {
         const backgroundColor = state.backgroundColor || 
@@ -244,12 +324,60 @@ export function updateBackgroundControlsFromState() {
  */
 function handleImageSourceChange(event) {
     const imageSource = event.target.value;
-    
+
     // Update state
     updateState({ imageSource });
-    
+
+    // Immediately update UI visibility
+    const showPeapix = imageSource === 'peapix';
+    const showCategory = imageSource !== 'peapix';
+
+    if (peapixCountryGroup) {
+        peapixCountryGroup.style.display = showPeapix ? 'flex' : 'none';
+    }
+    if (categorySelect) {
+        categorySelect.closest('.control-group').style.display = showCategory ? 'flex' : 'none';
+    }
+    if (customCategoryGroup) {
+        // Hide custom group if category controls are hidden
+        customCategoryGroup.style.display = showCategory ? customCategoryGroup.style.display : 'none';
+    }
+     if (colorPickerGroup) {
+        // Hide color picker if category controls are hidden
+        colorPickerGroup.style.display = showCategory ? colorPickerGroup.style.display : 'none';
+    }
+
+
+    // If switching TO Peapix, trigger a background fetch
+    if (showPeapix) {
+        console.log("Switched to Peapix, fetching new background...");
+        fetchNewBackground(true); // Force fetch
+    }
+    // If switching AWAY from Peapix, trigger based on category (handled by handleCategoryChange if category is not 'Custom' or 'None')
+    else {
+        const currentCategory = getState().category || (getState().background && getState().background.category);
+        if (currentCategory !== 'Custom' && currentCategory !== 'None') {
+             console.log(`Switched away from Peapix to ${imageSource}, fetching new background for category ${currentCategory}...`);
+             fetchNewBackground(true); // Force fetch
+        }
+    }
+
+
     console.log(`Image source changed to: ${imageSource}`);
 }
+
+/**
+ * Handles Peapix country select change
+ * @param {Event} event - The change event
+ */
+function handlePeapixCountryChange(event) {
+    const countryCode = event.target.value;
+    updateState({ peapixCountry: countryCode });
+    console.log(`Peapix country changed to: ${countryCode}`);
+    // Fetch new background for the selected country
+    fetchNewBackground(true); // Force fetch
+}
+
 
 /**
  * Handles category select change

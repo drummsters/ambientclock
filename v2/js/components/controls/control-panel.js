@@ -1,6 +1,7 @@
 import { BaseUIElement } from '../base/base-ui-element.js';
 import { StateManager } from '../../core/state-manager.js';
 import { EventBus } from '../../core/event-bus.js';
+import { BackgroundService } from '../../services/background-service.js'; // Import BackgroundService
 import { BackgroundControls } from './background-controls.js';
 import { ClockControls } from './clock-controls.js';
 import { DateControls } from './date-controls.js'; // Import DateControls
@@ -16,19 +17,24 @@ export class ControlPanel extends BaseUIElement {
    * @param {string} config.id - The ID for the control panel element (e.g., 'controls-panel').
    * @param {ElementManager} elementManager - The application's ElementManager instance.
    * @param {ConfigManager} configManager - The application's ConfigManager instance.
+   * @param {BackgroundService} backgroundService - The application's BackgroundService instance.
    */
-  constructor(config, elementManager, configManager) { // Add configManager parameter
+  constructor(config, elementManager, configManager, backgroundService) { // Added backgroundService
     if (!elementManager) {
         throw new Error('ControlPanel requires an ElementManager instance.');
     }
-    if (!configManager) { // Add check for configManager
+    if (!configManager) {
         throw new Error('ControlPanel requires a ConfigManager instance.');
+    }
+    if (!backgroundService) { // Added check for backgroundService
+        throw new Error('ControlPanel requires a BackgroundService instance.');
     }
     // Override type and potentially statePath if needed
     super({ ...config, type: 'control-panel' });
     this.statePath = 'settings.controls'; // Path for panel's own settings (e.g., visibility)
     this.elementManager = elementManager; // Store reference
     this.configManager = configManager; // Store reference
+    this.backgroundService = backgroundService; // Store reference
     this.elementControls = new Map(); // Stores controls for individual elements
     console.log(`ControlPanel constructor called with ID: ${this.id}`);
     // The main container is expected to exist in the HTML already
@@ -89,8 +95,8 @@ export class ControlPanel extends BaseUIElement {
     title.textContent = 'Settings';
     this.container.appendChild(title);
 
-    // Instantiate and initialize Background Controls, passing configManager
-    const backgroundControls = new BackgroundControls(this.container, this.configManager); // Pass configManager
+    // Instantiate and initialize Background Controls, passing configManager and backgroundService
+    const backgroundControls = new BackgroundControls(this.container, this.configManager, this.backgroundService); // Pass backgroundService
     await backgroundControls.init();
     this.elements.backgroundControls = backgroundControls; // Store reference
 

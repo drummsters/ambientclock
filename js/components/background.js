@@ -6,6 +6,7 @@
 import { getState, updateState, subscribe } from '../state.js';
 import * as unsplashService from '../services/unsplash.js';
 import * as pexelsService from '../services/pexels.js';
+import * as peapixService from '../services/peapix.js'; // Import Peapix service
 import { getElement, updateStyle } from '../utils/dom.js';
 import { BACKGROUND_CYCLE_INTERVAL, DEFAULT_ZOOM_ENABLED, ZOOM_ANIMATION_DURATION } from '../config.js';
 import { isCurrentImageFavorite } from '../services/favorites.js';
@@ -399,10 +400,17 @@ export function setBackgroundImage(imageUrl) {
  */
 function getImageService() {
     const { imageSource } = getState();
-    const service = imageSource === 'pexels' ? pexelsService : unsplashService;
-    
+    let service;
+    if (imageSource === 'pexels') {
+        service = pexelsService;
+    } else if (imageSource === 'peapix') {
+        service = peapixService;
+    } else {
+        service = unsplashService; // Default to Unsplash
+    }
+
     // Log which service is being used
-    debugLog(`Using image service: ${imageSource}`);
+    debugLog(`Using image service: ${imageSource || 'unsplash'}`);
     debugLog(`Service methods available:`, Object.keys(service));
     
     return service;
@@ -564,62 +572,76 @@ export async function fetchNewBackground() {
             // Continue with normal image fetching if there's an error
         }
     }
-    
     // Get the appropriate image service
     const imageService = getImageService();
-    debugLog(`Using ${imageSource} API for fetching background image`);
-    
+    debugLog(`Using ${imageSource || 'unsplash'} API for fetching background image`);
+
     try {
-        debugLog(`Fetching image for category "${categoryToUse}" using ${imageSource} API...`);
-        
-        // Fetch image URL - pass true to force a new batch of images
-        const imageUrl = await imageService.fetchRandomImage(categoryToUse, true);
-        debugLog(`Successfully fetched image URL from ${imageSource}:`, imageUrl);
-        
+        let imageUrl;
+        let imageData; // To store the full object if needed
+
+        if (imageSource === 'peapix') {
+            const countryCode = getState().peapixCountry || (getState().background && getState().background.peapixCountry) || 'us';
+            debugLog(`Fetching Peapix image for country: ${countryCode}`);
+            imageData = await imageService.fetchLatestImage(countryCode); // Peapix service fetches latest
+            imageUrl = imageData?.url;
+            debugLog(`Successfully fetched image URL from Peapix:`, imageUrl);
+        } else {
+            // For Unsplash/Pexels, use category
+            debugLog(`Fetching image for category "${categoryToUse}" using ${imageSource || 'unsplash'} API...`);
+            // Fetch image URL - pass true to force a new batch of images
+            imageUrl = await imageService.fetchRandomImage(categoryToUse, true);
+            debugLog(`Successfully fetched image URL from ${imageSource || 'unsplash'}:`, imageUrl);
+        }
+
+        if (!imageUrl) {
+            throw new Error("Image URL not found in response.");
+        }
+
         // Preload image
         debugLog(`Preloading image from URL: ${imageUrl}`);
-        await imageService.preloadImage(imageUrl);
+        await imageService.preloadImage(imageUrl); // Use preload from the correct service
         debugLog(`Successfully preloaded image`);
-        
+
         // Set as background
         debugLog(`Setting background image to: ${imageUrl}`);
-        setBackgroundImage(imageUrl);
+        setBackgroundImage(imageUrl); // setBackgroundImage handles state update for metadata
         debugLog(`Background image set successfully`);
+
     } catch (error) {
-        console.error(`Failed to fetch background from ${imageSource}:`, error);
-        
-        // Check if this is a rate limit error
-        if (error.message && error.message.includes('rate limit exceeded')) {
+        console.error(`Failed to fetch background from ${imageSource || 'unsplash'}:`, error);
+
+        // Check if this is a rate limit error (Only applicable to Unsplash/Pexels)
+        if (imageSource !== 'peapix' && error.message && error.message.includes('rate limit exceeded')) {
             console.warn(`Rate limit exceeded for ${imageSource} API. Trying alternative API...`);
-            
+
             try {
-                // Switch to the alternative API
+                let fallbackService = null;
+                let fallbackSourceName = '';
+
+                // Switch to the alternative API (Unsplash or Pexels)
                 if (imageSource === 'pexels') {
-                    debugLog('Switching to Unsplash API due to Pexels rate limit...');
-                    
-                    // Temporarily switch to Unsplash
-                    const unsplashUrl = await unsplashService.fetchRandomImage(categoryToUse);
-                    await unsplashService.preloadImage(unsplashUrl);
-                    setBackgroundImage(unsplashUrl);
-                    
-                    debugLog('Successfully fetched image from Unsplash as fallback');
-                    return; // Exit early since we successfully got an image
+                    fallbackService = unsplashService;
+                    fallbackSourceName = 'Unsplash';
                 } else if (imageSource === 'unsplash') {
-                    debugLog('Switching to Pexels API due to Unsplash rate limit...');
-                    
-                    // Temporarily switch to Pexels
-                    const pexelsUrl = await pexelsService.fetchRandomImage(categoryToUse);
-                    await pexelsService.preloadImage(pexelsUrl);
-                    setBackgroundImage(pexelsUrl);
-                    
-                    debugLog('Successfully fetched image from Pexels as fallback');
-                    return; // Exit early since we successfully got an image
+                    fallbackService = pexelsService;
+                    fallbackSourceName = 'Pexels';
                 }
+
+                if (fallbackService) {
+                    debugLog(`Switching to ${fallbackSourceName} API due to ${imageSource} rate limit...`);
+                    const fallbackUrl = await fallbackService.fetchRandomImage(categoryToUse);
+                    await fallbackService.preloadImage(fallbackUrl);
+                    setBackgroundImage(fallbackUrl);
+                    debugLog(`Successfully fetched image from ${fallbackSourceName} as fallback`);
+                    return; // Exit early
+                }
+
             } catch (fallbackError) {
                 console.error('Failed to fetch from fallback API:', fallbackError);
             }
         }
-        
+
         // Set fallback background if all else fails
         if (backgroundContainer) {
             updateStyle(backgroundContainer, {

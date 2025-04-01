@@ -50,20 +50,25 @@ export class ImageBackgroundHandler {
         console.log('[ImageBackgroundHandler] Source changed.');
         needsReload = true;
     }
-    // 2. Category changed *to* a predefined value (not 'Other')? Reload.
-    else if (oldConfig.category !== this.config.category && this.config.category !== 'Other') {
+    // 2. Peapix country changed? Reload. (Only if source is peapix)
+    else if (this.config.source === 'peapix' && oldConfig.peapixCountry !== this.config.peapixCountry) {
+        console.log('[ImageBackgroundHandler] Peapix country changed.');
+        needsReload = true;
+    }
+    // 3. Category changed *to* a predefined value (not 'Other')? Reload. (Only if source is NOT peapix)
+    else if (this.config.source !== 'peapix' && oldConfig.category !== this.config.category && this.config.category !== 'Other') {
         console.log('[ImageBackgroundHandler] Predefined category changed.');
         needsReload = true;
     }
-    // 3. Category is 'Other' and customCategory changed *to* a non-empty value? Reload.
-    else if (this.config.category === 'Other' &&
+    // 4. Category is 'Other' and customCategory changed *to* a non-empty value? Reload. (Only if source is NOT peapix)
+    else if (this.config.source !== 'peapix' && this.config.category === 'Other' &&
                oldConfig.customCategory !== this.config.customCategory &&
                this.config.customCategory) { // Check if new customCategory is not empty
         console.log('[ImageBackgroundHandler] Custom category changed to a non-empty value.');
         needsReload = true;
     }
-    // 4. Category changed *to* 'Other'? Do NOT reload yet, wait for custom input.
-    else if (oldConfig.category !== 'Other' && this.config.category === 'Other') {
+    // 5. Category changed *to* 'Other'? Do NOT reload yet, wait for custom input. (Only if source is NOT peapix)
+    else if (this.config.source !== 'peapix' && oldConfig.category !== 'Other' && this.config.category === 'Other') {
          console.log('[ImageBackgroundHandler] Category changed to "Other". Waiting for custom input.');
          needsReload = false; // Explicitly prevent reload here
     }
@@ -104,25 +109,38 @@ export class ImageBackgroundHandler {
         return;
     }
 
-    // Determine the actual query to use
-    let query = this.config.category || 'nature'; // Default category
-    if (query === 'Other') {
-        query = this.config.customCategory || ''; // Use custom category, default to empty string
-    }
+    // Determine the actual query to use (only relevant for non-Peapix providers)
+    let query = '';
+    if (providerName !== 'peapix') {
+        query = this.config.category || 'nature'; // Default category
+        if (query === 'Other') {
+            query = this.config.customCategory || ''; // Use custom category, default to empty string
+        }
 
-    // **Prevent API call if category is 'Other' and customCategory is empty**
-    if (this.config.category === 'Other' && !query) {
-        console.warn('[ImageBackgroundHandler] Category is "Other" but custom category is empty. Skipping image fetch.');
-        this.isLoading = false;
-        // Keep the fallback color, or maybe show a specific message?
-        this.container.style.backgroundImage = `url('https://via.placeholder.com/1920x1080.png/333333/FFFFFF?text=Enter+Custom+Category')`;
-        return;
+        // **Prevent API call if category is 'Other' and customCategory is empty**
+        if (this.config.category === 'Other' && !query) {
+            console.warn('[ImageBackgroundHandler] Category is "Other" but custom category is empty. Skipping image fetch.');
+            this.isLoading = false;
+            // Keep the fallback color, or maybe show a specific message?
+            this.container.style.backgroundImage = `url('https://via.placeholder.com/1920x1080.png/333333/FFFFFF?text=Enter+Custom+Category')`;
+            return;
+        }
     }
 
      console.log(`[ImageBackgroundHandler] Using query: "${query}" for provider "${providerName}"`);
 
     try {
-        const imageData = await provider.getImage(query);
+        let imageData = null;
+        // Check if the provider is Peapix and pass the country code
+        if (providerName === 'peapix') {
+            const countryCode = this.config.peapixCountry || 'us'; // Get country from config, default 'us'
+            console.log(`[ImageBackgroundHandler] Peapix selected, using country code: ${countryCode}`);
+            // Peapix doesn't use query, but pass countryCode
+            imageData = await provider.getImage('', countryCode);
+        } else {
+            // For other providers, just pass the query
+            imageData = await provider.getImage(query);
+        }
 
         if (imageData && imageData.url) {
             this.currentImageUrl = imageData.url;

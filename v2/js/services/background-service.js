@@ -3,6 +3,7 @@ import { EventBus } from '../core/event-bus.js';
 import { ImageBackgroundHandler } from './image-background-handler.js';
 import { UnsplashProvider } from './image-providers/unsplash-provider.js';
 import { PexelsProvider } from './image-providers/pexels-provider.js';
+import { PeapixProvider } from './image-providers/peapix-provider.js'; // Added Peapix
 
 /**
  * Manages the application's background (color or image) and overlay.
@@ -46,6 +47,7 @@ export class BackgroundService {
     // The providers themselves will use the /api/... endpoints.
     this.registerProvider('unsplash', new UnsplashProvider());
     this.registerProvider('pexels', new PexelsProvider());
+    this.registerProvider('peapix', new PeapixProvider()); // Added Peapix
     // Note: The check if the provider is *selected* in state still happens in applyBackground
 
     // Subscribe to the 'state:initialized' event to apply the initial background

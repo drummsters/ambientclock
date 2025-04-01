@@ -26,6 +26,7 @@ function getDefaultState() {
         color: '#000033', // Changed default background color to dark blue for testing
         overlayOpacity: 0.2, // Changed default overlay opacity for testing
         zoomEnabled: true,
+        peapixCountry: 'us', // Added default country for Peapix
       },
       // Removed global effects settings
       // effects: {
@@ -200,7 +201,8 @@ async function initApp() {
     const controlPanel = new ControlPanel(
         { id: 'controls-panel' },
         elementManager, // Pass the ElementManager instance
-        configManager // Pass the ConfigManager instance
+        configManager, // Pass the ConfigManager instance
+        backgroundService // Pass the BackgroundService instance
     );
     await controlPanel.init(); // Initialize the control panel
 

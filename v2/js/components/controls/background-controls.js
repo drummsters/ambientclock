@@ -1,6 +1,8 @@
 import { StateManager } from '../../core/state-manager.js';
 import { EventBus } from '../../core/event-bus.js';
-import { ConfigManager } from '../../core/config-manager.js'; // Import ConfigManager
+import { BackgroundService } from '../../services/background-service.js'; // Import BackgroundService
+// ConfigManager might still be needed for other things, keep import for now
+import { ConfigManager } from '../../core/config-manager.js';
 
 /**
  * Manages the UI controls for background settings within the control panel.
@@ -10,20 +12,30 @@ export class BackgroundControls {
    * Creates a BackgroundControls instance.
    * @param {HTMLElement} parentContainer - The DOM element to append the controls to.
    * @param {ConfigManager} configManager - The application's ConfigManager instance.
+   * @param {BackgroundService} backgroundService - The application's BackgroundService instance.
    */
-  constructor(parentContainer, configManager) { // Add configManager parameter
+  constructor(parentContainer, configManager, backgroundService) { // Added backgroundService
     if (!parentContainer) {
       throw new Error('BackgroundControls requires a parent container element.');
     }
-     if (!configManager) { // Add check for configManager
+    if (!configManager) {
       throw new Error('BackgroundControls requires a ConfigManager instance.');
     }
+    if (!backgroundService) { // Added check for backgroundService
+      throw new Error('BackgroundControls requires a BackgroundService instance.');
+    }
     this.parentContainer = parentContainer;
-    this.configManager = configManager; // Store reference
+    this.configManager = configManager; // Keep for potential future use
+    this.backgroundService = backgroundService; // Store reference
     this.container = null; // The main container for these controls
     this.elements = {}; // To store references to input elements
     this.statePath = 'settings.background'; // Path to background settings in state
     this.unsubscribers = []; // To store event bus unsubscribe functions
+    this.peapixCountries = { // Define country codes and names
+        au: 'Australia', br: 'Brazil', ca: 'Canada', cn: 'China', de: 'Germany',
+        fr: 'France', in: 'India', it: 'Italy', jp: 'Japan', es: 'Spain',
+        gb: 'United Kingdom', us: 'United States'
+    };
 
     console.log('BackgroundControls constructor called.');
   }
@@ -112,51 +124,56 @@ export class BackgroundControls {
     const sourceGroup = this.createControlGroup('Source:');
     this.elements.sourceSelect = document.createElement('select');
     this.elements.sourceSelect.id = 'background-source-select';
-    
-    // Dynamically populate based on configured API keys
+
+    // Dynamically populate based on registered providers in BackgroundService
     this.elements.sourceSelect.innerHTML = ''; // Clear existing options
-    const availableSources = [];
-    
-    // Check if services are configured using the correct method
-    if (this.configManager.isServiceConfigured('unsplash')) { 
-        const option = document.createElement('option');
-        option.value = 'unsplash';
-        option.textContent = 'Unsplash';
-        this.elements.sourceSelect.appendChild(option);
-        availableSources.push('unsplash');
-    }
-    // Check if services are configured using the correct method
-    if (this.configManager.isServiceConfigured('pexels')) { 
-        const option = document.createElement('option');
-        option.value = 'pexels';
-        option.textContent = 'Pexels';
-        this.elements.sourceSelect.appendChild(option);
-        availableSources.push('pexels');
-    }
-    
-    // If no image sources are available, maybe hide the image option?
-    // For now, just disable the select if empty.
-    if (availableSources.length === 0) {
-        this.elements.sourceSelect.disabled = true;
-        const option = document.createElement('option');
-        option.textContent = 'No API Keys Configured';
-        this.elements.sourceSelect.appendChild(option);
-        // Also potentially disable the 'Image' radio button
+    const availableProviders = this.backgroundService.imageProviders; // Get the map
+
+    if (availableProviders.size > 0) {
+        availableProviders.forEach((providerInstance, providerName) => {
+            const option = document.createElement('option');
+            option.value = providerName;
+            // Capitalize the first letter for display
+            option.textContent = providerName.charAt(0).toUpperCase() + providerName.slice(1);
+            this.elements.sourceSelect.appendChild(option);
+        });
+        this.elements.sourceSelect.disabled = false;
         if (this.elements.typeImageRadio) {
-            this.elements.typeImageRadio.disabled = true;
+            this.elements.typeImageRadio.disabled = false;
         }
     } else {
-         this.elements.sourceSelect.disabled = false;
-         if (this.elements.typeImageRadio) {
-            this.elements.typeImageRadio.disabled = false;
+        // If no image providers are registered, disable the select and image option
+        this.elements.sourceSelect.disabled = true;
+        const option = document.createElement('option');
+        option.textContent = 'No Image Providers Available';
+        this.elements.sourceSelect.appendChild(option);
+        // Also disable the 'Image' radio button
+        if (this.elements.typeImageRadio) {
+            this.elements.typeImageRadio.disabled = true;
         }
     }
 
     sourceGroup.appendChild(this.elements.sourceSelect);
     this.elements.imageSettingsContainer.appendChild(sourceGroup);
 
+    // --- Peapix Country Select (Initially hidden) ---
+    this.elements.peapixCountryGroup = this.createControlGroup('Country:');
+    this.elements.peapixCountrySelect = document.createElement('select');
+    this.elements.peapixCountrySelect.id = 'background-peapix-country-select';
+    Object.entries(this.peapixCountries).forEach(([code, name]) => {
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = name;
+        this.elements.peapixCountrySelect.appendChild(option);
+    });
+    this.elements.peapixCountryGroup.appendChild(this.elements.peapixCountrySelect);
+    this.elements.peapixCountryGroup.style.display = 'none'; // Hide initially
+    this.elements.imageSettingsContainer.appendChild(this.elements.peapixCountryGroup);
+
+
     // --- Image Category Select ---
-    const categorySelectGroup = this.createControlGroup('Category:');
+    // Note: Category doesn't apply to Peapix, should be hidden when Peapix is selected
+    this.elements.categorySelectGroup = this.createControlGroup('Category:'); // Store group reference
     this.elements.categorySelect = document.createElement('select');
     this.elements.categorySelect.id = 'background-category-select';
     // Predefined categories + Other
@@ -167,10 +184,11 @@ export class BackgroundControls {
         option.textContent = cat;
         this.elements.categorySelect.appendChild(option);
     });
-    categorySelectGroup.appendChild(this.elements.categorySelect);
-    this.elements.imageSettingsContainer.appendChild(categorySelectGroup);
+    this.elements.categorySelectGroup.appendChild(this.elements.categorySelect); // Use group reference
+    this.elements.imageSettingsContainer.appendChild(this.elements.categorySelectGroup); // Use group reference
 
     // --- Custom Category Input (Initially hidden) ---
+    // Note: Also doesn't apply to Peapix
     this.elements.customCategoryGroup = this.createControlGroup('Custom:');
     this.elements.customCategoryInput = document.createElement('input');
     this.elements.customCategoryInput.type = 'text';
@@ -294,10 +312,10 @@ export class BackgroundControls {
     }
 
     // Update Image Source Select, ensuring the selected value is available
+    const currentSource = state.source || 'unsplash'; // Default source attempt
     if (this.elements.sourceSelect && !this.elements.sourceSelect.disabled) {
-        const currentSource = state.source || 'unsplash'; // Default source attempt
         const sourceExists = Array.from(this.elements.sourceSelect.options).some(opt => opt.value === currentSource);
-        
+
         if (sourceExists) {
             this.elements.sourceSelect.value = currentSource;
         } else if (this.elements.sourceSelect.options.length > 0) {
@@ -308,21 +326,36 @@ export class BackgroundControls {
         }
     }
 
-    // Update Image Category Select
-    const currentCategory = state.category || 'Nature';
-    if (this.elements.categorySelect) {
-        this.elements.categorySelect.value = currentCategory;
+    // Show/Hide Peapix Country Select based on source
+    const showPeapixControls = currentSource === 'peapix';
+    if (this.elements.peapixCountryGroup) {
+        this.elements.peapixCountryGroup.style.display = showPeapixControls ? 'flex' : 'none';
+    }
+    // Update Peapix Country Select value
+    if (this.elements.peapixCountrySelect && showPeapixControls) {
+        this.elements.peapixCountrySelect.value = state.peapixCountry || 'us'; // Default 'us'
     }
 
-    // Update Custom Category Input
-    if (this.elements.customCategoryInput) {
+    // Show/Hide Category controls based on source (hide for Peapix)
+    const showCategoryControls = currentSource !== 'peapix';
+    if (this.elements.categorySelectGroup) {
+        this.elements.categorySelectGroup.style.display = showCategoryControls ? 'flex' : 'none';
+    }
+    if (this.elements.customCategoryGroup) {
+        // Custom group visibility depends on both category being 'Other' AND category controls being visible
+        this.elements.customCategoryGroup.style.display = (showCategoryControls && state.category === 'Other') ? 'flex' : 'none';
+    }
+
+    // Update Image Category Select (only if visible)
+    if (this.elements.categorySelect && showCategoryControls) {
+        this.elements.categorySelect.value = state.category || 'Nature';
+    }
+
+    // Update Custom Category Input (only if visible)
+    if (this.elements.customCategoryInput && this.elements.customCategoryGroup?.style.display !== 'none') {
         this.elements.customCategoryInput.value = state.customCategory || '';
     }
 
-    // Show/Hide Custom Category Input Group
-    if (this.elements.customCategoryGroup) {
-        this.elements.customCategoryGroup.style.display = (currentCategory === 'Other') ? 'flex' : 'none';
-    }
 
     // Update Opacity Slider (Common)
     if (this.elements.opacitySlider) {
@@ -369,9 +402,20 @@ export class BackgroundControls {
     // Image Source Change
     if (this.elements.sourceSelect) {
         this.elements.sourceSelect.addEventListener('change', (event) => {
-            this.dispatchStateUpdate({ source: event.target.value });
+            const newSource = event.target.value;
+            this.dispatchStateUpdate({ source: newSource });
+            // Immediately update UI visibility based on the new source
+            this.updateUIFromState({ ...StateManager.getNestedValue(StateManager.getState(), this.statePath), source: newSource });
         });
     }
+
+    // Peapix Country Select Change
+    if (this.elements.peapixCountrySelect) {
+        this.elements.peapixCountrySelect.addEventListener('change', (event) => {
+            this.dispatchStateUpdate({ peapixCountry: event.target.value });
+        });
+    }
+
 
     // Image Category Select Change
     if (this.elements.categorySelect) {

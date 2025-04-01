@@ -20,7 +20,8 @@ const defaultState = {
         backgroundColor: DEFAULT_BACKGROUND_COLOR,
         overlayOpacity: DEFAULT_OVERLAY_OPACITY,
         backgroundImageUrl: null, // Store the current background image URL for caching
-        imageSource: DEFAULT_IMAGE_SOURCE, // 'unsplash' or 'pexels'
+        imageSource: DEFAULT_IMAGE_SOURCE, // 'unsplash', 'pexels', or 'peapix'
+        peapixCountry: 'us', // Default country for Peapix
     },
     
     // Global settings
