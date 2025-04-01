@@ -56,12 +56,20 @@ export class DonateElement extends BaseUIElement {
         const targetContainer = document.getElementById('elements-container') || document.body;
         targetContainer.appendChild(this.container);
 
+        // Get donation links before building the DOM
+        const donationLinks = this.configManager.getFullConfig().donationLinks || {};
+        console.log(`[DonateElement ${this.id}] Donation links from configManager:`, donationLinks);
+        
         // Build the donation element DOM structure
         this.buildDOM();
 
-        // If no valid donation links, log it but continue initialization as inactive
+        // Check if the DOM was built successfully
         if (!this.mainButton) {
-            console.log(`[DonateElement ${this.id}] No valid donation links configured. Element will be inactive.`);
+            console.error(`[DonateElement ${this.id}] No valid donation links configured. Element will be inactive.`);
+            // For debugging - add visual indicator even if no links
+            this.container.innerHTML = `<div style="color: red; background: rgba(0,0,0,0.5); padding: 8px; border-radius: 4px;">[Debug] Donate Element: No valid links</div>`;
+            this.container.style.opacity = '1';
+            this.container.style.pointerEvents = 'auto';
             return true; // Return success but element will be inactive
         }
         
@@ -88,7 +96,20 @@ export class DonateElement extends BaseUIElement {
     }
 
     buildDOM() {
-        const links = this.configManager.getFullConfig().donationLinks || {};
+        // Get links from config with direct fallback for PayPal
+        let links = this.configManager.getFullConfig().donationLinks || {};
+        
+        // Ensure we have at least PayPal as a fallback
+        if (!links.paypal) {
+            console.log('[DonateElement] No PayPal link in config, using direct fallback');
+            links = {
+                ...links,
+                paypal: 'drummster' // Direct fallback for development
+            };
+        }
+        
+        console.log('[DonateElement] Links after fallback:', links);
+        
         const availablePlatforms = [
             { key: 'paypal', name: 'PayPal', icon: 'paypal.svg', urlPrefix: 'https://www.paypal.com/paypalme/' },
             { key: 'venmo', name: 'Venmo', icon: 'venmo.svg', urlPrefix: 'https://venmo.com/' },
@@ -111,7 +132,7 @@ export class DonateElement extends BaseUIElement {
                     <div class="payment-option">
                         <a href="${url}" target="_blank" rel="noopener noreferrer">
                             <span class="payment-icon">
-                                <img src="assets/icons/${platform.icon}" alt="${platform.name}" width="24" height="24">
+                                <img src="/assets/icons/${platform.icon}" alt="${platform.name}" width="24" height="24">
                             </span>
                             <span class="payment-name">${platform.name}</span>
                         </a>

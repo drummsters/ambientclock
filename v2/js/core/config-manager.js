@@ -8,6 +8,12 @@ import { EventBus } from './event-bus.js';
  */
 export class ConfigManager {
   constructor() {
+    // Add debug log for environment variables
+    console.log('[ConfigManager] Raw env check:', {
+      importMetaEnv: typeof import.meta !== 'undefined' ? 'exists' : 'undefined',
+      vitePaypal: typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_DONATE_PAYPAL : 'not found'
+    });
+    
     this.config = {
       deployment: {
         platform: 'local', // 'local', 'vercel', 'netlify', 'github-pages', etc.
@@ -41,7 +47,8 @@ export class ConfigManager {
     // Attempt to read build-time environment variables (Vite example)
     // These will be undefined if not set or if using a different build tool
     try {
-        this.config.donationLinks.paypal = import.meta.env.VITE_DONATE_PAYPAL || this.config.donationLinks.paypal;
+        // Try to get environment variables, but fallback to hardcoded value for testing
+        this.config.donationLinks.paypal = import.meta.env.VITE_DONATE_PAYPAL || 'drummster';
         this.config.donationLinks.venmo = import.meta.env.VITE_DONATE_VENMO || this.config.donationLinks.venmo;
         this.config.donationLinks.cashapp = import.meta.env.VITE_DONATE_CASHAPP || this.config.donationLinks.cashapp;
         this.config.donationLinks.googlepay = import.meta.env.VITE_DONATE_GOOGLEPAY || this.config.donationLinks.googlepay;
