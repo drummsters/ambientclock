@@ -39,7 +39,7 @@ export class ControlPanel extends BaseUIElement {
     this.elementControls = new Map(); // Stores controls for individual elements
     this.visibilityManager = null; // Add property for VisibilityManager
     this.CONTROLS_HIDE_DELAY = 3000; // V1 default was 3000ms
-    this.triggerElement = null; // Add property for hover trigger
+    // this.triggerElement = null; // Removed hover trigger property
     this.subscriptions = []; // Add array for EventBus subscriptions
     console.log(`ControlPanel constructor called with ID: ${this.id}`);
     // The main container is expected to exist in the HTML already
@@ -59,28 +59,25 @@ export class ControlPanel extends BaseUIElement {
       return false; // Stop if base initialization failed or container missing
     }
 
-    // Find the trigger element
-    this.triggerElement = document.getElementById('controls-trigger'); // Assumes ID exists in HTML
-    if (!this.triggerElement) {
-        console.warn(`[ControlPanel ${this.id}] Hover trigger element #controls-trigger not found.`);
-        // Proceed without hover trigger? Or fail? For now, proceed.
-    }
+    // Removed finding the trigger element
 
-    // Instantiate VisibilityManager for the panel, passing StateManager
-    this.visibilityManager = new VisibilityManager(this.container, StateManager, this.CONTROLS_HIDE_DELAY);
-    console.log(`[ControlPanel ${this.id}] VisibilityManager initialized.`);
-
-    // Initial setup: Show controls briefly, then start hide timer
-    // VisibilityManager constructor now handles initial state based on StateManager
-    // this.visibilityManager.show(); // No longer needed here
-    setTimeout(() => {
-        // Only start hide timer if it's currently visible (based on initial state)
-        if (this.visibilityManager?.isElementVisible()) {
-            this.visibilityManager?.startHideTimer();
+    // Instantiate VisibilityManager for the panel, passing StateManager and its own ID
+    // Note: ControlPanel manages its own visibility separately from the hint/donate elements
+    this.visibilityManager = new VisibilityManager(
+        StateManager, // Pass the global StateManager
+        [this.id],     // Manage only the panel's container element
+        {
+            mouseIdleHideDelay: this.CONTROLS_HIDE_DELAY, // Pass existing delay
+            showOnActivityWhenClosed: false // <<< Set to false for the panel
         }
-    }, 2000); // Show for 2 seconds initially
+    );
+    // The VisibilityManager's init method will handle listeners and initial state check
+    this.visibilityManager.init(); // Initialize the manager for the panel
+    console.log(`[ControlPanel ${this.id}] VisibilityManager initialized for the panel itself.`);
 
-    console.log(`[ControlPanel ${this.id}] Base init complete. Checking for existing elements...`);
+    // Removed old initial show/hide logic, now handled by VisibilityManager.init()
+    // Initial setup: Show controls briefly, then start hide timer
+    // console.log(`[ControlPanel ${this.id}] Base init complete. Checking for existing elements...`); // Log moved or redundant
 
     // Now, check for elements that might have been created before this panel initialized
     const existingElements = this.elementManager.getAllElementInstances();
@@ -270,17 +267,7 @@ export class ControlPanel extends BaseUIElement {
     // Reset button listener
     this.elements.resetButton?.addEventListener('click', this.handleResetClick.bind(this));
 
-    // Add hover listener for the trigger element (if found)
-    if (this.triggerElement) {
-        this.triggerElement.addEventListener('mouseenter', () => {
-            this.visibilityManager?.show();
-            this.visibilityManager?.clearHideTimer(); // Keep open while hovering trigger
-        });
-        // Add mouseleave for trigger to start the hide timer when leaving the trigger area
-        this.triggerElement.addEventListener('mouseleave', () => {
-            this.visibilityManager?.startHideTimer();
-        });
-    }
+    // Removed hover listener setup for the trigger element
   }
 
   /**
@@ -367,10 +354,24 @@ export class ControlPanel extends BaseUIElement {
   }
 
   /**
-   * Toggles the visibility of the control panel using its VisibilityManager.
+   * Toggles the visibility state of the control panel in the StateManager.
+   * The VisibilityManager instance will react to the state change.
    */
   toggleVisibility() {
-    this.visibilityManager?.toggle();
+    console.log(`[ControlPanel ${this.id}] toggleVisibility called.`); // Log entry
+    const currentState = StateManager.getState().settings?.controls?.isOpen || false;
+    const newState = !currentState;
+    console.log(`[ControlPanel ${this.id}] Current state: ${currentState}, New state: ${newState}`); // Log states
+    console.log(`[ControlPanel ${this.id}] Updating StateManager...`); // Log before update
+    StateManager.update({
+        settings: {
+            controls: {
+                isOpen: newState // Use newState variable
+            }
+        }
+    });
+    console.log(`[ControlPanel ${this.id}] StateManager update called.`); // Log after update
+    // No need to call visibilityManager.toggle() directly anymore.
   }
 
   /** // Keep the comment block for the correct destroy

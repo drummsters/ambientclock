@@ -2,7 +2,7 @@ import { BaseUIElement } from '../base/base-ui-element.js';
 import { StateManager } from '../../core/state-manager.js';
 import { EventBus } from '../../core/event-bus.js';
 import { ConfigManager } from '../../core/config-manager.js';
-// Removed: import { VisibilityManager } from '../../utils/visibility-manager.js';
+// No need for EventBus or StateManager directly if visibility is externalized
 
 /**
  * @class DonateElement
@@ -10,37 +10,23 @@ import { ConfigManager } from '../../core/config-manager.js';
  * @extends BaseUIElement
  */
 export class DonateElement extends BaseUIElement {
-    constructor({ id, type, options, configManager, stateManager }) {
+    constructor({ id, type, options, configManager }) { // Removed stateManager
         super({ id, type, options });
 
-        // Following the architectural principle: Services and State must be dependency-injected
+        // Following the architectural principle: Services must be dependency-injected
         if (!configManager) {
             throw new Error('DonateElement requires a ConfigManager instance');
-        }
-        if (!stateManager) {
-            throw new Error('DonateElement requires a StateManager instance');
         }
         
         // Store dependencies
         this.configManager = configManager;
-        this.stateManager = stateManager;
         
         // Element state properties
         this.dropdown = null;
         this.mainButton = null;
-        this.isHovering = false;
-        this.activityListeners = [];
-        this.unsubscribeControlsVisibility = null;
-
-        // Internal visibility state and timers (like ControlsHintElement)
-        this.isVisible = false;
-        this.hideTimeout = null; // Timer for fade-out completion
-        this.mouseIdleTimer = null; // Timer for hiding after mouse idle
-        this.mouseMoveTimer = null; // Timer for showing after mouse move
-        this.initialShowDelay = 2000; // V1: Show 2 seconds after load? (Donate was slightly different)
-        this.mouseIdleHideDelay = 3000; // V1: Hide 3 seconds after mouse stops
-        this.mouseMoveShowDelay = 200; // V1: Show 0.2 seconds after mouse moves (Let's use this)
-        this.fadeOutDuration = 500; // Match CSS transition duration
+        this.activityListeners = []; // Re-initialize for dropdown listeners
+        // Removed visibility-related properties: isHovering, unsubscribeControlsVisibility
+        // Removed internal visibility state and timers
     }
 
     /**
@@ -73,24 +59,10 @@ export class DonateElement extends BaseUIElement {
             return true; // Return success but element will be inactive
         }
         
-        // Set up event listeners
+        // Set up basic event listeners (hover for dropdown)
         this.setupEventListeners();
         
-        // Following the Event-Driven Messaging pattern:
-        // Subscribe to control panel visibility changes
-        this.unsubscribeControlsVisibility = this.stateManager.subscribe(
-            'settings.controls.isOpen',
-            this.handleControlsVisibilityChange.bind(this)
-        );
-        
-        // Initial display based on controls state
-        setTimeout(() => {
-            const controlsOpen = this.stateManager.getState().settings.controls.isOpen;
-            this.showDonate(); // Always show initially
-            if (!controlsOpen) {
-                this.resetIdleTimer(); // Start hide timer only if controls closed
-            }
-        }, this.initialShowDelay);
+        // Removed state subscription and initial visibility logic
 
         return true; // Signal successful initialization
     }
@@ -168,178 +140,54 @@ export class DonateElement extends BaseUIElement {
             this.activityListeners.push({ target, type, handler: boundHandler });
         };
 
+        // Only need listeners for dropdown hover effect
         addListener(this.container, 'mouseenter', this.handleMouseEnter);
         addListener(this.container, 'mouseleave', this.handleMouseLeave);
 
+        // Keep dropdown links hoverable
         this.dropdown.querySelectorAll('.payment-option a').forEach(link => {
-            addListener(link, 'mouseenter', this.handleMouseEnter); // Treat link hover same as container hover
+            addListener(link, 'mouseenter', this.handleMouseEnter);
         });
-
-        addListener(document, 'mousemove', this.handleActivity); // Listen on document
-        addListener(document, 'click', this.handleActivity);
-        addListener(window, 'blur', this.handleBlur);
+        
+        // Removed document/window listeners for activity/blur/state changes
     }
 
-    // --- Visibility Methods (Following Centralized State Control principle) ---
-    
-    showDonate() {
-        // Don't proceed if container is missing or already visible
-        if (!this.container || this.isVisible) return;
-        
-        console.log(`[DonateElement ${this.id}] Showing donate element`);
-        
-        // Apply visibility with both class and direct style properties for production
-        clearTimeout(this.hideTimeout);
-        clearTimeout(this.mouseMoveTimer);
-        this.container.classList.add('visible');
-        
-        // Force visibility with inline styles as fallback
-        this.container.style.opacity = '1';
-        this.container.style.visibility = 'visible';
-        this.container.style.pointerEvents = 'auto';
-        
-        this.isVisible = true;
-    }
-    
-    hideDonate() {
-        if (!this.isVisible || !this.container) return;
-        
-        console.log(`[DonateElement ${this.id}] Hiding donate element`);
-        
-        // Clear all visibility-related timers
-        clearTimeout(this.hideTimeout);
-        clearTimeout(this.mouseMoveTimer);
-        clearTimeout(this.mouseIdleTimer);
-        
-        // Remove visible class and set inline styles to ensure hiding
-        this.container.classList.remove('visible');
-        
-        // Force invisibility with inline styles as fallback
-        this.container.style.opacity = '0';
-        this.container.style.visibility = 'hidden';
-        this.container.style.pointerEvents = 'none';
-        
-        this.isVisible = false;
-    }
-    
-    hideDonateImmediately() {
-        if (!this.container) return;
-        
-        console.log(`[DonateElement ${this.id}] Hiding donate element immediately`);
-        
-        // Clear all timers and hide immediately
-        clearTimeout(this.hideTimeout);
-        clearTimeout(this.mouseMoveTimer);
-        clearTimeout(this.mouseIdleTimer);
-        
-        // Remove visible class and set inline styles to ensure hiding
-        this.container.classList.remove('visible');
-        
-        // Force invisibility with inline styles as fallback
-        this.container.style.opacity = '0';
-        this.container.style.visibility = 'hidden';
-        this.container.style.pointerEvents = 'none';
-        
-        this.isVisible = false;
-    }
-
-    resetIdleTimer() {
-        // Reset the timer that calls hideDonate
-        clearTimeout(this.mouseIdleTimer);
-        this.mouseIdleTimer = setTimeout(this.hideDonate.bind(this), this.mouseIdleHideDelay);
-    }
-
-    // --- Event Handlers ---
-    
-    // Track last movement time to throttle processing
-    lastMoveTime = 0;
-    moveThrottleMs = 100; // Only process mouse movements every 100ms
+    // --- Event Handlers (Simplified for Dropdown) ---
 
     handleMouseEnter() {
-        this.isHovering = true;
-        this.showDonate(); // Show immediately on hover
-        clearTimeout(this.mouseIdleTimer); // Clear hide timer
-        clearTimeout(this.mouseMoveTimer); // Clear any pending show timer
+        // This might still be useful for showing the dropdown on hover,
+        // but the element's overall visibility is handled externally.
+        // We can keep the hover effect for the dropdown itself.
+        if (this.dropdown) {
+            this.dropdown.style.opacity = '1';
+            this.dropdown.style.visibility = 'visible';
+            this.dropdown.style.pointerEvents = 'auto';
+        }
     }
 
     handleMouseLeave() {
-        this.isHovering = false;
-        // Only start hide timer if controls are closed
-        if (!this.stateManager.getState().settings.controls.isOpen) {
-            this.resetIdleTimer(); // Start timer to hide it
+        // Hide dropdown on mouse leave
+        if (this.dropdown) {
+            this.dropdown.style.opacity = '0';
+            this.dropdown.style.visibility = 'hidden';
+            this.dropdown.style.pointerEvents = 'none';
         }
     }
 
-    handleBlur() {
-        // Hide immediately when window loses focus
-        this.hideDonateImmediately();
-    }
-
-    handleActivity() {
-        // Throttle mouse move handler to reduce processing
-        const now = Date.now();
-        if (now - this.lastMoveTime < this.moveThrottleMs) {
-            return; // Skip this movement, too soon after the last one
-        }
-        this.lastMoveTime = now;
-        
-        // Check current control panel state from StateManager
-        const controlsOpen = this.stateManager.getState().settings.controls.isOpen;
-        
-        if (controlsOpen) {
-            // When controls are open, show donate without auto-hide
-            this.showDonate();
-            clearTimeout(this.mouseIdleTimer);
-            return;
-        }
-        
-        // When controls are closed:
-        if (!this.isVisible) {
-            // If not visible, schedule showing after delay
-            clearTimeout(this.mouseMoveTimer);
-            this.mouseMoveTimer = setTimeout(() => {
-                this.showDonate();
-                this.resetIdleTimer(); // Start auto-hide timer
-            }, this.mouseMoveShowDelay);
-        } else {
-            // If already visible, reset auto-hide timer
-            this.resetIdleTimer();
-        }
-    }
-    
-    handleControlsVisibilityChange(controlsOpen) {
-        if (controlsOpen) {
-            // Controls opened - show element without auto-hide
-            this.showDonate();
-            clearTimeout(this.mouseIdleTimer);
-        } else {
-            // Controls closed - start auto-hide if not being hovered
-            if (!this.isHovering) {
-                this.resetIdleTimer();
-            }
-        }
-    }
-
-    _onStateUpdate(changedPaths) {
-        // Handled by direct subscription to settings.controls.isOpen
-    }
+    // Removed all visibility methods: showDonate, hideDonate, hideDonateImmediately, resetIdleTimer
+    // Removed activity handlers: handleBlur, handleActivity, handleControlsVisibilityChange
+    // Removed _onStateUpdate
 
     destroy() {
         console.log(`[DonateElement ${this.id}] Destroying...`);
-        clearTimeout(this.hideTimeout);
-        clearTimeout(this.mouseIdleTimer);
-        clearTimeout(this.mouseMoveTimer);
-
+        
+        // Remove only the listeners we added
         this.activityListeners.forEach(({ target, type, handler }) => {
             target.removeEventListener(type, handler);
         });
-        this.activityListeners = [];
+        this.activityListeners = []; // Clear the stored listeners
 
-        // Call the stored unsubscribe function if it exists
-        if (typeof this.unsubscribeControlsVisibility === 'function') {
-            this.unsubscribeControlsVisibility();
-        }
-        this.unsubscribeControlsVisibility = null; // Ensure it's cleared
+        // Removed timer clearing and state unsubscription
 
         if (this.container && this.container.parentNode) {
             this.container.parentNode.removeChild(this.container);

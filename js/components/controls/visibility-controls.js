@@ -6,6 +6,7 @@
 import { getElement, addEvent } from '../../utils/dom.js';
 import { CONTROLS_HIDE_DELAY } from '../../config.js';
 import { VisibilityManager } from '../../utils/visibility.js';
+import { updateHintVisibilityBasedOnControls } from '../controls-hint.js'; // Import the hint update function
 
 // DOM elements
 let controls;
@@ -27,20 +28,30 @@ export function initVisibilityControls() {
         return;
     }
     
-    // Initialize visibility manager
-    controlsVisibility = new VisibilityManager(controls, CONTROLS_HIDE_DELAY);
+    // Initialize visibility manager with callbacks to update hint visibility
+    controlsVisibility = new VisibilityManager(
+        controls, 
+        CONTROLS_HIDE_DELAY,
+        () => { // onShow callback
+            updateHintVisibilityBasedOnControls(true); // Controls are now visible
+        },
+        () => { // onHide callback
+            updateHintVisibilityBasedOnControls(false); // Controls are now hidden
+        }
+    );
     
     // Set up event listeners
     setupEventListeners();
     
     // Show controls initially, then start auto-hide timer
-    showControls();
+    showControls(); // This will trigger the onShow callback -> updateHintVisibilityBasedOnControls(true)
     
     // Start the auto-hide timer after a short delay to allow the page to load
     // Don't force hide if mouse is over the controls
     setTimeout(() => {
         if (controlsVisibility) {
-            controlsVisibility.startHideTimer(false);
+            // Only start timer if not hovering (standard VisibilityManager behavior)
+            controlsVisibility.startHideTimer(false); 
         }
     }, 2000); // 2 seconds delay
 }
@@ -54,10 +65,21 @@ function setupEventListeners() {
         addEvent(controlsTrigger, 'mouseenter', showControls);
     }
     
-    // Controls panel mouse enter/leave
+    // Controls panel mouse enter/leave (handled internally by VisibilityManager now)
+    // We keep the specific logic for closing dropdowns on mouse leave
     if (controls) {
-        addEvent(controls, 'mouseenter', handleControlsMouseEnter);
-        addEvent(controls, 'mouseleave', handleControlsMouseLeave);
+        // Let VisibilityManager handle hover state via its internal listeners
+        // addEvent(controls, 'mouseenter', handleControlsMouseEnter); // Now handled by VM
+        // addEvent(controls, 'mouseleave', handleControlsMouseLeave); // Now handled by VM
+
+        // Add specific logic needed on mouse leave besides VM's timer reset
+         addEvent(controls, 'mouseleave', (event) => {
+            // Close any open select dropdowns immediately when mouse leaves
+            const selectElements = controls.querySelectorAll('select');
+            selectElements.forEach(select => select.blur());
+
+            // VM's internal mouseleave listener will handle starting the hide timer
+        });
     }
 }
 
@@ -66,7 +88,7 @@ function setupEventListeners() {
  */
 export function showControls() {
     if (controlsVisibility) {
-        controlsVisibility.show();
+        controlsVisibility.show(); // This triggers the onShow callback
     }
 }
 
@@ -76,7 +98,7 @@ export function showControls() {
  */
 export function hideControls(force = false) {
     if (controlsVisibility) {
-        controlsVisibility.hide(force);
+        controlsVisibility.hide(force); // This triggers the onHide callback
     }
 }
 
@@ -86,11 +108,8 @@ export function hideControls(force = false) {
 export function toggleControls() {
     if (!controlsVisibility) return;
     
-    if (controlsVisibility.isVisible) {
-        hideControls(true); // Force hide
-    } else {
-        showControls();
-    }
+    // toggle() method in VisibilityManager handles calling onShow/onHide
+    controlsVisibility.toggle(); 
 }
 
 /**
@@ -99,39 +118,20 @@ export function toggleControls() {
  */
 export function areControlsVisible() {
     if (controlsVisibility) {
-        return controlsVisibility.isVisible;
+        return controlsVisibility.isElementVisible(); // Use VM's method
     }
     return false;
 }
 
 /**
- * Handles mouse enter event on controls
+ * Handles mouse enter event on controls (Now handled by VisibilityManager)
  */
-function handleControlsMouseEnter() {
-    // Ensure controls stay visible while mouse is over them
-    if (controlsVisibility) {
-        controlsVisibility.handleMouseEnter();
-    }
-}
+// function handleControlsMouseEnter() { ... } // Removed as VM handles hover state
 
 /**
- * Handles mouse leave event on controls
- * @param {Event} event - The mouse leave event
+ * Handles mouse leave event on controls (Now partially handled by VisibilityManager)
  */
-function handleControlsMouseLeave(event) {
-    // Get all select elements in the controls
-    const selectElements = controls.querySelectorAll('select');
-    
-    // Close any open select dropdowns immediately when mouse leaves
-    selectElements.forEach(select => select.blur());
-    
-    // Start the auto-hide timer when mouse leaves, but don't force hide
-    // This allows the controls to remain visible if the mouse re-enters
-    if (controlsVisibility) {
-        controlsVisibility.isHovering = false;
-        controlsVisibility.startHideTimer(false);
-    }
-}
+// function handleControlsMouseLeave(event) { ... } // Removed as VM handles hover state and timer reset
 
 /**
  * Resets the auto-hide timer
@@ -139,6 +139,7 @@ function handleControlsMouseLeave(event) {
  */
 export function resetAutoHideTimer(force = false) {
     if (controlsVisibility) {
-        controlsVisibility.startHideTimer(force);
+        // Use forceHideAfterDelay parameter matching the original intent
+        controlsVisibility.startHideTimer(force); 
     }
 }

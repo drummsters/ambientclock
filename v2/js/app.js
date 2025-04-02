@@ -12,6 +12,7 @@ import { FavoritesPanelElement } from './components/elements/favorites-panel-ele
 import { BackgroundService } from './services/background-service.js';
 import { ControlPanel } from './components/controls/control-panel.js';
 import { BaseUIElement } from './components/base/base-ui-element.js'; // Import for scale constants
+import { VisibilityManager } from './utils/visibility-manager.js'; // Import VisibilityManager
 // Import other managers and services later as they are created
 // import { DeviceService } from './services/device-service.js';
 // import { migrateExistingState } from './utils/migration.js'; // Import later
@@ -236,7 +237,17 @@ async function initApp() {
     );
     await controlPanel.init(); // Initialize the control panel
 
-    // 8. Setup global wheel event handler for element resizing
+    // 8. Initialize Visibility Manager for Hint and Donate elements
+    console.log('[app.js] Initializing VisibilityManager...');
+    const visibilityManager = new VisibilityManager(
+        StateManager, // Pass the initialized StateManager
+        ['controls-hint-default', 'donate-default'], // IDs of elements to manage
+        // Optional configuration (using defaults for now)
+        // { initialShowDelay: 3000, mouseIdleHideDelay: 5000, mouseMoveShowDelay: 200 }
+    );
+    visibilityManager.init(); // Initialize the visibility manager
+
+    // 9. Setup global wheel event handler for element resizing
     setupWheelResizeHandler();
 
     console.log('Ambient Clock v2 core initialization sequence complete.');
