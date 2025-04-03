@@ -34,6 +34,7 @@ export class ClockElement extends BaseUIElement {
         showSeconds: true,
         fontFamily: 'Segoe UI',
         color: '#FFFFFF',
+        showSeparator: false, // Default for separator line
         // Add other clock-specific defaults here
       },
       ...config // User-provided config overrides defaults
@@ -82,54 +83,70 @@ export class ClockElement extends BaseUIElement {
     // Create analog clock container (matching v1 structure)
     this.elements.analogFace = document.createElement('div');
     this.elements.analogFace.className = 'analog-face';
-    
+
     // Create clock hands
     this.elements.hourHand = document.createElement('div');
     this.elements.hourHand.className = 'hand hour-hand';
     this.elements.hourHand.id = 'analog-hour';
     this.elements.analogFace.appendChild(this.elements.hourHand);
-    
+
     this.elements.minuteHand = document.createElement('div');
     this.elements.minuteHand.className = 'hand minute-hand';
     this.elements.minuteHand.id = 'analog-minute';
     this.elements.analogFace.appendChild(this.elements.minuteHand);
-    
+
     this.elements.secondHand = document.createElement('div');
     this.elements.secondHand.className = 'hand second-hand';
     this.elements.secondHand.id = 'analog-second';
     this.elements.analogFace.appendChild(this.elements.secondHand);
-    
+
     // Create center dot
     const centerDot = document.createElement('div');
     centerDot.className = 'center-dot';
     this.elements.analogFace.appendChild(centerDot);
-    
+
     // Create hour markers (12, 3, 6, 9)
     const marker12 = document.createElement('div');
     marker12.className = 'marker marker-12';
     this.elements.analogFace.appendChild(marker12);
-    
+
     const marker3 = document.createElement('div');
     marker3.className = 'marker marker-3';
     this.elements.analogFace.appendChild(marker3);
-    
+
     const marker6 = document.createElement('div');
     marker6.className = 'marker marker-6';
     this.elements.analogFace.appendChild(marker6);
-    
+
     const marker9 = document.createElement('div');
     marker9.className = 'marker marker-9';
     this.elements.analogFace.appendChild(marker9);
 
+    // Add relative positioning and padding for separator
+    this.elements.analogFace.style.position = 'relative';
+    this.elements.analogFace.style.paddingBottom = '5px'; // Reduce padding for separator
+
     // Append digital/clean elements (will be hidden/shown via CSS)
     this.elements.digitalCleanContainer = document.createElement('div');
     this.elements.digitalCleanContainer.className = 'digital-clean-container';
+    // Add relative positioning and padding for separator
+    this.elements.digitalCleanContainer.style.position = 'relative';
+    this.elements.digitalCleanContainer.style.paddingBottom = '5px'; // Reduce padding for separator
     this.elements.digitalCleanContainer.appendChild(this.elements.hours);
     this.elements.digitalCleanContainer.appendChild(this.elements.separator1);
     this.elements.digitalCleanContainer.appendChild(this.elements.minutes);
     this.elements.digitalCleanContainer.appendChild(this.elements.separator2);
     this.elements.digitalCleanContainer.appendChild(this.elements.seconds);
     this.elements.digitalCleanContainer.appendChild(this.elements.ampm);
+
+    // Create the separator line element
+    this.elements.separatorLine = document.createElement('div');
+    this.elements.separatorLine.className = 'clock-separator-line'; // Use a specific class for clock
+
+    // Append separator line to BOTH potential parent containers
+    // CSS will hide the inactive container, so the separator in it will also be hidden.
+    this.elements.analogFace.appendChild(this.elements.separatorLine.cloneNode(true)); // Clone for analog
+    this.elements.digitalCleanContainer.appendChild(this.elements.separatorLine); // Original for digital/clean
 
     // Append both containers to the main face div
     this.elements.face.appendChild(this.elements.analogFace);
@@ -196,9 +213,23 @@ export class ClockElement extends BaseUIElement {
       this.elements.ampm.textContent = '';
       this.elements.ampm.style.display = 'none';
     }
-    this.applyCommonStyles(); // Apply font/color to digital/clean container
 
-    // Update Analog content
+    // --- Explicitly Show/Hide Face Containers ---
+    // We set display:none directly here instead of only relying on CSS attribute selectors ([data-face-type]).
+    // This ensures the inactive face is completely removed from the layout flow,
+    // preventing it from affecting getBoundingClientRect() calculations used by plugins like DragPlugin,
+    // which caused issues with drag boundaries.
+    if (this.options.face === 'analog') {
+        this.elements.analogFace.style.display = 'block'; // Or 'flex' if it uses flexbox internally
+        this.elements.digitalCleanContainer.style.display = 'none';
+        this.applyAnalogStyles(); // Apply color to analog elements
+    } else { // 'led' or 'clean'
+        this.elements.analogFace.style.display = 'none';
+        this.elements.digitalCleanContainer.style.display = 'flex'; // Assuming digital/clean uses flex
+        this.applyCommonStyles(); // Apply font/color to digital/clean container
+    }
+
+    // Update Analog content (only needs calculation if visible, but harmless to always calculate)
     const { hoursDeg, minutesDeg, secondsDeg } = calculateHandDegrees(hours, minutes, seconds);
     this.elements.hourHand.style.transform = `translateX(-50%) rotate(${hoursDeg}deg)`;
     this.elements.minuteHand.style.transform = `translateX(-50%) rotate(${minutesDeg}deg)`;
@@ -208,10 +239,18 @@ export class ClockElement extends BaseUIElement {
     } else {
       this.elements.secondHand.style.display = 'none';
     }
-    this.applyAnalogStyles(); // Apply color to analog elements
+    // this.applyAnalogStyles(); // Moved inside the conditional display block above
+
+    // --- Apply Separator Visibility ---
+    // Find the separator line within the currently VISIBLE container
+    const activeContainer = this.options.face === 'analog' ? this.elements.analogFace : this.elements.digitalCleanContainer;
+    const separatorLine = activeContainer.querySelector('.clock-separator-line');
+    if (separatorLine) {
+        separatorLine.style.display = this.options.showSeparator ? 'block' : 'none';
+    }
 
     // Make sure container is visible after first render with valid state
-    super.render(); // Call base render to handle visibility
+    super.render(); // Call base render to handle visibility, position, scale etc.
   }
 
   /**
@@ -223,7 +262,7 @@ export class ClockElement extends BaseUIElement {
     if (!this.elements.digitalCleanContainer.parentNode) {
       this.elements.face.appendChild(this.elements.digitalCleanContainer);
     }
-    
+
     if (!this.elements.analogFace.parentNode) {
       this.elements.face.appendChild(this.elements.analogFace);
     }
@@ -252,16 +291,16 @@ export class ClockElement extends BaseUIElement {
   applyAnalogStyles() {
       if (!this.elements.analogFace) return;
       const color = this.options.color || '#FFFFFF';
-      
+
       // Apply color to analog clock elements
       this.elements.analogFace.style.borderColor = color;
       this.elements.hourHand.style.backgroundColor = color;
       this.elements.minuteHand.style.backgroundColor = color;
-      
+
       // Center dot and markers
       const centerDot = this.elements.analogFace.querySelector('.center-dot');
       if (centerDot) centerDot.style.backgroundColor = color;
-      
+
       // Apply color to markers
       const markers = this.elements.analogFace.querySelectorAll('.marker');
       markers.forEach(marker => {
@@ -285,7 +324,8 @@ export class ClockElement extends BaseUIElement {
         oldOptions.showSeconds !== this.options.showSeconds ||
         oldOptions.fontFamily !== this.options.fontFamily ||
         oldOptions.fontWeight !== this.options.fontWeight || // Add fontWeight check
-        oldOptions.color !== this.options.color) {
+        oldOptions.color !== this.options.color ||
+        oldOptions.showSeparator !== this.options.showSeparator) { // Check separator option
       this.render(); // Re-render if display options changed
     }
   }

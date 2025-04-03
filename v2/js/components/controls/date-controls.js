@@ -124,6 +124,28 @@ export class DateControls {
     opacityGroup.appendChild(this.elements.opacityValue);
     this.container.appendChild(opacityGroup);
 
+    // 6. Separator Checkbox (New)
+    const separatorGroup = this.createControlGroup('Show Separator:');
+    this.elements.separatorCheckbox = document.createElement('input');
+    this.elements.separatorCheckbox.type = 'checkbox';
+    this.elements.separatorCheckbox.id = `${this.elementId}-separator-checkbox`;
+    separatorGroup.appendChild(this.elements.separatorCheckbox);
+    separatorGroup.querySelector('label').htmlFor = this.elements.separatorCheckbox.id;
+    this.container.appendChild(separatorGroup);
+
+    // --- Effect Style Select ---
+    const effectGroup = this.createControlGroup('Effect:');
+    this.elements.effectSelect = document.createElement('select');
+    this.elements.effectSelect.id = `${this.elementId}-effect-select`;
+    ['flat', 'raised', 'reflected'].forEach(style => {
+        const option = document.createElement('option');
+        option.value = style;
+        option.textContent = style.charAt(0).toUpperCase() + style.slice(1);
+        this.elements.effectSelect.appendChild(option);
+    });
+    effectGroup.appendChild(this.elements.effectSelect);
+    this.container.appendChild(effectGroup);
+
     console.log(`Date control elements for ${this.elementId} created.`);
   }
 
@@ -152,10 +174,10 @@ export class DateControls {
     const elementEventName = `state:${elementStatePath}:changed`;
     const elementSubscription = EventBus.subscribe(elementEventName, (elementState) => {
         console.log(`[DateControls ${this.elementId}] Event received: ${elementEventName}`, elementState);
-        // Update scale and opacity from the element state
+        // Update scale, opacity, and effect style from the element state
         this.updateUIScale(elementState?.scale);
-        this.updateUIOpacity(elementState?.opacity); // Add opacity update
-        // Effect style update removed
+        this.updateUIOpacity(elementState?.opacity);
+        this.updateUIEffectStyle(elementState?.effectStyle); // Add effect style update
     });
     this.unsubscribers.push(elementSubscription.unsubscribe);
 
@@ -186,7 +208,14 @@ export class DateControls {
         console.log(`[DateControls ${this.elementId}] No initial opacity state found.`);
         this.updateUIOpacity(1.0); // Apply opacity default
     }
-    // Effect style application removed
+    // Apply initial effect style
+    if (initialElementState?.effectStyle) {
+        console.log(`[DateControls ${this.elementId}] Applying initial effect style:`, initialElementState.effectStyle);
+        this.updateUIEffectStyle(initialElementState.effectStyle);
+    } else {
+        console.log(`[DateControls ${this.elementId}] No initial effect style found.`);
+        this.updateUIEffectStyle('flat'); // Default effect
+    }
   }
 
   /** Updates the UI elements based on the provided options state. */
@@ -196,10 +225,8 @@ export class DateControls {
 
      if (this.elements.visibleCheckbox) this.elements.visibleCheckbox.checked = optionsState.visible ?? true;
      if (this.elements.formatSelect) this.elements.formatSelect.value = optionsState.format || 'Day, Month DD';
-     // Font select update removed
-     // Bold checkbox update removed
-     // Separator checkbox update removed
      if (this.elements.colorPicker) this.elements.colorPicker.value = optionsState.color || '#FFFFFF';
+     if (this.elements.separatorCheckbox) this.elements.separatorCheckbox.checked = optionsState.showSeparator ?? false; // Update separator checkbox
 
      // Scale and Opacity are handled separately
   }
@@ -234,7 +261,17 @@ export class DateControls {
        }
     }
 
-   // updateUIEffectStyle method removed
+   /**
+    * Updates only the effect style select UI element.
+    * @param {string} style - The current effect style.
+    */
+   updateUIEffectStyle(style) {
+       const currentStyle = style || 'flat'; // Default if undefined
+       console.log(`[DateControls ${this.elementId}] Updating effect style UI to:`, currentStyle);
+       if (this.elements.effectSelect) {
+           this.elements.effectSelect.value = currentStyle;
+       }
+   }
 
   /** Adds event listeners to the UI elements. */
   addEventListeners() {
@@ -266,9 +303,13 @@ export class DateControls {
         this.dispatchElementStateUpdate({ opacity: newOpacity });
     });
 
-    // Effect Style Select listener removed
+    // Effect Style Select Change
+    this.elements.effectSelect?.addEventListener('change', (e) => {
+        this.dispatchElementStateUpdate({ effectStyle: e.target.value });
+    });
 
-    // Separator Checkbox listener removed
+    // Separator Checkbox Change (New)
+    this.elements.separatorCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ showSeparator: e.target.checked }));
   }
 
   /** Dispatches an update to the StateManager for options. */

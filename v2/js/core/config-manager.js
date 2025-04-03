@@ -45,19 +45,19 @@ export class ConfigManager {
     };
 
     // Attempt to read build-time environment variables (Vite example)
-    // These will be undefined if not set or if using a different build tool
-    try {
-        // Try to get environment variables, but fallback to hardcoded value for testing
-        this.config.donationLinks.paypal = import.meta.env.VITE_DONATE_PAYPAL || 'drummster';
+    // Check existence before accessing to avoid warnings in non-Vite environments
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+        // Read variables if they exist, otherwise keep the default null/empty value
+        this.config.donationLinks.paypal = import.meta.env.VITE_DONATE_PAYPAL || 'drummster'; // Keep fallback for testing
         this.config.donationLinks.venmo = import.meta.env.VITE_DONATE_VENMO || this.config.donationLinks.venmo;
         this.config.donationLinks.cashapp = import.meta.env.VITE_DONATE_CASHAPP || this.config.donationLinks.cashapp;
         this.config.donationLinks.googlepay = import.meta.env.VITE_DONATE_GOOGLEPAY || this.config.donationLinks.googlepay;
-        // Log the result after attempting to read
         console.log('[ConfigManager] Donation links after attempting env var read:', JSON.stringify(this.config.donationLinks));
-    } catch (e) {
-        // import.meta.env might not exist in all environments/builds
-        console.warn('Could not read build-time environment variables for donation links.');
+    } else {
+        // Log that env vars weren't found (optional, less noisy than the warning)
+        // console.log('[ConfigManager] Build-time environment variables (import.meta.env) not found.');
     }
+    // Removed the try...catch block as explicit checks handle potential errors.
 
 
     this.setupComplete = false;

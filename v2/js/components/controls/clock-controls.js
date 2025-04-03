@@ -176,6 +176,15 @@ export class ClockControls {
     opacityGroup.appendChild(this.elements.opacityValue);
     this.container.appendChild(opacityGroup);
 
+    // --- Separator Checkbox (New) ---
+    const separatorGroup = this.createControlGroup('Show Separator:');
+    this.elements.separatorCheckbox = document.createElement('input');
+    this.elements.separatorCheckbox.type = 'checkbox';
+    this.elements.separatorCheckbox.id = `${this.elementId}-separator-checkbox`;
+    separatorGroup.appendChild(this.elements.separatorCheckbox);
+    separatorGroup.querySelector('label').htmlFor = this.elements.separatorCheckbox.id;
+    this.container.appendChild(separatorGroup);
+
     // --- Effect Style Select ---
     const effectGroup = this.createControlGroup('Effect:'); // Keep V2 control
     this.elements.effectSelect = document.createElement('select');
@@ -285,6 +294,7 @@ export class ClockControls {
      if (this.elements.fontSelect) this.elements.fontSelect.value = optionsState.fontFamily || 'Segoe UI';
      if (this.elements.boldCheckbox) this.elements.boldCheckbox.checked = (optionsState.fontWeight === 'bold'); // Default to false if not 'bold'
      if (this.elements.colorPicker) this.elements.colorPicker.value = optionsState.color || '#FFFFFF';
+     if (this.elements.separatorCheckbox) this.elements.separatorCheckbox.checked = optionsState.showSeparator ?? false; // Update separator checkbox
 
      // Scale and Opacity are handled separately
   }
@@ -369,6 +379,9 @@ export class ClockControls {
     this.elements.effectSelect?.addEventListener('change', (e) => {
         this.dispatchElementStateUpdate({ effectStyle: e.target.value });
     });
+
+    // Separator Checkbox Change (New)
+    this.elements.separatorCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ showSeparator: e.target.checked }));
   }
 
   /**

@@ -763,6 +763,17 @@ html, body {
     border: 1px solid var(--control-section-border);
     color: var(--control-text-color);
     font-size: 13px;
+    opacity: 0; /* Start hidden */
+    visibility: hidden; /* Start hidden */
+    transition: opacity 0.5s ease, visibility 0.5s ease; /* Match hint/donate */
+    pointer-events: none; /* Don't capture events when hidden */
+}
+
+/* Control visibility with the 'visible' class */
+.favorites-panel-element.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto; /* Allow interactions when visible */
 }
 
 .favorites-toggle-button {
@@ -910,10 +921,243 @@ html, body {
     font-weight: bold; /* Match clean clock weight */
     letter-spacing: 0.05em; /* Match clean clock letter spacing */
     pointer-events: auto; /* Ensure the date text itself remains interactive */
+    white-space: nowrap; /* Prevent text wrapping within the face */
 }
+
+/* Container for Clean/LED clock faces */
+.digital-clean-container {
+    display: flex; /* Use flex for alignment */
+    align-items: baseline; /* Align text baselines */
+    padding: 0; /* Remove any potential padding */
+    margin: 0; /* Remove any potential margin */
+    line-height: 1; /* Ensure line height doesn't add extra space */
+    /* Inherit font styles from parent .clock-face or apply directly if needed */
+}
+
 
 /* Date Face when being dragged */
 .date-face.dragging {
     opacity: 0.8; /* Slightly transparent when dragging */
     cursor: grabbing; /* Change cursor when dragging */
+}
+
+/* --- Analog Clock Styles (Adapted from v1) --- */
+
+/* Analog Clock Container Styling */
+/* Use display: contents to remove the outer container from layout flow, */
+/* allowing the inner .analog-face (sized by JS) to dictate size and reflection origin. */
+.clock-face[data-face-type="analog"] {
+    display: contents; /* Make this container effectively disappear for layout */
+    /* max-width/height might not be needed here anymore if size is purely JS driven */
+    /* max-width: 400px; */
+    /* max-height: 400px; */
+    /* position: relative; /* Might not be needed if display: contents */
+}
+
+/* Style the analog face container itself */
+.clock-face[data-face-type="analog"] .analog-face {
+    width: 100%;
+    height: 100%;
+    border: 4px solid var(--analog-border-color); /* Use px */
+    border-radius: 50%;
+    position: relative;
+    background-color: rgba(0, 0, 0, 0.1);
+    /* display: block; is handled by JS */
+}
+
+/* Style the hands */
+.clock-face[data-face-type="analog"] .hand {
+    position: absolute;
+    bottom: 50%;
+    left: 50%;
+    transform-origin: bottom center;
+    border-radius: 2px;
+}
+
+.clock-face[data-face-type="analog"] .hour-hand {
+    width: 1.5%; /* Use % for scaling */
+    height: 25%;
+    background-color: var(--analog-hour-hand-color);
+    transform: translateX(-50%) rotate(0deg); /* Initial rotation set by JS */
+}
+
+.clock-face[data-face-type="analog"] .minute-hand {
+    width: 1%; /* Use % for scaling */
+    height: 35%;
+    background-color: var(--analog-minute-hand-color);
+    transform: translateX(-50%) rotate(0deg); /* Initial rotation set by JS */
+}
+
+.clock-face[data-face-type="analog"] .second-hand {
+    width: 0.5%; /* Use % for scaling */
+    height: 40%;
+    background-color: var(--analog-second-hand-color);
+    transform: translateX(-50%) rotate(0deg); /* Initial rotation set by JS */
+    /* display: block/none handled by JS */
+}
+
+/* Style the center dot */
+.clock-face[data-face-type="analog"] .center-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2.5%; /* Use % for scaling */
+    height: 2.5%; /* Use % for scaling */
+    background-color: var(--analog-center-dot-color);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10; /* Above hands */
+}
+
+/* Style the markers */
+.clock-face[data-face-type="analog"] .marker {
+    position: absolute;
+    background-color: var(--analog-border-color);
+}
+
+.clock-face[data-face-type="analog"] .marker-12 {
+    top: 5%;
+    left: 50%;
+    width: 0.75%; /* Use % for scaling */
+    height: 10%;
+    transform: translateX(-50%);
+}
+
+.clock-face[data-face-type="analog"] .marker-3 {
+    top: 50%;
+    right: 5%;
+    width: 10%;
+    height: 0.75%; /* Use % for scaling */
+    transform: translateY(-50%);
+}
+
+/* --- Separator Line Styles (Common for Date & Clock) --- */
+.date-separator-line,
+.clock-separator-line {
+    position: absolute;
+    bottom: 0; /* Position at the bottom of the parent face container */
+    left: 0;
+    width: 100%;
+    height: 1px; /* Revert to simple 1px height */
+    background: linear-gradient(to right,
+        rgba(255, 255, 255, 0),   /* Transparent start */
+        rgba(255, 255, 255, 0.5) 20%, /* Fade in - Reduced alpha */
+        rgba(255, 255, 255, 0.5) 80%, /* Solid middle - Reduced alpha */
+        rgba(255, 255, 255, 0)    /* Transparent end */
+    );
+    transform-origin: bottom center; /* Keep origin for consistency */
+    /* Opacity will be inherited from the parent element (.date-face or .clock-face) */
+    display: none; /* Hidden by default, shown by JS */
+    pointer-events: none; /* Don't interfere with interactions */
+}
+
+/* Removed pseudo-element styles */
+
+/* --- Visual Effects (Adapted from v1) --- */
+
+/* Flat Effect */
+/* Apply text shadow directly to text containers, increasing specificity */
+.base-element.effect-flat .clock-face .digital-clean-container, /* For clean/led clocks */
+.base-element.effect-flat .date-face {                          /* For date */
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
+}
+/* Analog flat effects */
+
+.base-element.effect-flat .analog-face .hand,
+.base-element.effect-flat .analog-face .center-dot {
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.base-element.effect-flat .analog-face {
+    border-color: rgba(255, 255, 255, 0.8); /* Slightly softer border */
+    box-shadow: none;
+}
+
+/* Raised Effect */
+/* Apply text shadow directly to text containers, increasing specificity */
+.base-element.effect-raised .clock-face .digital-clean-container, /* For clean/led clocks */
+.base-element.effect-raised .date-face {                          /* For date */
+    /* Subtle raised effect */
+    text-shadow:
+        1px 1px 1px rgba(0, 0, 0, 0.4), /* Near shadow */
+        2px 3px 4px rgba(0, 0, 0, 0.2), /* Softer distance shadow */
+        0 0 8px rgba(0, 0, 0, 0.5);      /* General readability shadow */
+}
+/* Analog raised effects */
+
+.base-element.effect-raised .analog-face {
+    border-color: white;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.4), 3px 5px 8px rgba(0,0,0,0.2);
+}
+
+.base-element.effect-raised .analog-face .hand {
+    box-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.base-element.effect-raised .analog-face .center-dot {
+    box-shadow: 0px 0px 3px rgba(0,0,0,0.6);
+}
+
+/* Reflected Effect */
+/* Apply reflection to text containers and the *specific* analog face container */
+.base-element.effect-reflected .clock-face .digital-clean-container, /* For clean/led clocks */
+.base-element.effect-reflected .date-face,                         /* For date */
+.base-element.effect-reflected .clock-face .analog-face {          /* Directly target analog face */
+    /* Non-standard property, works in Webkit/Blink (Chrome, Edge, Safari) */
+    /* Reflection gradient adjusted previously */
+    -webkit-box-reflect: below 0px
+        linear-gradient(transparent 0%, transparent 50%, rgba(255, 255, 255, 0.15) 75%, rgba(255, 255, 255, 0.35) 100%);
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.2));
+}
+
+/* Fallback for browsers without -webkit-box-reflect */
+@supports not (-webkit-box-reflect: below 0) {
+    .base-element.effect-reflected .clock-face::after,
+    .base-element.effect-reflected .date-face::after {
+        content: "";
+        display: block;
+        height: 20px; /* Adjust height as needed */
+        width: 100%;
+        position: absolute;
+        bottom: -20px; /* Position below the element */
+        transform: scaleY(-0.5); /* Flip and shrink */
+        opacity: 0.3;
+        background: linear-gradient(transparent, white); /* Simple gradient */
+        mask-image: linear-gradient(transparent 50%, white); /* Fade out */
+        pointer-events: none; /* Don't interfere with clicks */
+    }
+}
+
+/* Add back a basic text shadow for readability when reflected - Apply to text containers, increasing specificity */
+.base-element.effect-reflected .clock-face .digital-clean-container,
+.base-element.effect-reflected .date-face {
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
+}
+/* Analog reflection effects */
+
+/* Specific shadow for analog hands when reflected for readability */
+.base-element.effect-reflected .analog-face .hand,
+.base-element.effect-reflected .analog-face .center-dot {
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.base-element.effect-reflected .analog-face {
+    border-color: rgba(255, 255, 255, 0.8);
+    box-shadow: none; /* Remove raised shadow if reflected */
+}
+
+.clock-face[data-face-type="analog"] .marker-6 {
+    bottom: 5%;
+    left: 50%;
+    width: 0.75%; /* Use % for scaling */
+    height: 10%;
+    transform: translateX(-50%);
+}
+
+.clock-face[data-face-type="analog"] .marker-9 {
+    top: 50%;
+    left: 5%;
+    width: 10%;
+    height: 0.75%; /* Use % for scaling */
+    transform: translateY(-50%);
 }

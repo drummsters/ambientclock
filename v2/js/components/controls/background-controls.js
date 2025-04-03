@@ -75,11 +75,22 @@ export class BackgroundControls {
    */
   createElements() {
     if (!this.container) return;
-    console.log('Creating background control elements in V1 order...');
+    console.log('Creating background control elements...');
 
-    // --- Controls in V1 Order ---
+    // --- Background Type Select ---
+    const typeGroup = this.createControlGroup('Type:');
+    this.elements.typeSelect = document.createElement('select');
+    this.elements.typeSelect.id = 'background-type-select';
+    ['color', 'image'].forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+        this.elements.typeSelect.appendChild(option);
+    });
+    typeGroup.appendChild(this.elements.typeSelect);
+    this.container.appendChild(typeGroup); // Add this near the top
 
-    // --- Image Source Select ---
+    // --- Image Source Select (Dynamically shown/hidden based on type) ---
     const sourceGroup = this.createControlGroup('Image Source:'); // V1 Label
     this.elements.sourceSelect = document.createElement('select');
     this.elements.sourceSelect.id = 'background-source-select'; // Keep ID simple for potential direct targeting
@@ -250,6 +261,11 @@ export class BackgroundControls {
      // Determine current type (image or color) - needed for conditional display
      const currentType = state.type || 'color'; // Default to color
 
+    // Update Type Select
+    if (this.elements.typeSelect) {
+        this.elements.typeSelect.value = currentType;
+    }
+
     // Update Image Source Select, ensuring the selected value is available
     const currentSource = state.source || 'unsplash'; // Default source attempt
     if (this.elements.sourceSelect && !this.elements.sourceSelect.disabled) {
@@ -325,12 +341,24 @@ export class BackgroundControls {
 
     // Update visibility/disabled state of image-related controls based on type
     const imageControlsDisabled = currentType !== 'image';
+    // Show/Hide image-specific controls based on type
+    const showImageControls = currentType === 'image';
+    if (this.elements.sourceSelect) this.elements.sourceSelect.closest('.control-group').style.display = showImageControls ? 'flex' : 'none';
+    // Peapix country visibility handled above based on source
+    // Category select visibility handled above based on source
+    // Custom category visibility handled above based on category select
+    if (this.elements.refreshButton) this.elements.refreshButton.closest('.control-group').style.display = showImageControls ? 'flex' : 'none';
+    // Zoom and Info checkbox visibility handled above based on type
+
+    // Disable image controls if type is 'color'
+    // const imageControlsDisabled = !showImageControls; // <<< REMOVE DUPLICATE DECLARATION
     if (this.elements.sourceSelect) this.elements.sourceSelect.disabled = imageControlsDisabled;
-    if (this.elements.categorySelect) this.elements.categorySelect.disabled = imageControlsDisabled || currentSource === 'peapix';
-    if (this.elements.customCategoryInput) this.elements.customCategoryInput.disabled = imageControlsDisabled || currentSource === 'peapix';
-    if (this.elements.peapixCountrySelect) this.elements.peapixCountrySelect.disabled = imageControlsDisabled || currentSource !== 'peapix';
+    if (this.elements.categorySelect) this.elements.categorySelect.disabled = imageControlsDisabled || currentSource === 'peapix'; // Also disable if peapix
+    if (this.elements.customCategoryInput) this.elements.customCategoryInput.disabled = imageControlsDisabled || currentSource === 'peapix'; // Also disable if peapix
+    if (this.elements.peapixCountrySelect) this.elements.peapixCountrySelect.disabled = imageControlsDisabled || currentSource !== 'peapix'; // Also disable if not peapix
     if (this.elements.refreshButton) this.elements.refreshButton.disabled = imageControlsDisabled;
-    // Zoom checkbox visibility handled above
+    if (this.elements.zoomCheckbox) this.elements.zoomCheckbox.disabled = imageControlsDisabled;
+    if (this.elements.infoCheckbox) this.elements.infoCheckbox.disabled = imageControlsDisabled;
 
   }
 
@@ -340,9 +368,17 @@ export class BackgroundControls {
   addEventListeners() {
     if (!this.elements) return;
 
-    // --- Removed Type Radio Listener ---
-
-    // --- Removed Color Picker Listener ---
+    // Background Type Change
+    if (this.elements.typeSelect) {
+        this.elements.typeSelect.addEventListener('change', (event) => {
+            const newType = event.target.value;
+            this.dispatchStateUpdate({ type: newType });
+            // Immediately update UI visibility based on the new type
+            // Need to merge newType with existing state for updateUIFromState
+            const currentState = StateManager.getNestedValue(StateManager.getState(), this.statePath) || {};
+            this.updateUIFromState({ ...currentState, type: newType });
+        });
+    }
 
     // Image Source Change
     if (this.elements.sourceSelect) {

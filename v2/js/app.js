@@ -241,9 +241,9 @@ async function initApp() {
     console.log('[app.js] Initializing VisibilityManager...');
     const visibilityManager = new VisibilityManager(
         StateManager, // Pass the initialized StateManager
-        ['controls-hint-default', 'donate-default'], // IDs of elements to manage
+        ['controls-hint-default', 'donate-default', 'favorites-panel-default'], // IDs of elements to manage (Added favorites)
         // Optional configuration (using defaults for now)
-        // { initialShowDelay: 3000, mouseIdleHideDelay: 5000, mouseMoveShowDelay: 200 }
+        // { initialShowDelay: 3000, mouseIdleHideDelay: 5000, mouseMoveShowDelay: 200, mouseLeaveHideDelay: 1000 } // Example with new option
     );
     visibilityManager.init(); // Initialize the visibility manager
 

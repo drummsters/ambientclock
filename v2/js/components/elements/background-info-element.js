@@ -39,6 +39,14 @@ export class BackgroundInfoElement extends BaseUIElement {
     }
 
     /**
+     * @override
+     * Satisfies BaseUIElement requirement, but content is set in init.
+     */
+    async createElements() {
+        // No dynamic elements needed, content set in init
+    }
+
+    /**
      * Updates the displayed background information.
      * @param {object | null} info - The background information object or null.
      * @private

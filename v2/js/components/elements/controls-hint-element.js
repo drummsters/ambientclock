@@ -36,6 +36,14 @@ export class ControlsHintElement extends BaseUIElement {
         return true;
     }
 
+    /**
+     * @override
+     * Satisfies BaseUIElement requirement, but content is set in init.
+     */
+    async createElements() {
+        // No dynamic elements needed, content set in init
+    }
+
     // --- Event Handlers ---
 
     handleHintClick() {

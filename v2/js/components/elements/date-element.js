@@ -58,13 +58,21 @@ export class DateElement extends BaseUIElement {
     if (!this.elements.face) {
       this.elements.face = document.createElement('div');
       this.elements.face.className = 'date-face'; // Use a specific class
+      // Ensure the face container allows relative positioning for the separator
+      this.elements.face.style.position = 'relative';
+      this.elements.face.style.paddingBottom = '5px'; // Reduce padding for separator
       this.container.appendChild(this.elements.face);
-    }
 
-    // Create separator line element
-    this.elements.separatorLine = document.createElement('div');
-    this.elements.separatorLine.className = 'date-separator-line';
-    this.container.appendChild(this.elements.separatorLine); // Append to main container
+      // Create a span for the actual date text INSIDE the face container
+      this.elements.dateText = document.createElement('span');
+      this.elements.dateText.className = 'date-text-content'; // Add a class if needed for styling
+      this.elements.face.appendChild(this.elements.dateText);
+
+      // Create separator line element INSIDE the face container (sibling to dateText)
+      this.elements.separatorLine = document.createElement('div');
+      this.elements.separatorLine.className = 'date-separator-line';
+      this.elements.face.appendChild(this.elements.separatorLine);
+    }
 
     this.render(); // Initial render
   }
@@ -84,7 +92,10 @@ export class DateElement extends BaseUIElement {
 
     // Format the date based on options
     const formattedDate = formatDate(now, this.options.format);
-    this.elements.face.textContent = formattedDate;
+    // Update the text content of the dedicated span, not the whole face
+    if (this.elements.dateText) {
+        this.elements.dateText.textContent = formattedDate;
+    }
 
     // Apply styles (including separator visibility)
     this.applyStyles();
@@ -101,23 +112,9 @@ export class DateElement extends BaseUIElement {
     this.elements.face.style.color = this.options.color || '#FFFFFF';
     this.elements.face.style.fontWeight = this.options.fontWeight || 'normal'; // Apply font weight
 
-    // Apply styles and visibility to separator
+    // Apply visibility to separator (styling handled by CSS)
     const showSeparator = this.options.showSeparator ?? false;
     this.elements.separatorLine.style.display = showSeparator ? 'block' : 'none';
-    if (showSeparator) {
-        // Set the CSS variable for the gradient color
-        const color = this.options.color || '#FFFFFF';
-        // Convert hex to rgba for the gradient which includes alpha
-        const hexToRgba = (hex, alpha = 1) => {
-            hex = hex.replace('#', '');
-            const r = parseInt(hex.substring(0, 2), 16);
-            const g = parseInt(hex.substring(2, 4), 16);
-            const b = parseInt(hex.substring(4, 6), 16);
-            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-        };
-        // Use alpha 0.7 to match the previous opacity setting
-        this.elements.separatorLine.style.setProperty('--separator-color', hexToRgba(color, 0.7));
-    }
   }
 
   updateOptions(options) {
