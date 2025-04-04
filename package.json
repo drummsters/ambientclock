@@ -11,7 +11,8 @@
   },
   "type": "module",
   "scripts": {
-    "lint:css": "stylelint \"**/*.css\""
+    "lint:css": "stylelint \"**/*.css\"",
+    "build": "echo \"No build required\""
   },
   "dependencies": {
     "axios": "^1.8.4"
