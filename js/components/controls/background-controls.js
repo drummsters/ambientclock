@@ -297,13 +297,22 @@ export class BackgroundControls {
 
     // Custom Image Category Input Change
     if (this.elements.customCategoryInput) {
-        // Use 'change' or 'blur' to trigger update after user finishes typing
-        this.elements.customCategoryInput.addEventListener('change', (event) => {
+        // Prevent any default key behavior
+        this.elements.customCategoryInput.addEventListener('keydown', (event) => {
+            // Allow all keys to function normally
+            event.stopPropagation();
+        });
+
+        // Handle input updates
+        const updateCustomCategory = (event) => {
             // Only update if 'Other' is the selected category type
             if (this.elements.categorySelect?.value === 'Other') {
                 this.dispatchStateUpdate({ customCategory: event.target.value });
             }
-        });
+        };
+        
+        this.elements.customCategoryInput.addEventListener('input', updateCustomCategory);
+        this.elements.customCategoryInput.addEventListener('change', updateCustomCategory);
     }
 
     // Zoom Checkbox Change

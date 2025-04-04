@@ -4,7 +4,7 @@
 
 /* Controls Panel Container */
 #controls-panel {
-    position: fixed;
+    position: fixed; 
     bottom: 20px;
     left: 20px;
     background-color: var(--control-bg-color);
@@ -106,7 +106,6 @@
     display: flex;
     align-items: center;
     gap: var(--control-spacing);
-    white-space: nowrap;
 }
 
 .control-group:last-child {
@@ -140,6 +139,7 @@
 #controls-panel input[type="color"],
 #controls-panel input[type="checkbox"],
 #controls-panel input[type="range"],
+#controls-panel textarea,
 #controls-panel button {
     transition: var(--input-transition); /* Use input transition for most */
 }
@@ -165,15 +165,28 @@
 #controls-panel select:hover,
 #controls-panel input[type="text"]:hover,
 #controls-panel input[type="color"]:hover,
-#controls-panel input[type="checkbox"]:hover {
+#controls-panel input[type="checkbox"]:hover,
+#controls-panel textarea:hover {
     border-color: rgba(255, 255, 255, 0.4);
 }
 
 #controls-panel select:focus,
-#controls-panel input[type="text"]:focus {
+#controls-panel input[type="text"]:focus,
+#controls-panel textarea:focus {
     outline: none;
     border-color: var(--control-focus-border);
     box-shadow: 0 0 0 2px var(--control-focus-shadow);
+}
+
+#controls-panel textarea {
+    padding: var(--control-element-padding-y) var(--control-element-padding-x);
+    background-color: var(--control-input-bg);
+    color: var(--control-text-color);
+    border: 1px solid var(--control-border-color);
+    border-radius: var(--control-element-radius);
+    box-shadow: var(--control-input-shadow);
+    font-family: inherit;
+    font-size: inherit;
 }
 
 #controls-panel input[type="text"] { /* For custom category etc. */
@@ -186,6 +199,8 @@
     box-shadow: var(--control-input-shadow);
     width: 140px; /* Default width, can be overridden */
     flex-grow: 1; /* Allow shrinking/growing if needed */
+    white-space: normal; /* Allow text wrapping */
+    word-break: break-word; /* Allow breaking on words */
 }
 
 #controls-panel input[type="color"] {

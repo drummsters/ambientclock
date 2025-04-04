@@ -121,13 +121,15 @@ export class BackgroundUIBuilder {
         this.elements.categorySelectGroup = categoryGroup; // Store reference
 
         const customGroup = this.createControlGroup('Custom:');
-        this.elements.customCategoryInput = document.createElement('input');
-        this.elements.customCategoryInput.type = 'text';
+        this.elements.customCategoryInput = document.createElement('textarea');
         this.elements.customCategoryInput.id = 'background-custom-category-input';
         this.elements.customCategoryInput.placeholder = 'Enter custom category';
-        // Allow any text input including spaces
-        this.elements.customCategoryInput.pattern = '.*';
-        this.elements.customCategoryInput.spellcheck = false;
+        this.elements.customCategoryInput.rows = 1;
+        this.elements.customCategoryInput.style.resize = 'none';
+        this.elements.customCategoryInput.style.overflow = 'hidden';
+        this.elements.customCategoryInput.style.lineHeight = '1.5';
+        this.elements.customCategoryInput.style.padding = '4px 8px';
+        this.elements.customCategoryInput.style.width = '140px';
         customGroup.appendChild(this.elements.customCategoryInput);
         customGroup.style.display = 'none'; // Hide initially
         this.elements.customCategoryGroup = customGroup; // Store reference
