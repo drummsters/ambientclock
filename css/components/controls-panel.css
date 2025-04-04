@@ -32,16 +32,6 @@
     pointer-events: auto; /* Capture mouse events when visible */
 }
 
-/* Left corner hover trigger area */
-#controls-trigger {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100px;
-    height: 100px;
-    z-index: var(--z-index-controls-trigger);
-}
-
 /* Control Sections */
 .control-section {
     margin-bottom: var(--control-section-spacing);
