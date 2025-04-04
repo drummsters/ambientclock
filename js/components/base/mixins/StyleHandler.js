@@ -43,19 +43,24 @@ export class StyleHandler {
         // Clamp scale
         const clampedScale = Math.max(StyleHandler.MIN_SCALE, Math.min(StyleHandler.MAX_SCALE, scale));
 
-        // --- V1 Style Scaling: Adjust font-size ---
-        const baseFontSize = this.element.responsiveConfig?.baseFontSize || 2; // Base size in 'em' units
-        const newSize = baseFontSize * clampedScale;
+        // --- V2 Scaling: Adjust font-size directly for crisp text ---
+        // Use 1em as the base multiplier, assuming CSS handles the base responsive size (e.g., with vw)
+        const baseFontSizeMultiplier = 1;
+        const newFontSize = baseFontSizeMultiplier * clampedScale;
 
-        // Apply to the main container or a specific 'face' element if needed
-        // const targetElement = this.element.elements?.face || this.element.container;
-        // if (targetElement) {
-        //     // REMOVED: Do not override CSS font-size for vw scaling
-        //     // targetElement.style.fontSize = `${newSize.toFixed(2)}em`;
-        // }
+        // Apply font-size scaling to the main container. CSS within the component should use 'em' or 'rem'
+        // so this scales the text relative to the container's font size.
+        // Exclude analog clock face from font-size scaling.
+        if (!(this.element.type === 'clock' && this.element.options?.face === 'analog')) {
+             this.element.container.style.fontSize = `${newFontSize.toFixed(2)}em`;
+        } else {
+            // Reset font-size for analog clock container if it was previously set
+            this.element.container.style.fontSize = '';
+        }
 
-        // --- Apply transform: scale() along with translate ---
-        this.element.container.style.transform = `translate(-50%, -50%) scale(${clampedScale})`;
+
+        // --- Apply only translate for positioning ---
+        this.element.container.style.transform = `translate(-50%, -50%)`; // Removed scale()
 
         // For analog clock, adjust width/height of the face container (still needed)
         if (this.element.type === 'clock' && this.element.options?.face === 'analog' && this.element.elements?.analogFace) {
