@@ -100,12 +100,16 @@ export class DateControlsUIBuilder {
                 fonts: ['Consolas', 'Courier New', 'Lucida Console', 'Monaco']
             },
             {
+                label: 'Creative Fonts',
+                fonts: ['Comic Sans MS', 'Impact', 'Lobster', 'Pacifico']
+            },
+            {
                 label: 'System Fonts',
-                fonts: ['system-ui', '-apple-system']
+                fonts: ['System UI', 'Apple System']
             },
             {
                 label: 'Generic Families',
-                fonts: ['sans-serif', 'serif', 'monospace']
+                fonts: ['Sans-serif', 'Serif', 'Monospace', 'Cursive', 'Fantasy']
             }
         ].forEach(group => {
             // Add group header
