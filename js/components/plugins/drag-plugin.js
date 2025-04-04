@@ -117,13 +117,8 @@ export const DragPlugin = {
       element.container.style.left = `${newX}%`;
       element.container.style.top = `${newY}%`;
       
-      // Read scale directly from element state/options instead of parsing style
-      // Get current element state to find the scale
-      const currentState = StateManager.getNestedValue(StateManager.getState(), element.statePath);
-      const scaleValue = currentState?.scale ?? 1.0; // Default to 1 if not found
-      
-      // Apply transform using the reliable scale value (Restore translate)
-      element.container.style.transform = `translate(-50%, -50%) scale(${scaleValue})`;
+      // Only apply transform for centering, scaling is now handled by CSS custom property
+      element.container.style.transform = `translate(-50%, -50%)`;
     };
 
     const handleMouseUp = (event) => {
