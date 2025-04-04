@@ -42,6 +42,14 @@
     white-space: nowrap; /* Prevent wrapping */
     /* width: fit-content; /* Let it fill parent */
     /* margin: auto; /* Centering handled by parent flex */
+
+    /* Font rendering optimizations */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    backface-visibility: hidden;
+    transform-style: preserve-3d;
+    perspective: 1000px;
+    text-rendering: optimizeLegibility;
 }
 
 /* Specific styles for LED face (can override container styles) */
