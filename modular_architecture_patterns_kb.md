@@ -194,6 +194,75 @@ Key characteristics:
 - Controls access to underlying functionality
 - Provides a stable interface even if the implementation changes
 
+### UI Builder Pattern
+
+Separates complex DOM element creation logic from the component that manages the element's state and behavior. The builder class typically takes configuration and a parent container, constructs the DOM subtree, and returns references to key elements.
+
+```javascript
+// Example: Simplified concept
+import { ControlPanelUIBuilder } from './ui/ControlPanelUIBuilder.js';
+
+class ControlPanel {
+  async createElements() {
+    this.uiBuilder = new ControlPanelUIBuilder(this.container);
+    const builtElements = this.uiBuilder.build();
+    // Store and use references from builtElements...
+    this.elements.resetButton = builtElements.resetButton;
+  }
+}
+```
+*Source Example: `v2/js/components/controls/ui/ControlPanelUIBuilder.js` used by `ControlPanel`.*
+
+Key characteristics:
+- Encapsulates DOM construction details.
+- Simplifies the main component class.
+- Improves adherence to Single Responsibility Principle for UI components.
+- Makes the main component focus on state and event handling.
+
+### Dynamic Sub-Component Lifecycle Manager Pattern
+
+A dedicated manager class handles the lifecycle (creation, initialization, destruction) of related sub-components, often triggered by application-wide events. This is useful when a parent component needs to manage multiple instances of different types of sub-components whose existence is dynamic.
+
+```javascript
+// Example: Simplified concept
+import { EventBus } from '../core/event-bus.js';
+import { ClockControls } from './clock-controls.js';
+// ... other control imports
+
+class DynamicControlManager {
+  constructor(placeholders, elementManager) {
+    this.placeholders = placeholders;
+    this.elementManager = elementManager;
+    this.activeControls = new Map();
+    this.controlMap = { /* type to class/placeholder mapping */ };
+    this._subscribeToEvents();
+  }
+
+  _subscribeToEvents() {
+    EventBus.subscribe('element:created', this._handleElementCreated.bind(this));
+    EventBus.subscribe('element:destroyed', this._handleElementDestroyed.bind(this));
+  }
+
+  async _handleElementCreated(id, type) {
+    // Factory logic: Find control class based on type
+    // Instantiate, initialize, add to placeholder, track instance
+  }
+
+  _handleElementDestroyed(id) {
+    // Find tracked instance, call destroy, remove tracking
+  }
+  // ... init, destroy methods
+}
+```
+*Source Example: `v2/js/managers/DynamicControlManager.js` used by `ControlPanel`.*
+
+Key characteristics:
+- Centralizes dynamic sub-component management logic.
+- Decouples parent component from direct sub-component lifecycle handling.
+- Often uses an Event Bus for triggers.
+- May incorporate Factory logic to determine which sub-component type to create.
+- Reduces complexity of the parent component.
+
 ## Implementation Strategies
 
 ### Directory Structure

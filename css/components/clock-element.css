@@ -1,0 +1,145 @@
+/**
+ * Styles for the Clock Element and its various faces (v2)
+ */
+
+/* Base Clock Face Styles (Applied to the container within ClockElement) */
+.clock-face {
+    /* Common properties for all clock faces */
+    text-align: center;
+    user-select: none; /* Prevent text selection during drag */
+    color: var(--text-color); /* Default color */
+    padding: 0;
+    text-shadow: var(--text-shadow-base); /* Use variable */
+    /* width: 100%; Let active state define size */
+    /* height: 100%; Let active state define size */
+    transform-origin: center center;
+    pointer-events: auto; /* Ensure clock face is interactive */
+    line-height: 1; /* Prevent extra line height */
+    position: relative; /* Needed for absolute positioning of hands/markers/lines */
+    /* cursor: move; /* Inherited from .base-element */
+    display: flex; /* Use flex to center content */
+    align-items: center; /* Center vertically */
+    justify-content: center; /* Center horizontally */
+
+    /* Removed min-width/min-height, rely on content or aspect-ratio */
+    /* min-width: 15vw; */
+    /* min-height: 15vw; */
+}
+
+/* --- Digital (Clean/LED) Specific Styles --- */
+
+/* Container for Clean/LED clock faces */
+.digital-clean-container {
+    display: flex; /* Use flex for alignment */
+    align-items: baseline; /* Align text baselines */
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+    font-family: var(--font-family-clean, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif); /* Default clean font */
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    font-size: 5vw; /* Base responsive size - MATCHED TO DATE */
+    white-space: nowrap; /* Prevent wrapping */
+    /* width: fit-content; /* Let it fill parent */
+    /* margin: auto; /* Centering handled by parent flex */
+}
+
+/* Specific styles for LED face (can override container styles) */
+.clock-face[data-face-type="led"] .digital-clean-container {
+    font-family: var(--font-family-digital, 'Orbitron', sans-serif); /* Use digital font */
+    color: var(--led-color); /* Use LED color variable */
+    text-shadow: 0 0 5px var(--led-glow), 0 0 10px var(--led-glow); /* LED glow effect */
+    font-weight: normal; /* Orbitron might not need bold */
+    letter-spacing: 0.1em; /* Adjust spacing for LED */
+}
+
+/* --- Analog Clock Specific Styles (SVG) --- */
+
+/* Set explicit size on the container when analog is active */
+.clock-face[data-face-type="analog"] {
+    /* width: 30vmin; /* Size will be set by JS on the main container */
+    /* height: 30vmin; */
+    /* Ensure flex centering still applies if needed, though SVG scales */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Style the SVG element itself */
+.clock-face svg {
+    /* Ensure SVG fills the container */
+    width: 100%;
+    height: 100%;
+    /* Set a size for the clock face container if needed, or let parent control */
+    /* width: 30vmin; */
+    /* height: 30vmin; */
+    overflow: visible; /* Allow hands/markers to potentially exceed viewBox slightly if needed */
+}
+
+/* Style the clock face circle */
+/* Target SVG elements within the specific container */
+.clock-face[data-face-type="analog"] svg .clock-face-circle {
+    fill: var(--analog-face-bg, rgba(0, 0, 0, 0.1)); /* Background */
+    stroke: var(--analog-border-color, white); /* Border color */
+    stroke-width: 1; /* Border width relative to viewBox */
+}
+
+/* Style the hands (lines) */
+.clock-face[data-face-type="analog"] svg .hand {
+    stroke-linecap: round; /* Rounded ends for hands */
+    /* transform-origin is implicit (50 50) for SVG rotate */
+}
+
+.clock-face[data-face-type="analog"] svg .hour-hand {
+    stroke: var(--analog-hour-hand-color, white);
+    stroke-width: 2.5; /* Width relative to viewBox */
+}
+
+.clock-face[data-face-type="analog"] svg .minute-hand {
+    stroke: var(--analog-minute-hand-color, white);
+    stroke-width: 1.8; /* Width relative to viewBox */
+}
+
+.clock-face[data-face-type="analog"] svg .second-hand {
+    stroke: var(--analog-second-hand-color, red);
+    stroke-width: 1; /* Width relative to viewBox */
+}
+
+/* Style the center dot (circle) */
+.clock-face[data-face-type="analog"] svg .center-dot {
+    fill: var(--analog-center-dot-color, white);
+    stroke: none; /* No border on dot */
+}
+
+/* Style the markers (lines) */
+.clock-face[data-face-type="analog"] svg .marker {
+    stroke: var(--analog-border-color, white); /* Use border color for markers */
+    stroke-linecap: square;
+}
+
+.clock-face[data-face-type="analog"] svg .marker-hour {
+    stroke-width: 1.5; /* Thicker hour markers */
+}
+
+.clock-face[data-face-type="analog"] svg .marker-minute {
+    stroke-width: 0.8; /* Thinner minute markers */
+}
+
+/* --- Separator Line (Common style) --- */
+.clock-separator-line {
+    position: absolute;
+    bottom: 0; /* Position at the bottom of the parent face container */
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(to right,
+        rgba(255, 255, 255, 0),   /* Transparent start */
+        rgba(255, 255, 255, 0.5) 20%, /* Fade in - Reduced alpha */
+        rgba(255, 255, 255, 0.5) 80%, /* Solid middle - Reduced alpha */
+        rgba(255, 255, 255, 0)    /* Transparent end */
+    );
+    transform-origin: bottom center;
+    /* Opacity will be inherited from the parent element (.clock-face) */
+    display: none; /* Hidden by default, shown by JS */
+    pointer-events: none; /* Don't interfere with interactions */
+}

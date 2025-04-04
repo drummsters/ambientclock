@@ -1,51 +1,52 @@
 /**
- * Donate widget styles for the Ambient Clock application
+ * Styles for the Donate Element (v2 - Adapted from v1)
  */
 
-/* Donate Widget */
-#donate-widget {
+.donate-element { /* Replaces #donate-widget */
     position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 100;
+    bottom: 20px; /* V1 position */
+    right: 20px; /* V1 position */
+    z-index: var(--z-index-controls); /* Same level as controls panel */
     opacity: 0; /* Start hidden */
-    transition: var(--fade-transition);
+    visibility: hidden; /* Start hidden */
+    transition: var(--visibility-transition); /* Use variable */
     pointer-events: none; /* Don't capture mouse events when hidden */
 }
 
-#donate-widget.visible {
+.donate-element.visible {
     opacity: 1;
+    visibility: visible;
     pointer-events: auto; /* Capture mouse events when visible */
 }
 
-.donate-content {
+.donate-element .donate-content { /* Matches v1 class */
     display: flex;
     align-items: center;
     background-color: var(--control-bg-color);
     padding: 8px 12px;
-    border-radius: 20px;
+    border-radius: 20px; /* V1 radius */
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
     transition: var(--button-transition);
     cursor: pointer;
     color: white;
 }
 
-.donate-content:hover {
+.donate-element .donate-content:hover {
     background-color: var(--control-hover-color);
 }
 
-.coffee-icon {
+.donate-element .coffee-icon { /* Matches v1 class */
     font-size: 20px;
     margin-right: 8px;
 }
 
-.donate-text {
+.donate-element .donate-text { /* Matches v1 class */
     font-size: 14px;
     font-weight: 500;
 }
 
 /* Payment Dropdown */
-.payment-dropdown {
+.donate-element .payment-dropdown { /* Matches v1 class */
     position: absolute;
     bottom: 100%;
     right: 0;
@@ -59,18 +60,18 @@
     transform: translateY(10px);
     pointer-events: none;
     transition: opacity 0.3s ease, transform 0.3s ease;
-    z-index: 101; /* Ensure it's above other elements */
+    z-index: var(--z-index-dropdowns); /* Ensure it's above other elements */
 }
 
 /* Show dropdown on hover */
-#donate-widget:hover .payment-dropdown {
+.donate-element:hover .payment-dropdown {
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
 }
 
 /* Create an invisible area to prevent mouseleave when moving to dropdown */
-#donate-widget::before {
+.donate-element::before {
     content: '';
     position: absolute;
     bottom: 100%;
@@ -80,19 +81,19 @@
     background-color: transparent;
 }
 
-.payment-option {
+.donate-element .payment-option { /* Matches v1 class */
     margin: 8px 0;
 }
 
-.payment-option:first-child {
+.donate-element .payment-option:first-child {
     margin-top: 0;
 }
 
-.payment-option:last-child {
+.donate-element .payment-option:last-child {
     margin-bottom: 0;
 }
 
-.payment-option a {
+.donate-element .payment-option a { /* Matches v1 class */
     display: flex;
     align-items: center;
     color: white;
@@ -102,11 +103,11 @@
     transition: var(--button-transition);
 }
 
-.payment-option a:hover {
+.donate-element .payment-option a:hover {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
-.payment-icon {
+.donate-element .payment-icon { /* Matches v1 class */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -115,12 +116,12 @@
     height: 24px;
 }
 
-.payment-icon img {
+.donate-element .payment-icon img { /* Matches v1 class */
     width: 100%;
     height: 100%;
     object-fit: contain;
 }
 
-.payment-name {
+.donate-element .payment-name { /* Matches v1 class */
     font-size: 14px;
 }

@@ -1,0 +1,369 @@
+/**
+ * Styles for the main Controls Panel (v2)
+ */
+
+/* Controls Panel Container */
+#controls-panel {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background-color: var(--control-bg-color);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: var(--control-padding);
+    border-radius: var(--control-border-radius);
+    z-index: var(--z-index-controls);
+    font-size: 14px;
+    color: var(--control-text-color);
+    opacity: 0; /* Start hidden */
+    visibility: hidden; /* Start hidden */
+    transition: var(--visibility-transition); /* Use variable */
+    pointer-events: none; /* Don't capture mouse events when hidden */
+    min-width: 350px;
+    max-height: 95vh; /* Increased to 95% of viewport height */
+    overflow-y: auto; /* Add scrollbar if needed */
+    box-shadow: var(--control-panel-shadow);
+    border: 1px solid var(--control-section-border);
+}
+
+#controls-panel.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto; /* Capture mouse events when visible */
+}
+
+/* Left corner hover trigger area */
+#controls-trigger {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100px;
+    z-index: var(--z-index-controls-trigger);
+}
+
+/* Control Sections */
+.control-section {
+    margin-bottom: var(--control-section-spacing);
+    padding-bottom: var(--control-section-padding);
+    border-bottom: 1px solid var(--control-section-border);
+    position: relative;
+}
+
+/* Decorative line between sections */
+.control-section:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 5%;
+    right: 5%;
+    height: 1px;
+    background: linear-gradient(
+        to right,
+        transparent,
+        var(--control-title-border) 20%,
+        var(--button-color) 50%, /* Use general button color */
+        var(--control-title-border) 80%,
+        transparent
+    );
+}
+
+.control-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+/* Section Titles */
+.section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 15px 0;
+    color: var(--control-text-color);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding-bottom: 8px;
+    position: relative;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    display: inline-block; /* Make the underline match the text width */
+}
+
+/* Underline for section titles */
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--button-color); /* Use general button color */
+    border-radius: 1.5px;
+}
+
+/* Control Groups (Label + Input) */
+.control-group {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: var(--control-spacing);
+    white-space: nowrap;
+}
+
+.control-group:last-child {
+    margin-bottom: 0;
+}
+
+/* Labels within the panel */
+#controls-panel label {
+    width: 120px; /* Fixed width for alignment */
+    margin-right: 0;
+    text-align: right;
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* Container for the input element(s) */
+.control-input {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0; /* Allow shrinking */
+    white-space: nowrap;
+}
+
+/* --- Generic Form Control Styles within Panel --- */
+
+#controls-panel select,
+#controls-panel input[type="text"],
+#controls-panel input[type="color"],
+#controls-panel input[type="checkbox"],
+#controls-panel input[type="range"],
+#controls-panel button {
+    transition: var(--input-transition); /* Use input transition for most */
+}
+
+#controls-panel select {
+    padding: var(--control-element-padding-y) var(--control-element-padding-x);
+    min-width: 140px;
+    height: var(--control-element-height);
+    background-color: var(--control-input-bg);
+    color: var(--control-text-color);
+    border: 1px solid var(--control-border-color);
+    border-radius: var(--control-element-radius);
+    box-shadow: var(--control-input-shadow);
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px;
+    padding-right: 30px; /* Space for arrow */
+    flex-grow: 1; /* Ensure it takes available space */
+}
+
+#controls-panel select:hover,
+#controls-panel input[type="text"]:hover,
+#controls-panel input[type="color"]:hover,
+#controls-panel input[type="checkbox"]:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+#controls-panel select:focus,
+#controls-panel input[type="text"]:focus {
+    outline: none;
+    border-color: var(--control-focus-border);
+    box-shadow: 0 0 0 2px var(--control-focus-shadow);
+}
+
+#controls-panel input[type="text"] { /* For custom category etc. */
+    padding: var(--control-element-padding-y) var(--control-element-padding-x);
+    height: var(--control-element-height);
+    background-color: var(--control-input-bg);
+    color: var(--control-text-color);
+    border: 1px solid var(--control-border-color);
+    border-radius: var(--control-element-radius);
+    box-shadow: var(--control-input-shadow);
+    width: 140px; /* Default width, can be overridden */
+    flex-grow: 1; /* Allow shrinking/growing if needed */
+}
+
+#controls-panel input[type="color"] {
+    padding: 2px;
+    height: var(--control-element-height);
+    width: 50px;
+    cursor: pointer;
+    border: 1px solid var(--control-border-color);
+    border-radius: var(--control-element-radius);
+    background: none;
+    flex-grow: 0; /* Don't allow color picker to grow */
+    flex-shrink: 0; /* Don't allow shrinking */
+}
+
+#controls-panel input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background-color: var(--control-input-bg);
+    border: 1px solid var(--control-border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+#controls-panel input[type="checkbox"]:checked {
+    background-color: var(--control-checkbox-checked);
+    border-color: var(--control-focus-border);
+}
+
+#controls-panel input[type="checkbox"]:checked::after {
+    content: '';
+    width: 6px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    position: absolute;
+    top: 2px; /* Adjust position slightly */
+    left: 5px; /* Adjust position slightly */
+}
+
+#controls-panel input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    flex-grow: 1;
+    background: var(--control-range-bg);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: var(--input-transition);
+}
+
+#controls-panel input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--control-range-thumb-color);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: var(--input-transition);
+}
+
+#controls-panel input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--control-range-thumb-color);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: var(--input-transition);
+    border: none;
+}
+
+#controls-panel input[type="range"]:hover {
+    background: var(--control-range-hover-bg);
+}
+
+#controls-panel input[type="range"]:hover::-webkit-slider-thumb,
+#controls-panel input[type="range"]:hover::-moz-range-thumb {
+    background: var(--button-color); /* Use general button color */
+    transform: scale(1.1);
+}
+
+/* Range value display */
+.range-value {
+  margin-left: var(--control-spacing);
+  font-size: 0.9em;
+  min-width: 30px; /* Ensure space for value */
+  text-align: right;
+  color: rgba(255, 255, 255, 0.85); /* Match label color */
+  flex-shrink: 0;
+}
+
+/* Generic Button Styles within Panel */
+#controls-panel button {
+    padding: 8px 14px;
+    cursor: pointer;
+    background-color: var(--button-color);
+    color: var(--control-text-color);
+    border: 1px solid var(--button-border-color);
+    border-radius: var(--control-element-radius);
+    transition: var(--button-transition); /* Use button transition */
+    font-weight: 500;
+    box-shadow: var(--control-button-shadow);
+}
+
+#controls-panel button:hover {
+    background-color: var(--button-hover-color);
+    transform: translateY(-1px);
+    box-shadow: var(--control-button-hover-shadow);
+}
+
+#controls-panel button:active {
+    background-color: var(--button-active-color);
+    transform: translateY(0);
+    box-shadow: var(--control-button-shadow);
+}
+
+/* Reset button specific styling */
+#controls-panel .reset-button { /* Target class added in JS */
+    background-color: var(--reset-button-color);
+    border-color: var(--reset-button-border-color);
+}
+
+#controls-panel .reset-button:hover {
+    background-color: var(--reset-button-hover-color);
+}
+
+#controls-panel .reset-button:active {
+    background-color: var(--reset-button-active-color);
+}
+
+/* Custom category link styling (acts like a button/link) */
+#apply-custom-category {
+    color: var(--link-color);
+    text-decoration: none;
+    cursor: pointer;
+    transition: var(--button-transition);
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-left: 5px;
+    font-size: 13px; /* Match label font size */
+}
+
+#apply-custom-category:hover {
+    color: var(--link-hover-color);
+    background-color: var(--link-hover-bg);
+}
+
+#apply-custom-category:active {
+    background-color: var(--link-active-bg);
+}
+
+/* Scrollbar styling for controls panel */
+#controls-panel::-webkit-scrollbar {
+    width: 8px;
+}
+
+#controls-panel::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+#controls-panel::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    border: 2px solid transparent; /* Add padding around thumb */
+    background-clip: content-box;
+}
+
+#controls-panel::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.4);
+}

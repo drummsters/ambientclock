@@ -1,0 +1,13 @@
+/**
+ * Base HTML and Body Styles for Ambient Clock v2
+ */
+
+html, body {
+  height: 100%;
+  width: 100%;
+  margin: 0; /* Remove default browser margin */
+  overflow: hidden; /* Prevent scrollbars */
+  font-family: var(--font-family-base);
+  color: var(--text-color);
+  /* background-color is handled by .app-background */
+}

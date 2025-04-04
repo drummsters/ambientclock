@@ -1,0 +1,64 @@
+/**
+ * Styles for the Next Background Button Element (v2)
+ */
+
+.next-background-button-element {
+    position: fixed;
+    right: 15px; /* Position from the right edge */
+    top: 50%; /* Center vertically */
+    transform: translateY(-50%); /* Adjust vertical centering */
+    z-index: var(--z-index-controls); /* Same level as controls panel */
+    background-color: var(--favorite-button-color); /* Match favorite toggle */
+    color: white;
+    border: none;
+    border-radius: 50%; /* Circular button */
+    width: 36px; /* Slightly larger than favorite toggle */
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    /* transition: all 0.2s ease, var(--visibility-transition); /* Removed complex transition */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    font-size: 20px; /* Make the '>' icon larger */
+    font-weight: bold;
+    line-height: 1;
+    opacity: 0; /* Start transparent */
+    visibility: hidden; /* Start hidden and not occupying space */
+    pointer-events: none; /* Don't capture events when hidden */
+    transition: opacity 0.2s ease, transform 0.2s ease; /* Explicitly transition only opacity and transform */
+}
+
+.next-background-button-element svg {
+    stroke: white; /* Match the button text color */
+}
+
+/* Class added by the element itself when a background provider is active */
+.next-background-button-element.provider-active {
+    visibility: visible; /* Occupy space when provider is active */
+    /* Opacity is still 0 until VisibilityManager adds .visible */
+}
+
+/* Class added by VisibilityManager on activity */
+/* Corrected selector to use class name */
+.next-background-button-element.visible {
+    opacity: 0.8; /* Fade in when active */
+    pointer-events: auto; /* Allow interactions */
+}
+
+/* Hover effect only applies when the button is fundamentally visible and interactable */
+/* Corrected selector */
+.next-background-button-element.provider-active.visible:hover {
+    background-color: var(--favorite-button-hover-color); /* Match favorite toggle */
+    transform: translateY(-50%) scale(1.05); /* Add slight scale on hover */
+    box-shadow: var(--control-button-hover-shadow); /* Use variable */
+    opacity: 1; /* Fully opaque on hover */
+}
+
+/* Active effect only applies when the button is fundamentally visible and interactable */
+/* Selector is correct */
+.next-background-button-element.provider-active.visible:active {
+    background-color: var(--favorite-button-active-color); /* Match favorite toggle */
+    transform: translateY(-50%) scale(1);
+    opacity: 1;
+}

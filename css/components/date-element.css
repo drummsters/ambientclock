@@ -1,0 +1,61 @@
+/**
+ * Styles for the Date Element (v2)
+ */
+
+/* Date Container (Positioned by JS via BaseElement) */
+/* #date-container is no longer needed if date is a BaseElement */
+
+/* Date Face */
+.date-face {
+    font-size: 5vw; /* Responsive font size similar to clean clock but smaller */
+    text-align: center;
+    /* cursor: move; /* Inherited from .base-element */
+    user-select: none; /* Prevent text selection during drag */
+    color: var(--text-color); /* Default color */
+    padding: 0; /* Remove padding to make container fit content exactly */
+    text-shadow: var(--text-shadow-base); /* Use variable */
+    width: fit-content; /* Ensure container fits the scaled text */
+    transform-origin: center center; /* Ensure scaling happens from the center */
+    /* transition: opacity 0.2s ease; /* Inherited from .base-element */
+    /* font-family and font-weight are now handled by data attributes below */
+    letter-spacing: 0.05em;
+    pointer-events: auto; /* Ensure the date text itself remains interactive */
+    white-space: nowrap; /* Prevent text wrapping within the face */
+    line-height: 1; /* Prevent extra line height */
+}
+
+/* Date Face when being dragged */
+/* .date-face.dragging is handled by .base-element.is-dragging */
+
+/* Separator Line (Common style, potentially move to a utility/shared file later) */
+.date-separator-line {
+    position: absolute;
+    bottom: 0; /* Position at the bottom of the parent face container */
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(to right,
+        rgba(255, 255, 255, 0),   /* Transparent start */
+        rgba(255, 255, 255, 0.5) 20%, /* Fade in - Reduced alpha */
+        rgba(255, 255, 255, 0.5) 80%, /* Solid middle - Reduced alpha */
+        rgba(255, 255, 255, 0)    /* Transparent end */
+    );
+    transform-origin: bottom center;
+    /* Opacity will be inherited from the parent element (.date-face) */
+    display: none; /* Hidden by default, shown by JS */
+    pointer-events: none; /* Don't interfere with interactions */
+}
+
+/* Apply font styles based on CSS variable and data attributes */
+.date-face {
+    /* Use the CSS variable set by JS, provide a fallback */
+    font-family: var(--date-font-family, 'Segoe UI', sans-serif);
+}
+
+.date-face[data-font-weight="bold"] {
+    font-weight: bold;
+}
+
+.date-face[data-font-weight="normal"] {
+    font-weight: normal;
+}

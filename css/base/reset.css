@@ -1,19 +1,9 @@
 /**
- * Reset CSS for the Ambient Clock application
- * Provides a clean slate for styling
+ * Basic CSS Reset for Ambient Clock v2
  */
 
-/* Basic Reset & Body */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-html, body {
-    height: 100%;
-    width: 100%;
-    overflow: hidden; /* Prevent scrollbars */
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: white; /* Default text color */
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }

@@ -1,546 +1,393 @@
-/**
- * Background Controls Module
- * Handles all background-related controls in the Ambient Clock application
- */
-
-import { getState, updateState } from '../../state.js';
-import { getElement, showElement, hideElement, addEvent } from '../../utils/dom.js';
-import { 
-    DEFAULT_IMAGE_SOURCE, 
-    DEFAULT_BACKGROUND_COLOR, 
-    DEFAULT_OVERLAY_OPACITY,
-    DEFAULT_ZOOM_ENABLED
-} from '../../config.js';
-import { 
-    updateOverlayOpacity, 
-    setBackgroundColor, 
-    fetchNewBackground, 
-    startBackgroundCycling, 
-    updateZoomEffect 
-} from '../background.js';
-
-// DOM elements
-let imageSourceSelect;
-let categorySelect;
-let customCategoryGroup;
-let customCategoryInput;
-let applyCustomCategoryButton;
-let colorPickerGroup;
-let backgroundColorInput;
-let backgroundOpacitySlider;
-let zoomEffectCheckbox;
-let nextBackgroundButton;
-// V1 Peapix additions
-let peapixCountryGroup;
-let peapixCountrySelect;
-const peapixCountries = { // Define country codes and names
-    au: 'Australia', br: 'Brazil', ca: 'Canada', cn: 'China', de: 'Germany',
-    fr: 'France', in: 'India', it: 'Italy', jp: 'Japan', es: 'Spain',
-    gb: 'United Kingdom', us: 'United States'
-};
-
+import { StateManager } from '../../core/state-manager.js';
+import { EventBus } from '../../core/event-bus.js';
+import { BackgroundService } from '../../services/background-service.js';
+import { ConfigManager } from '../../core/config-manager.js';
+import { BackgroundUIBuilder } from './ui/BackgroundUIBuilder.js'; // Import the builder
 
 /**
- * Initialize background controls
+ * Manages the UI controls for background settings within the control panel.
  */
-export function initBackgroundControls() {
-    // Get DOM elements
-    imageSourceSelect = getElement('image-source-select');
-    categorySelect = getElement('category-select');
-    customCategoryGroup = getElement('custom-category-group');
-    customCategoryInput = getElement('custom-category');
-    applyCustomCategoryButton = getElement('apply-custom-category');
-    colorPickerGroup = getElement('color-picker-group');
-    backgroundColorInput = getElement('background-color');
-    backgroundOpacitySlider = getElement('background-opacity-slider');
-    zoomEffectCheckbox = getElement('zoom-effect-checkbox');
-    nextBackgroundButton = getElement('next-background-button');
-
-    // --- V1 Peapix Additions ---
-    // Add Peapix option dynamically
-    if (imageSourceSelect) {
-        const peapixOption = document.createElement('option');
-        peapixOption.value = 'peapix';
-        peapixOption.textContent = 'Peapix (Bing)';
-        imageSourceSelect.appendChild(peapixOption);
+export class BackgroundControls {
+  /**
+   * Creates a BackgroundControls instance.
+   * @param {HTMLElement} parentContainer - The DOM element to append the controls to.
+   * @param {ConfigManager} configManager - The application's ConfigManager instance.
+   * @param {BackgroundService} backgroundService - The application's BackgroundService instance.
+   */
+  constructor(parentContainer, configManager, backgroundService) { // Added backgroundService
+    if (!parentContainer) {
+      throw new Error('BackgroundControls requires a parent container element.');
     }
+    if (!configManager) {
+      throw new Error('BackgroundControls requires a ConfigManager instance.');
+    }
+    if (!backgroundService) { // Added check for backgroundService
+      throw new Error('BackgroundControls requires a BackgroundService instance.');
+    }
+    this.parentContainer = parentContainer;
+    this.configManager = configManager; // Keep for potential future use
+    this.backgroundService = backgroundService; // Store reference
+    this.container = null; // The main container for these controls
+    this.elements = {}; // To store references to input elements
+    this.statePath = 'settings.background'; // Path to background settings in state
+    this.unsubscribers = []; // To store event bus unsubscribe functions
+    this.peapixCountries = { // Define country codes and names
+        au: 'Australia', br: 'Brazil', ca: 'Canada', cn: 'China', de: 'Germany',
+        fr: 'France', in: 'India', it: 'Italy', jp: 'Japan', es: 'Spain',
+        gb: 'United Kingdom', us: 'United States'
+    };
 
-    // Create and append Peapix country dropdown
-    peapixCountryGroup = document.createElement('div');
-    peapixCountryGroup.id = 'peapix-country-group';
-    peapixCountryGroup.className = 'control-group'; // Use existing class
-    peapixCountryGroup.style.display = 'none'; // Hide initially
+    console.log('BackgroundControls constructor called.');
+  }
 
-    const countryLabel = document.createElement('label');
-    countryLabel.htmlFor = 'peapix-country-select';
-    countryLabel.textContent = 'Country:';
-    peapixCountryGroup.appendChild(countryLabel);
+  /**
+   * Initializes the background controls: creates DOM, binds state, adds listeners.
+   * @returns {Promise<boolean>} True if initialization was successful.
+   */
+  async init() {
+    console.log('Initializing BackgroundControls...');
+    try {
+      // 1. Use the parent container directly (ControlPanel creates the section)
+      this.container = this.parentContainer;
+      // Ensure the container has a class for potential specific styling if needed
+      this.container.classList.add('background-controls-content');
 
-    peapixCountrySelect = document.createElement('select');
-    peapixCountrySelect.id = 'peapix-country-select';
-    Object.entries(peapixCountries).forEach(([code, name]) => {
-        const option = document.createElement('option');
-        option.value = code;
-        option.textContent = name;
-        peapixCountrySelect.appendChild(option);
+      // 2. Use the builder to create UI elements
+      const builder = new BackgroundUIBuilder(
+        this.container,
+        this.peapixCountries,
+        this.backgroundService.imageProviders
+      );
+      const builderResult = builder.build(); // Get the result object
+      this.elements = builderResult; // Store references (includes contentWrapper now)
+      this.contentWrapper = builderResult.contentWrapper; // Store specific reference
+
+      // 3. Bind to relevant state changes
+      this.bindToState();
+
+      // 4. Add event listeners for user interactions
+      this.addEventListeners();
+
+      console.log('BackgroundControls initialized successfully.');
+      return true;
+    } catch (error) {
+      console.error('Error initializing BackgroundControls:', error);
+      this.destroy(); // Clean up if init fails
+      return false;
+    }
+  }
+
+  /**
+   * Binds the controls to state changes from the EventBus.
+   */
+  bindToState() {
+    const eventName = `state:${this.statePath}:changed`;
+    const subscription = EventBus.subscribe(eventName, (backgroundState) => {
+      console.log(`[BackgroundControls] Event received: ${eventName}`, backgroundState);
+      this.updateUIFromState(backgroundState);
     });
-    peapixCountryGroup.appendChild(peapixCountrySelect);
+    this.unsubscribers.push(subscription.unsubscribe);
 
-    // Insert the country group after the image source group
-    const imageSourceGroup = imageSourceSelect?.closest('.control-group');
-    if (imageSourceGroup && imageSourceGroup.parentNode) {
-        imageSourceGroup.parentNode.insertBefore(peapixCountryGroup, imageSourceGroup.nextSibling);
+    // Apply initial state
+    const initialState = StateManager.getNestedValue(StateManager.getState(), this.statePath);
+    if (initialState) {
+      console.log('[BackgroundControls] Applying initial state:', initialState);
+      this.updateUIFromState(initialState);
     } else {
-        // Fallback: append to controls container if group not found
-        getElement('background-controls')?.appendChild(peapixCountryGroup);
+       console.log(`[BackgroundControls] No initial state found at path: ${this.statePath}`);
+       // Set default values in UI if needed
+       this.updateUIFromState({}); // Pass empty object to apply defaults
     }
-    // --- End V1 Peapix Additions ---
+  }
+
+  /**
+   * Updates the UI elements based on the provided state.
+   * @param {object} state - The background state object.
+   */
+  updateUIFromState(state = {}) {
+    console.log('[BackgroundControls] Updating UI from state:', state);
+    const currentType = state.type || 'color'; // Default to color
+    const currentSource = state.source || 'unsplash'; // Default source
+
+    this._updateTypeControls(currentType);
+    this._updateSourceControls(currentSource);
+    this._updatePeapixControls(state, currentType, currentSource);
+    this._updateCategoryControls(state, currentType, currentSource);
+    this._updateCommonControls(state);
+    this._updateCycleControls(state); // Added call
+    this._updateControlVisibilityAndState(state, currentType, currentSource);
+  }
+
+  /** Updates the Type select control */
+  _updateTypeControls(currentType) {
+    if (this.elements.typeSelect) {
+      this.elements.typeSelect.value = currentType;
+    }
+  }
+
+  /** Updates the Image Source select control */
+  _updateSourceControls(currentSource) {
+    if (this.elements.sourceSelect && !this.elements.sourceSelect.disabled) {
+      const sourceExists = Array.from(this.elements.sourceSelect.options).some(opt => opt.value === currentSource);
+      if (sourceExists) {
+        this.elements.sourceSelect.value = currentSource;
+      } else if (this.elements.sourceSelect.options.length > 0) {
+        this.elements.sourceSelect.value = this.elements.sourceSelect.options[0].value;
+        // Consider dispatching state update if source changed due to unavailability
+      }
+    }
+  }
+
+  /** Updates the Peapix Country select control */
+  _updatePeapixControls(state, currentType, currentSource) {
+    const showPeapixControls = currentType === 'image' && currentSource === 'peapix';
+    if (this.elements.peapixCountryGroup) {
+      this.elements.peapixCountryGroup.style.display = showPeapixControls ? 'flex' : 'none';
+    }
+    if (this.elements.peapixCountrySelect && showPeapixControls) {
+      this.elements.peapixCountrySelect.value = state.peapixCountry || 'us'; // Default 'us'
+    }
+  }
+
+  /** Updates the Category select and Custom Category input controls */
+  _updateCategoryControls(state, currentType, currentSource) {
+    const showCategoryControls = currentType === 'image' && currentSource !== 'peapix';
+    if (this.elements.categorySelectGroup) {
+      this.elements.categorySelectGroup.style.display = showCategoryControls ? 'flex' : 'none';
+    }
+    if (this.elements.customCategoryGroup) {
+      const showCustom = showCategoryControls && state.category === 'Other';
+      this.elements.customCategoryGroup.style.display = showCustom ? 'flex' : 'none';
+      if (this.elements.customCategoryInput && showCustom) {
+        this.elements.customCategoryInput.value = state.customCategory || '';
+      }
+    }
+    if (this.elements.categorySelect && showCategoryControls) {
+      this.elements.categorySelect.value = state.category || 'Nature';
+    }
+  }
+
+  /** Updates common controls like Opacity, Zoom, Info */
+  _updateCommonControls(state) {
+    // Opacity
+    if (this.elements.opacitySlider) {
+      const opacity = state.overlayOpacity ?? 0.5;
+      this.elements.opacitySlider.value = opacity;
+      if (this.elements.opacityValue) {
+        this.elements.opacityValue.textContent = parseFloat(opacity).toFixed(2);
+      }
+    }
+    // Zoom
+    if (this.elements.zoomCheckbox) {
+      this.elements.zoomCheckbox.checked = state.zoomEnabled ?? true;
+    }
+    // Info
+    if (this.elements.infoCheckbox) {
+      this.elements.infoCheckbox.checked = state.showInfo ?? true;
+    }
+    // Color Picker
+    if (this.elements.colorPicker) {
+        this.elements.colorPicker.value = state.color || '#000000'; // Default black
+    }
+  }
+
+  /** Updates cycle controls */
+  _updateCycleControls(state) {
+    if (this.elements.cycleEnableCheckbox) {
+        this.elements.cycleEnableCheckbox.checked = state.cycleEnabled ?? false;
+    }
+    if (this.elements.cycleIntervalInput) {
+        // Convert milliseconds from state to minutes for the input
+        const intervalMinutes = Math.round((state.cycleInterval ?? 300000) / 60000);
+        this.elements.cycleIntervalInput.value = intervalMinutes;
+    }
+  }
+
+  /** Updates the visibility and disabled state of controls based on type and source */
+  _updateControlVisibilityAndState(state, currentType, currentSource) {
+    const isImageType = currentType === 'image';
+    const isPeapixSource = currentSource === 'peapix';
+    const isCycleEnabled = state.cycleEnabled ?? false;
+
+    // --- Visibility ---
+    const setGroupDisplay = (element, condition) => {
+        // Use the stored group reference if available, otherwise find closest
+        const group = this.elements[`${element?.id?.replace(/-/g, '_').replace('_checkbox', '').replace('_input', '')}Group`] || element?.closest('.control-group');
+        if (group) group.style.display = condition ? 'flex' : 'none';
+    };
+
+    setGroupDisplay(this.elements.sourceSelect, isImageType);
+    // Peapix visibility handled in _updatePeapixControls
+    // Category visibility handled in _updateCategoryControls
+    // Custom Category visibility handled in _updateCategoryControls
+    setGroupDisplay(this.elements.zoomCheckbox, isImageType);
+    setGroupDisplay(this.elements.infoCheckbox, isImageType);
+    setGroupDisplay(this.elements.cycleEnableCheckbox, isImageType); // Show cycle enable only for images
+    setGroupDisplay(this.elements.cycleIntervalInput, isImageType && isCycleEnabled); // Show interval only if image type and cycle enabled
+    setGroupDisplay(this.elements.colorPicker, !isImageType); // Show color picker only if type is 'color'
+
+    // --- Disabled State ---
+    const imageControlsDisabled = !isImageType;
+    if (this.elements.colorPicker) this.elements.colorPicker.disabled = isImageType; // Disable color picker if type is 'image'
+    if (this.elements.sourceSelect) this.elements.sourceSelect.disabled = imageControlsDisabled;
+    if (this.elements.categorySelect) this.elements.categorySelect.disabled = imageControlsDisabled || isPeapixSource;
+    if (this.elements.customCategoryInput) this.elements.customCategoryInput.disabled = imageControlsDisabled || isPeapixSource;
+    if (this.elements.peapixCountrySelect) this.elements.peapixCountrySelect.disabled = imageControlsDisabled || !isPeapixSource;
+    if (this.elements.zoomCheckbox) this.elements.zoomCheckbox.disabled = imageControlsDisabled;
+    if (this.elements.infoCheckbox) this.elements.infoCheckbox.disabled = imageControlsDisabled;
+    if (this.elements.cycleEnableCheckbox) this.elements.cycleEnableCheckbox.disabled = imageControlsDisabled;
+    if (this.elements.cycleIntervalInput) this.elements.cycleIntervalInput.disabled = imageControlsDisabled || !isCycleEnabled;
+  }
 
 
-    // Set initial category in the dropdown (only on first load)
-    if (categorySelect) {
-        const state = getState();
-        const initialCategory = state.category || 
-                              (state.background && state.background.category) || 
-                              'Nature';
-        console.log("Setting initial category dropdown value to:", initialCategory);
-        categorySelect.value = initialCategory;
-    }
-    
-    // Add a direct event listener to the category dropdown
-    if (categorySelect) {
-        console.log("Adding direct event listener to category dropdown");
-        
-        // Ensure the dropdown is not disabled
-        categorySelect.disabled = false;
-        categorySelect.readOnly = false;
-        
-        // Add a direct event listener
-        categorySelect.onchange = function(event) {
-            console.log("Direct onchange event triggered with value:", this.value);
-            handleCategoryChange(event);
-        };
-        
-        // Add focus and blur event listeners to track when the dropdown is being interacted with
-        categorySelect.addEventListener('focus', function() {
-            console.log("Category dropdown focused");
-            this.setAttribute('data-is-focused', 'true');
+  /**
+   * Adds event listeners to the UI elements to dispatch state updates.
+   */
+  addEventListeners() {
+    if (!this.elements) return;
+
+    // Background Type Change
+    if (this.elements.typeSelect) {
+        this.elements.typeSelect.addEventListener('change', (event) => {
+            const newType = event.target.value;
+            this.dispatchStateUpdate({ type: newType });
+            // Immediately update UI visibility based on the new type
+            const currentState = StateManager.getNestedValue(StateManager.getState(), this.statePath) || {};
+            this.updateUIFromState({ ...currentState, type: newType });
         });
-        
-        categorySelect.addEventListener('blur', function() {
-            console.log("Category dropdown blurred");
-            this.removeAttribute('data-is-focused');
-            
-            // Get the current state category
-            const state = getState();
-            const stateCategory = state.category || 
-                               (state.background && state.background.category) || 
-                               'Nature';
-            
-            // If the dropdown value doesn't match the state after blur, update the state
-            if (this.value !== stateCategory) {
-                console.log("Category dropdown value changed after blur:", this.value);
-                updateState({ category: this.value });
+    }
+
+    // Image Source Change
+    if (this.elements.sourceSelect) {
+        this.elements.sourceSelect.addEventListener('change', (event) => {
+            const newSource = event.target.value;
+            // Dispatch update for source AND ensure type is 'image'
+            this.dispatchStateUpdate({ type: 'image', source: newSource });
+            // Immediately update UI visibility based on the new source/type
+            this.updateUIFromState({ ...StateManager.getNestedValue(StateManager.getState(), this.statePath), type: 'image', source: newSource });
+        });
+    }
+
+    // Peapix Country Select Change
+    if (this.elements.peapixCountrySelect) {
+        this.elements.peapixCountrySelect.addEventListener('change', (event) => {
+            this.dispatchStateUpdate({ peapixCountry: event.target.value });
+        });
+    }
+
+
+    // Image Category Select Change
+    if (this.elements.categorySelect) {
+        this.elements.categorySelect.addEventListener('change', (event) => {
+            const newCategory = event.target.value;
+            this.dispatchStateUpdate({ category: newCategory });
+            // If 'Other' is not selected, clear custom category
+            if (newCategory !== 'Other') {
+                this.dispatchStateUpdate({ customCategory: '' });
+             }
+             // Immediately update UI visibility
+             this.updateUIFromState({ ...StateManager.getNestedValue(StateManager.getState(), this.statePath), category: newCategory });
+         });
+     }
+
+    // Custom Image Category Input Change
+    if (this.elements.customCategoryInput) {
+        // Use 'change' or 'blur' to trigger update after user finishes typing
+        this.elements.customCategoryInput.addEventListener('change', (event) => {
+            // Only update if 'Other' is the selected category type
+            if (this.elements.categorySelect?.value === 'Other') {
+                this.dispatchStateUpdate({ customCategory: event.target.value });
             }
         });
     }
-    
-    // Set up event listeners
-    setupEventListeners();
-}
 
-/**
- * Set up event listeners for background controls
- */
-function setupEventListeners() {
-    // Image source select change
-    if (imageSourceSelect) {
-        addEvent(imageSourceSelect, 'change', handleImageSourceChange);
-    }
-
-    // Peapix Country select change
-    if (peapixCountrySelect) {
-        addEvent(peapixCountrySelect, 'change', handlePeapixCountryChange);
-    }
-
-    // Category select change
-    if (categorySelect) {
-        console.log("Setting up change event listener for category dropdown");
-        
-        // First, remove any existing event listeners to avoid duplicates
-        categorySelect.removeEventListener('change', handleCategoryChange);
-        
-        // Add the event listener
-        addEvent(categorySelect, 'change', handleCategoryChange);
-        
-        // Verify the event listener was added by checking if the dropdown is disabled
-        console.log("Category dropdown disabled:", categorySelect.disabled);
-        console.log("Category dropdown readOnly:", categorySelect.readOnly);
-    } else {
-        console.error("Category dropdown element not found during event setup");
-    }
-    
-    // Background color input change
-    if (backgroundColorInput) {
-        addEvent(backgroundColorInput, 'input', handleBackgroundColorChange);
-    }
-    
-    // Custom category input
-    if (customCategoryInput) {
-        addEvent(customCategoryInput, 'keydown', handleCustomCategoryKeydown);
-    }
-    
-    // Apply custom category button
-    if (applyCustomCategoryButton) {
-        addEvent(applyCustomCategoryButton, 'click', handleApplyCustomCategory);
-    }
-    
-    // Background opacity slider change
-    if (backgroundOpacitySlider) {
-        addEvent(backgroundOpacitySlider, 'input', function(event) {
-            const value = parseFloat(event.target.value);
-            console.log("Background opacity slider value:", value);
-            updateOverlayOpacity(value);
+    // Zoom Checkbox Change
+    if (this.elements.zoomCheckbox) {
+        this.elements.zoomCheckbox.addEventListener('change', (event) => {
+            this.dispatchStateUpdate({ zoomEnabled: event.target.checked });
         });
     }
-    
-    // Zoom effect checkbox change
-    if (zoomEffectCheckbox) {
-        addEvent(zoomEffectCheckbox, 'change', function(event) {
-            updateZoomEffect(event.target.checked);
+
+    // Show Info Checkbox Change
+    if (this.elements.infoCheckbox) {
+        this.elements.infoCheckbox.addEventListener('change', (event) => {
+            this.dispatchStateUpdate({ showInfo: event.target.checked });
         });
     }
-    
-    // Next background button click
-    if (nextBackgroundButton) {
-        addEvent(nextBackgroundButton, 'click', handleNextBackgroundClick);
-    }
-}
 
-/**
- * Update background controls based on current state
- */
-export function updateBackgroundControlsFromState() {
-    const state = getState();
-    
-    // Update image source select
-    const imageSource = state.imageSource ||
-                      (state.background && state.background.imageSource) ||
-                      DEFAULT_IMAGE_SOURCE;
-    if (imageSourceSelect) {
-        imageSourceSelect.value = imageSource;
-    }
-
-    // Update Peapix Country Select
-    if (peapixCountrySelect) {
-        const countryCode = state.peapixCountry ||
-                          (state.background && state.background.peapixCountry) ||
-                          'us';
-        peapixCountrySelect.value = countryCode;
-    }
-
-    // Show/Hide Peapix country group
-    if (peapixCountryGroup) {
-        if (imageSource === 'peapix') {
-            showElement(peapixCountryGroup, 'flex');
-        } else {
-            hideElement(peapixCountryGroup);
+    // Opacity Slider Change
+    if (this.elements.opacitySlider) {
+      this.elements.opacitySlider.addEventListener('input', (event) => {
+        const newOpacity = parseFloat(event.target.value);
+        if (this.elements.opacityValue) {
+          this.elements.opacityValue.textContent = newOpacity.toFixed(2);
         }
+        // Debounce this later if needed
+        this.dispatchStateUpdate({ overlayOpacity: newOpacity });
+      });
     }
 
-    // Show/Hide Category controls (hide if Peapix)
-    const showCategoryControls = imageSource !== 'peapix';
-    if (categorySelect) {
-        categorySelect.closest('.control-group').style.display = showCategoryControls ? 'flex' : 'none';
-    }
-    if (customCategoryGroup) {
-        // Custom group visibility depends on category being 'Custom' AND category controls being visible
-        const category = state.category || (state.background && state.background.category) || 'Nature';
-        customCategoryGroup.style.display = (showCategoryControls && category === 'Custom') ? 'flex' : 'none';
-    }
-
-
-    // We're intentionally NOT updating the category dropdown when the background image changes
-    // This allows the user to keep their selected category even when the background changes
-    if (categorySelect) {
-        console.log("updateBackgroundControlsFromState - NOT updating category dropdown to match state");
-        console.log("updateBackgroundControlsFromState - Current dropdown value:", categorySelect.value);
-        console.log("updateBackgroundControlsFromState - State category value:", state.category);
-    }
-    
-    // Update custom category input (only if category controls are visible)
-    if (customCategoryInput && showCategoryControls) {
-        const customCategory = state.customCategory ||
-                             (state.background && state.background.customCategory) ||
-                             '';
-        customCategoryInput.value = customCategory;
-    }
-
-    // Show/hide color picker (only if category is 'None' AND category controls are visible)
-    const category = state.category || (state.background && state.background.category) || 'Nature';
-    if (colorPickerGroup) {
-        if (showCategoryControls && category === 'None') {
-            showElement(colorPickerGroup, 'flex');
-        } else {
-            hideElement(colorPickerGroup);
-        }
-    }
-
-
-    // Update background color input
-    if (backgroundColorInput) {
-        const backgroundColor = state.backgroundColor || 
-                              (state.background && state.background.backgroundColor) || 
-                              DEFAULT_BACKGROUND_COLOR;
-        backgroundColorInput.value = backgroundColor;
-    }
-    
-    // Update background opacity slider
-    if (backgroundOpacitySlider) {
-        const overlayOpacity = state.overlayOpacity || 
-                             (state.background && state.background.overlayOpacity) || 
-                             DEFAULT_OVERLAY_OPACITY;
-        backgroundOpacitySlider.value = overlayOpacity;
-    }
-    
-    // Update zoom effect checkbox
-    if (zoomEffectCheckbox) {
-        // Check if zoomEnabled is explicitly defined in state
-        let zoomEnabled;
-        if (state.zoomEnabled !== undefined) {
-            zoomEnabled = state.zoomEnabled;
-        } else if (state.background && state.background.zoomEnabled !== undefined) {
-            zoomEnabled = state.background.zoomEnabled;
-        } else {
-            zoomEnabled = DEFAULT_ZOOM_ENABLED; // Default value from config
-        }
-        zoomEffectCheckbox.checked = zoomEnabled;
-    }
-}
-
-/**
- * Handles image source select change
- * @param {Event} event - The change event
- */
-function handleImageSourceChange(event) {
-    const imageSource = event.target.value;
-
-    // Update state
-    updateState({ imageSource });
-
-    // Immediately update UI visibility
-    const showPeapix = imageSource === 'peapix';
-    const showCategory = imageSource !== 'peapix';
-
-    if (peapixCountryGroup) {
-        peapixCountryGroup.style.display = showPeapix ? 'flex' : 'none';
-    }
-    if (categorySelect) {
-        categorySelect.closest('.control-group').style.display = showCategory ? 'flex' : 'none';
-    }
-    if (customCategoryGroup) {
-        // Hide custom group if category controls are hidden
-        customCategoryGroup.style.display = showCategory ? customCategoryGroup.style.display : 'none';
-    }
-     if (colorPickerGroup) {
-        // Hide color picker if category controls are hidden
-        colorPickerGroup.style.display = showCategory ? colorPickerGroup.style.display : 'none';
-    }
-
-
-    // If switching TO Peapix, trigger a background fetch
-    if (showPeapix) {
-        console.log("Switched to Peapix, fetching new background...");
-        fetchNewBackground(true); // Force fetch
-    }
-    // If switching AWAY from Peapix, trigger based on category (handled by handleCategoryChange if category is not 'Custom' or 'None')
-    else {
-        const currentCategory = getState().category || (getState().background && getState().background.category);
-        if (currentCategory !== 'Custom' && currentCategory !== 'None') {
-             console.log(`Switched away from Peapix to ${imageSource}, fetching new background for category ${currentCategory}...`);
-             fetchNewBackground(true); // Force fetch
-        }
-    }
-
-
-    console.log(`Image source changed to: ${imageSource}`);
-}
-
-/**
- * Handles Peapix country select change
- * @param {Event} event - The change event
- */
-function handlePeapixCountryChange(event) {
-    const countryCode = event.target.value;
-    updateState({ peapixCountry: countryCode });
-    console.log(`Peapix country changed to: ${countryCode}`);
-    // Fetch new background for the selected country
-    fetchNewBackground(true); // Force fetch
-}
-
-
-/**
- * Handles category select change
- * @param {Event} event - The change event
- */
-export function handleCategoryChange(event) {
-    console.log("handleCategoryChange called with value:", event.target.value);
-    
-    // Check if we're updating from a favorite - if so, don't trigger background changes
-    if (categorySelect.hasAttribute('data-updating-from-favorite')) {
-        console.log("Skipping category change handler - updating from favorite");
-        return;
-    }
-    
-    // Get the current value before changing
-    const currentValue = categorySelect.value;
-    console.log("Current dropdown value before change:", currentValue);
-    
-    const category = event.target.value;
-    console.log("New category value:", category);
-    
-    // Store the original value as a data attribute
-    if (!categorySelect.hasAttribute('data-original-value')) {
-        categorySelect.setAttribute('data-original-value', currentValue);
-    }
-    
-    // Update state
-    updateState({ category });
-    
-    // Log after state update
-    console.log("State updated with category:", category);
-    console.log("Dropdown value after state update:", categorySelect.value);
-    
-    // Force the dropdown to keep the new value
-    setTimeout(() => {
-        if (categorySelect.value !== category) {
-            console.log("Forcing category dropdown value to:", category);
-            categorySelect.value = category;
-        }
-    }, 0);
-    
-    // Show/hide custom category input based on selection
-    if (category === 'Custom' && customCategoryGroup) {
-        showElement(customCategoryGroup, 'flex');
-        hideElement(colorPickerGroup);
-        if (customCategoryInput) {
-            customCategoryInput.focus();
-        }
-        
-        // Don't fetch a new image yet for Custom category - wait for the user to enter a custom category
-        console.log("Custom category selected, waiting for user input");
-    } else if (category === 'None' && colorPickerGroup) {
-        hideElement(customCategoryGroup);
-        showElement(colorPickerGroup, 'flex');
-        
-        // Apply the current background color when switching to None
-        const { backgroundColor } = getState();
-        setBackgroundColor(backgroundColor, false);
-    } else {
-        hideElement(customCategoryGroup);
-        hideElement(colorPickerGroup);
-        
-        // Fetch a new image immediately with the new category
-        console.log("Fetching new background with category:", category);
-        
-        // Set a flag to indicate we're in the middle of a category change
-        // This will help prevent multiple background updates
-        window._changingCategory = true;
-        
-        // Import the background module to access startBackgroundCycling
-        import('../background.js').then(({ startBackgroundCycling }) => {
-            // Start background cycling with the new category
-            // This will handle fetching a new image
-            startBackgroundCycling(true, true); // Fetch new image immediately and force new image
-            
-            // Clear the flag after a short delay
-            setTimeout(() => {
-                window._changingCategory = false;
-            }, 500);
-        }).catch(err => {
-            console.error("Error importing background.js:", err);
-            window._changingCategory = false;
+    // Cycle Enable Checkbox Change
+    if (this.elements.cycleEnableCheckbox) {
+        this.elements.cycleEnableCheckbox.addEventListener('change', (event) => {
+            const isEnabled = event.target.checked;
+            this.dispatchStateUpdate({ cycleEnabled: isEnabled });
+            // Immediately update UI visibility
+            this.updateUIFromState({ ...StateManager.getNestedValue(StateManager.getState(), this.statePath), cycleEnabled: isEnabled });
         });
     }
-}
 
-/**
- * Handles background color input change
- * @param {Event} event - The input event
- */
-function handleBackgroundColorChange(event) {
-    const color = event.target.value;
-    
-    // Update state
-    updateState({ backgroundColor: color });
-    
-    // Update background if category is None
-    if (getState().category === 'None') {
-        // Use false for the second parameter to avoid infinite recursion
-        setBackgroundColor(color, false);
-    } else {
-        // Even if we're not showing a solid background color,
-        // we still want to update the overlay color
-        const state = getState();
-        const overlayOpacity = state.overlayOpacity || 
-                             (state.background && state.background.overlayOpacity);
-        
-        // Only update the overlay opacity if it's explicitly defined in the state
-        if (overlayOpacity !== undefined) {
-            console.log("Updating overlay opacity from handleBackgroundColorChange to:", overlayOpacity);
-            updateOverlayOpacity(overlayOpacity, false);
-        }
+    // Cycle Interval Input Change
+    if (this.elements.cycleIntervalInput) {
+        this.elements.cycleIntervalInput.addEventListener('change', (event) => {
+            const intervalMinutes = parseInt(event.target.value, 10);
+            if (!isNaN(intervalMinutes) && intervalMinutes >= 1) {
+                const intervalMs = intervalMinutes * 60000; // Convert minutes to milliseconds
+                this.dispatchStateUpdate({ cycleInterval: intervalMs });
+            }
+        });
     }
-    
-    // Log the color change for debugging
-    console.log(`Background color changed to: ${color}`);
-}
 
-/**
- * Handles custom category input keydown
- * @param {KeyboardEvent} event - The keydown event
- */
-function handleCustomCategoryKeydown(event) {
-    if (event.key === 'Enter') {
-        event.preventDefault();
-        applyCustomCategory();
+    // Background Color Picker Change (Use 'input' for live updates)
+    if (this.elements.colorPicker) {
+        this.elements.colorPicker.addEventListener('input', (event) => {
+            // Dispatch update for color AND ensure type is 'color'
+            this.dispatchStateUpdate({ type: 'color', color: event.target.value });
+            // Immediately update UI visibility based on the new type (might not be strictly necessary on 'input', but harmless)
+            this.updateUIFromState({ ...StateManager.getNestedValue(StateManager.getState(), this.statePath), type: 'color', color: event.target.value });
+        });
     }
-}
+  }
 
-/**
- * Handles apply custom category button click
- * @param {Event} event - The click event
- */
-function handleApplyCustomCategory(event) {
-    event.preventDefault();
-    applyCustomCategory();
-}
+  /**
+   * Dispatches an update to the StateManager for the background settings.
+   * @param {object} changes - An object containing the specific changes to the background state.
+   */
+  dispatchStateUpdate(changes) {
+    console.log('[BackgroundControls] Dispatching state update:', changes);
+    StateManager.update({
+      settings: {
+        background: changes
+      }
+    });
+  }
 
-/**
- * Applies the custom category
- */
-function applyCustomCategory() {
-    if (!customCategoryInput) return;
-    
-    const customCategory = customCategoryInput.value.trim();
-    if (customCategory) {
-        // Update state
-        updateState({ customCategory });
-        
-        // Fetch new background and force new image
-        startBackgroundCycling(true, true);
+  /**
+   * Cleans up resources used by the background controls.
+   */
+  destroy() {
+    console.log('Destroying BackgroundControls...');
+    // Unsubscribe from EventBus
+    this.unsubscribers.forEach(unsubscribe => unsubscribe());
+    this.unsubscribers = [];
+
+    // Remove only the wrapper we created, leaving the parent container intact
+    if (this.contentWrapper && this.contentWrapper.parentNode === this.container) {
+        this.container.removeChild(this.contentWrapper);
     }
-}
-
-/**
- * Handles next background button click
- * @param {Event} event - The click event
- */
-function handleNextBackgroundClick(event) {
-    event.preventDefault();
-    
-    // Fetch new background and force new image
-    fetchNewBackground(true);
-    
-    console.log("Fetching next background image");
+    this.contentWrapper = null; // Clear reference
+    // Don't nullify this.container as it belongs to ControlPanel
+    this.elements = {}; // Clear references
+    console.log('BackgroundControls destroyed.');
+  }
 }

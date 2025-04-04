@@ -1,21 +1,33 @@
 /**
- * Main CSS file for the Ambient Clock application
- * Imports all component and feature styles
+ * Main CSS Entry Point for Ambient Clock v2
+ * Imports all modular stylesheets.
+ * Order: Reset -> Variables -> Base -> Layout -> Components -> Features
  */
 
-/* Base styles */
-@import 'base/reset.css';
-@import 'base/variables.css';
+/* Base Styles */
+@import url('./base/reset.css');
+@import url('./base/variables.css');
+@import url('./base/base.css');
 
-/* Component styles */
-@import 'components/background.css';
-@import 'components/clock/clean.css';
-@import 'components/clock/analog.css';
-@import 'components/clock/led.css';
-@import 'components/controls.css';
-@import 'components/donate.css';
-@import 'components/favorites.css';
-@import 'components/responsive.css'; /* Added responsive design enhancements */
+/* Layout Styles */
+@import url('./layout/layout.css');
 
-/* Feature styles */
-@import 'features/effects.css';
+/* Component Styles */
+@import url('./components/base-element.css');
+@import url('./components/controls-panel.css');
+@import url('./components/controls-hint.css');
+@import url('./components/background-info.css');
+@import url('./components/donate.css');
+@import url('./components/favorite-toggle.css');
+@import url('./components/favorites-panel.css'); /* Separate panel */
+@import url('./components/favorites-controls.css'); /* Section in controls */
+@import url('./components/next-background-button.css');
+@import url('./components/date-element.css');
+@import url('./components/clock-element.css');
+@import url('./components/toast.css');
+
+/* Feature Styles */
+@import url('./features/effects.css');
+
+/* Import Google Fonts (Keep here or move to index.html <head>) */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap');

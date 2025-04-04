@@ -1,0 +1,42 @@
+/**
+ * Styles for the Background Info Element (v2)
+ */
+
+.background-info-element {
+    position: fixed; /* Fixed position */
+    bottom: 15px; /* Position near bottom */
+    right: 15px; /* Position near right */
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+    color: var(--text-color);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px; /* Small font size */
+    z-index: var(--z-index-element-info); /* Use variable */
+    opacity: 0; /* Start hidden */
+    visibility: hidden; /* Start hidden */
+    transition: var(--visibility-transition); /* Use variable */
+    pointer-events: none; /* Don't block clicks */
+    max-width: 300px; /* Limit width */
+}
+
+/* Control visibility with the 'visible' class */
+.background-info-element.visible {
+    opacity: 0.8; /* Slightly transparent */
+    visibility: visible;
+}
+
+.background-info-element .info-content {
+    /* Styles for the content inside (if needed) */
+}
+
+.background-info-element a {
+    color: var(--link-color);
+    text-decoration: none;
+    transition: color 0.2s ease;
+    pointer-events: auto; /* Ensure links are clickable */
+}
+
+.background-info-element a:hover {
+    color: var(--link-hover-color);
+    text-decoration: underline;
+}

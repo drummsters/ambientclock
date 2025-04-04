@@ -1,0 +1,171 @@
+/**
+ * Styles for the Favorites Panel Element (v2)
+ * This is the separate panel, distinct from the controls section.
+ */
+
+.favorites-panel-element {
+    position: fixed;
+    top: 15px; /* Position near top */
+    left: 15px; /* Position near left */
+    z-index: var(--z-index-element-info); /* Use variable */
+    background-color: rgba(30, 30, 40, 0.8); /* Similar to controls */
+    border-radius: 8px;
+    box-shadow: var(--control-panel-shadow);
+    border: 1px solid var(--control-section-border);
+    color: var(--control-text-color);
+    font-size: 13px;
+    opacity: 0; /* Start hidden */
+    visibility: hidden; /* Start hidden */
+    transition: var(--visibility-transition); /* Use variable */
+    pointer-events: none; /* Don't capture events when hidden */
+}
+
+/* Control visibility with the 'visible' class */
+.favorites-panel-element.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto; /* Allow interactions when visible */
+}
+
+.favorites-toggle-button { /* Button to show/hide the panel content */
+    padding: 6px 12px;
+    font-size: 12px;
+    background-color: rgba(100, 150, 255, 0.4);
+    color: var(--control-text-color);
+    border: none; /* Remove border */
+    border-radius: 8px 8px 0 0; /* Round top corners */
+    cursor: pointer;
+    transition: var(--button-transition);
+    display: block; /* Make it full width of container */
+    width: 100%;
+    text-align: center;
+}
+
+.favorites-toggle-button:hover {
+    background-color: rgba(100, 150, 255, 0.6);
+}
+
+.favorites-content { /* Container for the list and actions */
+    padding: 10px;
+    border-top: 1px solid var(--control-section-border);
+    min-width: 250px; /* Give it some width */
+    max-height: 300px; /* Limit height */
+    overflow-y: auto; /* Allow scrolling */
+    /* display: none; /* Initially hidden, toggled by JS */
+}
+
+.favorites-content h4 { /* Title inside the panel */
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    border-bottom: 1px solid var(--control-title-border);
+    padding-bottom: 5px;
+}
+
+.favorites-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 15px 0;
+}
+
+.favorites-list li {
+    padding: 5px 0;
+    border-bottom: 1px dashed var(--control-section-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 5px;
+}
+
+.favorites-list li:last-child {
+    border-bottom: none;
+}
+
+.favorites-list span { /* Favorite name */
+    flex-grow: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer; /* Indicate clickable to load */
+}
+.favorites-list span:hover {
+    color: var(--link-hover-color); /* Highlight on hover */
+}
+
+.favorites-list button { /* Generic button style in list */
+    padding: 3px 6px;
+    font-size: 11px;
+    background-color: var(--button-color);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: var(--button-transition);
+    flex-shrink: 0;
+    color: var(--control-text-color);
+}
+
+.favorites-list button:hover {
+    background-color: var(--button-hover-color);
+}
+
+.favorites-list .delete-favorite-button { /* Specific delete button */
+    background-color: var(--reset-button-color);
+}
+.favorites-list .delete-favorite-button:hover {
+    background-color: var(--reset-button-hover-color);
+}
+
+.favorites-actions { /* Container for add input/button */
+    display: flex;
+    gap: 5px;
+    margin-top: 10px;
+    border-top: 1px solid var(--control-section-border);
+    padding-top: 10px;
+}
+
+.favorites-actions .favorite-name-input {
+    flex-grow: 1;
+    padding: 5px 8px;
+    font-size: 12px;
+    background-color: var(--control-input-bg);
+    color: var(--control-text-color);
+    border: 1px solid var(--control-border-color);
+    border-radius: 4px;
+    height: auto; /* Override default height if needed */
+}
+
+.favorites-actions .add-favorite-button {
+    padding: 5px 10px;
+    font-size: 12px;
+    background-color: var(--button-color);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: var(--button-transition);
+    flex-shrink: 0;
+    color: var(--control-text-color);
+}
+
+.favorites-actions .add-favorite-button:hover {
+    background-color: var(--button-hover-color);
+}
+
+/* Scrollbar styling for favorites content */
+.favorites-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.favorites-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+}
+
+.favorites-content::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.favorites-content::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.4);
+}

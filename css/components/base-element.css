@@ -1,0 +1,18 @@
+/**
+ * Base Styles for Draggable UI Elements (v2)
+ */
+
+.base-element {
+  position: absolute; /* Positioned by JS */
+  will-change: transform, opacity; /* Performance hint */
+  cursor: grab; /* Indicate draggable */
+  transition: opacity 0.3s ease; /* Add opacity transition */
+  z-index: var(--z-index-elements); /* Base stacking context */
+}
+
+.base-element.is-dragging {
+    cursor: grabbing; /* Indicate active drag */
+    user-select: none; /* Prevent text selection during drag */
+    z-index: var(--z-index-dragging); /* Bring to front while dragging */
+    opacity: 0.8; /* Slightly transparent when dragging (optional, can be overridden) */
+}

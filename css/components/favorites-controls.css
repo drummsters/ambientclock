@@ -1,0 +1,164 @@
+/**
+ * Styles for the Favorites Section within the main Controls Panel (v2)
+ * Adapted from v1 favorites-panel styles integrated into controls.
+ */
+
+/* Styles for the section within the main #controls-panel */
+/* Assumes parent is .control-section */
+
+.favorites-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--control-spacing); /* Use variable */
+}
+
+.favorites-count { /* Renamed from #favorites-count */
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+/* Use a more specific selector if needed, or rely on general button styles */
+.clear-favorites-button { /* Specific style for clear button */
+    padding: 4px 8px; /* Smaller padding */
+    font-size: 12px; /* Smaller font */
+    /* Inherits base button styles, override background */
+    background-color: var(--reset-button-color); /* Use variable */
+    border-color: var(--reset-button-border-color); /* Use variable */
+}
+
+.clear-favorites-button:hover {
+    background-color: var(--reset-button-hover-color); /* Use variable */
+}
+
+.clear-favorites-button:active {
+    background-color: var(--reset-button-active-color); /* Use variable */
+}
+
+.favorites-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* Responsive columns */
+    gap: var(--control-spacing); /* Use variable */
+    margin-bottom: var(--control-spacing); /* Use variable */
+    max-height: 250px; /* Adjust max height as needed */
+    overflow-y: auto;
+    padding-right: 5px; /* Space for scrollbar */
+}
+
+.favorite-item {
+    position: relative;
+    width: 100%;
+    padding-top: 75%; /* 4:3 aspect ratio */
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.favorite-item:hover {
+    transform: translateY(-2px);
+}
+
+.favorite-thumbnail {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background-color: #222; /* Placeholder background */
+}
+
+.favorite-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.7) 100%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    display: flex; /* Use flex for positioning */
+    justify-content: flex-end; /* Position actions to the right */
+    align-items: flex-start; /* Position actions to the top */
+    padding: 5px; /* Smaller padding */
+}
+
+.favorite-item:hover .favorite-overlay {
+    opacity: 1;
+}
+
+.favorite-actions {
+    /* No specific positioning needed if using flex on overlay */
+}
+
+.favorite-action-button {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px; /* Smaller button */
+    height: 20px; /* Smaller button */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    padding: 0; /* Remove padding */
+    line-height: 1; /* Ensure icon centers */
+    box-shadow: none; /* Remove default button shadow */
+}
+
+.favorite-action-button:hover {
+    background-color: rgba(255, 255, 255, 0.4);
+    transform: none; /* Override default button hover transform */
+}
+
+.favorite-action-button.remove-button {
+    background-color: rgba(255, 0, 0, 0.7) !important; /* More subtle red */
+}
+
+.favorite-action-button.remove-button:hover {
+    background-color: rgba(255, 0, 0, 0.9) !important;
+}
+
+.remove-icon {
+    display: inline-block;
+    font-size: 16px; /* Smaller icon */
+    font-weight: bold;
+    line-height: 1;
+    color: white;
+}
+
+.favorites-empty-message {
+    text-align: center;
+    padding: 20px 10px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 13px;
+    display: none; /* Hidden by default */
+}
+
+/* Show empty message when grid is empty (handled by JS adding/removing content) */
+.favorites-grid:empty + .favorites-empty-message {
+    display: block;
+}
+
+/* Scrollbar styling for favorites grid */
+.favorites-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.favorites-grid::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+}
+
+.favorites-grid::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.favorites-grid::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.4);
+}

@@ -1,22 +1,21 @@
 /**
- * CSS Variables for the Ambient Clock application
- * Centralizes color schemes and other design values
+ * CSS Variables for the Ambient Clock application v2
+ * Centralizes color schemes, spacing, transitions, and other design values.
  */
 
 :root {
-    /* Colors */
+    /* --- Colors --- */
+
+    /* Base */
     --text-color: white;
-    --background-color: #000000;
+    --background-color: #000000; /* Fallback, actual bg set on .app-background */
     --overlay-color: rgba(0, 0, 0, 1); /* Full color, actual opacity controlled by JavaScript */
-    
-    /* Control Panel Colors */
+
+    /* Control Panel & Shared Controls */
     --control-bg-color: rgba(30, 30, 40, 0.85);
     --control-hover-color: rgba(40, 40, 50, 0.9);
     --control-text-color: #f0f0f0;
     --control-border-color: rgba(255, 255, 255, 0.2);
-    --control-button-color: rgba(100, 150, 255, 0.6);
-    --control-button-hover-color: rgba(100, 150, 255, 0.8);
-    --control-button-active-color: rgba(80, 130, 235, 0.9);
     --control-section-border: rgba(255, 255, 255, 0.1);
     --control-title-border: rgba(255, 255, 255, 0.15);
     --control-input-bg: rgba(20, 20, 30, 0.6);
@@ -25,54 +24,96 @@
     --control-checkbox-checked: rgba(100, 150, 255, 0.6);
     --control-range-bg: rgba(255, 255, 255, 0.15);
     --control-range-hover-bg: rgba(255, 255, 255, 0.25);
-    
-    /* Link Colors */
-    --link-color: rgba(100, 150, 255, 0.9);
-    --link-hover-color: #fff;
-    --link-active-color: #fff;
-    --link-hover-bg: rgba(100, 150, 255, 0.3);
-    --link-active-bg: rgba(100, 150, 255, 0.5);
-    
-    /* Reset Button Colors */
+    --control-range-thumb-color: #fff; /* Explicit thumb color */
+
+    /* Buttons (General) */
+    --button-color: rgba(100, 150, 255, 0.6);
+    --button-hover-color: rgba(100, 150, 255, 0.8);
+    --button-active-color: rgba(80, 130, 235, 0.9);
+    --button-border-color: rgba(100, 150, 255, 0.2); /* Added for consistency */
+
+    /* Reset Buttons */
     --reset-button-color: rgba(220, 53, 69, 0.6);
     --reset-button-hover-color: rgba(220, 53, 69, 0.8);
     --reset-button-active-color: rgba(200, 35, 51, 0.9);
-    
-    /* LED Clock Colors */
-    --led-color: #ff0000;
-    --led-glow: rgba(255, 0, 0, 0.7);
-    
-    /* Analog Clock Colors */
+    --reset-button-border-color: rgba(220, 53, 69, 0.2); /* Added for consistency */
+
+    /* Links */
+    --link-color: rgba(100, 150, 255, 0.9);
+    --link-hover-color: #fff;
+    --link-active-color: #fff; /* Added for consistency */
+    --link-hover-bg: rgba(100, 150, 255, 0.3);
+    --link-active-bg: rgba(100, 150, 255, 0.5);
+
+    /* Favorite Toggle/Button Specific */
+    --favorite-button-color: rgba(100, 150, 255, 0.3);
+    --favorite-button-hover-color: rgba(100, 150, 255, 0.5);
+    --favorite-button-active-color: rgba(80, 130, 235, 0.6); /* Added for consistency */
+    --favorited-button-color: rgba(231, 76, 60, 0.7); /* Red when favorited */
+    --favorited-button-hover-color: rgba(231, 76, 60, 0.9); /* Added for consistency */
+
+    /* --- Clock Specific Colors --- */
+
+    /* LED Clock */
+    --led-color: #ff0000; /* Default LED color */
+    --led-glow: rgba(255, 0, 0, 0.7); /* Default LED glow */
+
+    /* Analog Clock */
     --analog-border-color: white;
     --analog-hour-hand-color: white;
     --analog-minute-hand-color: white;
     --analog-second-hand-color: red;
     --analog-center-dot-color: white;
-    
-    /* Flip Clock Colors */
-    --flip-card-top-color: #1f1f1f;
-    --flip-card-bottom-color: #2a2a2a;
-    --flip-card-text-color: #e0e0e0;
-    --flip-card-line-color: rgba(0, 0, 0, 0.5);
-    --flip-dot-color: #1f1f1f;
-    
-    /* Spacing */
-    --control-spacing: 10px;
-    --control-padding: 18px;
-    --control-border-radius: 12px;
-    --control-section-spacing: 20px;
-    --control-section-padding: 15px;
-    
-    /* Shadows */
+    --analog-face-bg: rgba(0, 0, 0, 0.1); /* Added for clarity */
+
+    /* Flip Clock (If added later) */
+    /* --flip-card-top-color: #1f1f1f; */
+    /* --flip-card-bottom-color: #2a2a2a; */
+    /* --flip-card-text-color: #e0e0e0; */
+    /* --flip-card-line-color: rgba(0, 0, 0, 0.5); */
+    /* --flip-dot-color: #1f1f1f; */
+
+    /* --- Spacing & Sizing --- */
+    --control-spacing: 10px; /* General spacing within controls */
+    --control-padding: 18px; /* Main panel padding */
+    --control-border-radius: 12px; /* Main panel border radius */
+    --control-section-spacing: 20px; /* Space between sections */
+    --control-section-padding: 15px; /* Padding at bottom of sections */
+    --control-element-height: 32px; /* Standard height for inputs/selects */
+    --control-element-padding-y: 6px; /* Vertical padding for inputs/selects */
+    --control-element-padding-x: 10px; /* Horizontal padding for inputs/selects */
+    --control-element-radius: 6px; /* Radius for inputs/selects/buttons */
+
+    /* --- Shadows --- */
     --control-panel-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     --control-input-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     --control-button-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     --control-button-hover-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    
-    /* Transitions */
+    --text-shadow-base: 1px 1px 2px rgba(0, 0, 0, 0.5); /* Base shadow for text elements */
+
+    /* --- Transitions --- */
     --fade-transition: opacity 0.5s ease;
-    --background-transition: background-image 1.5s ease-in-out;
+    --background-transition: opacity 1.5s ease-in-out; /* Changed from background-image */
     --overlay-transition: background-color 0.3s ease;
     --button-transition: all 0.2s ease;
     --input-transition: all 0.2s ease;
+    --visibility-transition: opacity 0.5s ease, visibility 0.5s ease; /* Common visibility fade */
+
+    /* --- Fonts --- */
+    --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --font-family-digital: 'Orbitron', sans-serif; /* Example for digital clocks */
+    --font-family-clean: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Example for clean clock/date */
+
+    /* --- Z-Indexes --- */
+    /* Define layers from back to front */
+    --z-index-background: -3;
+    --z-index-overlay: -2;
+    --z-index-elements: 10; /* Base for draggable elements */
+    --z-index-element-info: 90; /* Background info, favorite toggle, next button */
+    --z-index-hint: 95;
+    --z-index-controls-trigger: 99;
+    --z-index-controls: 100;
+    --z-index-dragging: 101; /* Element being dragged */
+    --z-index-dropdowns: 101; /* Donate dropdown */
+    --z-index-toast: 1000;
 }

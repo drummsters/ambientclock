@@ -1,290 +1,259 @@
-/**
- * Clock Controls Module
- * Handles all clock-related controls in the Ambient Clock application
- */
-
-import { getState, updateState } from '../../state.js';
-import { getElement, showElement, hideElement, addEvent } from '../../utils/dom.js';
-import { setClockFace, updateClockOpacity } from '../clock-manager.js';
-import { DEFAULT_CLOCK_OPACITY } from '../../config.js';
-
-// DOM elements
-let clockFaceSelect;
-let clockOpacitySlider;
-let clockScaleSlider;
-let cleanClockColorGroup;
-let cleanClockColorInput;
-let fontSelect;
-let boldCheckbox;
+import { StateManager } from '../../core/state-manager.js';
+import { EventBus } from '../../core/event-bus.js';
+import { StyleHandler } from '../base/mixins/StyleHandler.js';
+import { ClockControlsUIBuilder } from './ui/ClockControlsUIBuilder.js'; // Import the new UI Builder
 
 /**
- * Initialize clock controls
+ * Manages the UI controls for a specific Clock element within the control panel.
  */
-export function initClockControls() {
-    // Get DOM elements
-    clockFaceSelect = getElement('clockface-select');
-    clockOpacitySlider = getElement('clock-opacity-slider');
-    clockScaleSlider = getElement('clock-scale-slider');
-    cleanClockColorGroup = getElement('clean-clock-color-group');
-    cleanClockColorInput = getElement('clean-clock-color');
-    fontSelect = getElement('font-select');
-    boldCheckbox = getElement('font-bold');
-    
-    // Set up event listeners
-    setupEventListeners();
-}
+export class ClockControls {
+  /**
+   * Creates a ClockControls instance.
+   * @param {HTMLElement} parentContainer - The DOM element to append the controls to.
+   * @param {string} elementId - The ID of the clock element being controlled (e.g., 'clock-default').
+   */
+  constructor(parentContainer, elementId) {
+    if (!parentContainer) {
+      throw new Error('ClockControls requires a parent container element.');
+    }
+    if (!elementId) {
+        throw new Error('ClockControls requires the ID of the element to control.');
+    }
+    this.parentContainer = parentContainer;
+    this.elementId = elementId;
+    this.container = null; // The main container for these controls
+    this.elements = {}; // To store references to input elements
+    // Path to the specific element's options in the state
+    this.statePath = `elements.${this.elementId}.options`;
+    this.builder = new ClockControlsUIBuilder(this.elementId); // Instantiate the builder
+    this.unsubscribers = []; // To store event bus unsubscribe functions
 
-/**
- * Set up event listeners for clock controls
- */
-function setupEventListeners() {
-    // Clock face select change
-    if (clockFaceSelect) {
-        addEvent(clockFaceSelect, 'change', handleClockFaceChange);
-    }
-    
-    // Clock opacity slider change
-    if (clockOpacitySlider) {
-        addEvent(clockOpacitySlider, 'input', function(event) {
-            updateClockOpacity(parseFloat(event.target.value));
-        });
-    }
-    
-    // Clock scale slider change
-    if (clockScaleSlider) {
-        addEvent(clockScaleSlider, 'input', function(event) {
-            const scale = parseFloat(event.target.value);
-            console.log("Clock scale slider value:", scale);
-            
-            // Import the updateClockSize function from element-position.js
-            import('../../features/element-position.js').then(({ updateClockSize }) => {
-                updateClockSize(scale);
-            });
-        });
-    }
-    
-    // Clean clock color input change
-    if (cleanClockColorInput) {
-        addEvent(cleanClockColorInput, 'input', handleCleanClockColorChange);
-    }
-    
-    // Font select change
-    if (fontSelect) {
-        addEvent(fontSelect, 'change', handleFontChange);
-    }
-    
-    // Bold checkbox change
-    if (boldCheckbox) {
-        addEvent(boldCheckbox, 'change', handleBoldChange);
-    }
-}
+    console.log(`ClockControls constructor called for element ID: ${this.elementId}`);
+  }
 
-/**
- * Update clock controls based on current state
- */
-export function updateClockControlsFromState() {
-    const state = getState();
-    
-    // Update clock face select
-    if (clockFaceSelect) {
-        const clockFace = state.clockFace || 
-                        (state.clock && state.clock.clockFace) || 
-                        'clean-clock';
-        clockFaceSelect.value = clockFace;
-    }
-    
-    // Update clock opacity slider
-    if (clockOpacitySlider) {
-        const clockOpacity = state.clockOpacity || 
-                           (state.clock && state.clock.clockOpacity) || 
-                           DEFAULT_CLOCK_OPACITY;
-        clockOpacitySlider.value = clockOpacity;
-    }
-    
-    // Update clock scale slider
-    if (clockScaleSlider) {
-        const clockScale = state.scale || 
-                         (state.clock && state.clock.scale) || 
-                         1.4;
-        clockScaleSlider.value = clockScale;
-    }
-    
-    // Update font select
-    if (fontSelect) {
-        const fontFamily = state.fontFamily || 
-                         (state.global && state.global.fontFamily) || 
-                         "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
-        fontSelect.value = fontFamily;
-    }
-    
-    // Update bold checkbox
-    if (boldCheckbox) {
-        const fontBold = state.fontBold || 
-                       (state.global && state.global.fontBold) || 
-                       true; // Default to true to match CSS default
-        boldCheckbox.checked = fontBold;
-    }
-    
-    // Update clean clock color input and show/hide based on clock face
-    if (cleanClockColorInput) {
-        const cleanClockColor = state.cleanClockColor || 
-                              (state.clock && state.clock.cleanClockColor) || 
-                              '#FFFFFF';
-        cleanClockColorInput.value = cleanClockColor;
-        
-        // Show/hide clean clock color input based on clock face
-        const clockFace = state.clockFace || 
-                        (state.clock && state.clock.clockFace) || 
-                        'clean-clock';
-        if (clockFace === 'clean-clock' && cleanClockColorGroup) {
-            showElement(cleanClockColorGroup, 'flex');
-        } else if (cleanClockColorGroup) {
-            hideElement(cleanClockColorGroup);
-        }
-    }
-}
+  /**
+   * Initializes the clock controls: creates DOM, binds state, adds listeners.
+   * @returns {Promise<boolean>} True if initialization was successful.
+   */
+  async init() {
+    console.log(`Initializing ClockControls for ${this.elementId}...`);
+    try {
+      // 1. Create a container *within* the parent (ControlPanel)
+      // ControlPanel handles the main section structure
+      this.container = document.createElement('div');
+      this.container.className = 'clock-controls-content';
+      this.parentContainer.appendChild(this.container);
 
-/**
- * Handles clock face select change
- * @param {Event} event - The change event
- */
-function handleClockFaceChange(event) {
-    const clockFace = event.target.value;
-    setClockFace(clockFace);
-    
-    // Show/hide clean clock color input based on selection
-    if (clockFace === 'clean-clock' && cleanClockColorGroup) {
-        showElement(cleanClockColorGroup, 'flex');
-    } else if (cleanClockColorGroup) {
-        hideElement(cleanClockColorGroup);
-    }
-}
+      // 2. Build the UI using the builder and store element references
+      this.elements = this.builder.build(this.container);
 
-/**
- * Handles clean clock color input change
- * @param {Event} event - The input event
- */
-function handleCleanClockColorChange(event) {
-    const cleanClockColor = event.target.value;
-    
-    // Update state
-    updateState({ cleanClockColor });
-    
-    // Update clean clock color
-    const cleanClock = getElement('clean-clock');
-    if (cleanClock) {
-        cleanClock.style.color = cleanClockColor;
-    }
-    
-    console.log(`Clean clock color changed to: ${cleanClockColor}`);
-}
+      // 3. Bind to relevant state changes
+      this.bindToState();
 
-/**
- * Handles font select change
- * @param {Event} event - The change event
- */
-function handleFontChange(event) {
-    const fontFamily = event.target.value;
-    updateState({
-        global: {
-            fontFamily: fontFamily
-        }
+      // 4. Add event listeners for user interactions
+      this.addEventListeners();
+
+      console.log(`ClockControls for ${this.elementId} initialized successfully.`);
+      return true;
+    } catch (error) {
+      console.error(`Error initializing ClockControls for ${this.elementId}:`, error);
+      this.destroy(); // Clean up if init fails
+      return false;
+    }
+  }
+
+  // Removed createElements and helper methods (_create..., createControlGroup)
+  // UI creation is now handled by ClockControlsUIBuilder
+
+  /**
+   * Binds the controls to state changes for this specific clock element.
+   * Listens to both options changes and top-level element changes (like scale).
+   */
+  bindToState() {
+    // Listen for option changes
+    const optionsEventName = `state:${this.statePath}:changed`; // e.g., state:elements.clock-default.options:changed
+    const optionsSubscription = EventBus.subscribe(optionsEventName, (optionsState) => {
+      console.log(`[ClockControls ${this.elementId}] Event received: ${optionsEventName}`, optionsState);
+      this._updateOptionsUI(optionsState); // FIX: Call the renamed helper method
     });
-    
-    // Update CSS variable for broader component styling
-    document.documentElement.style.setProperty('--clean-clock-font', fontFamily);
-    
-    // Get the bold checkbox state
-    const isBold = boldCheckbox?.checked || false;
-    
-    // Directly update all clock elements
-    document.querySelectorAll('.clock-face').forEach(clock => {
-        clock.style.fontFamily = fontFamily;
-        clock.style.fontWeight = isBold ? 'bold' : 'normal';
-        
-        // Trigger reflow using offsetHeight
-        void clock.offsetHeight;
-    });
-}
+    this.unsubscribers.push(optionsSubscription.unsubscribe);
 
-/**
- * Handles bold checkbox change
- * @param {Event} event - The change event
- */
-function handleBoldChange(event) {
-    const isBold = event.target.checked;
-    console.log("Bold checkbox changed to:", isBold);
-    
-    // Update all clock elements directly without going through state
-    document.querySelectorAll('.clock-face').forEach(clock => {
-        clock.style.fontWeight = isBold ? 'bold' : 'normal';
+    // Listen for top-level element changes (for scale)
+    const elementStatePath = `elements.${this.elementId}`; // e.g., elements.clock-default
+    const elementEventName = `state:${elementStatePath}:changed`;
+    const elementSubscription = EventBus.subscribe(elementEventName, (elementState) => {
+        console.log(`[ClockControls ${this.elementId}] Event received: ${elementEventName}`, elementState);
+        this._updateElementUI(elementState); // Use helper
     });
-    
-    // Update state with skipNotify=true to prevent triggering other components
-    updateState({
-        global: {
-            fontBold: isBold
-        }
-    }, false, true);
-}
+    this.unsubscribers.push(elementSubscription.unsubscribe);
 
-/**
- * Populate font select with available fonts
- */
-export function populateFontSelect() {
-    if (!fontSelect) return;
-    
-    // Add new font options
-    const fonts = [
-        "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", // Default font should be first
-        "'Arial', Helvetica, sans-serif",
-        "'Times New Roman', Times, serif",
-        "'Courier New', Courier, monospace",
-        "'Roboto', sans-serif",
-        "'Open Sans', sans-serif",
-        "'Lato', sans-serif",
-        "'Montserrat', sans-serif",
-        "'Oswald', sans-serif",
-        "'Poppins', sans-serif",
-        "'Raleway', sans-serif",
-        "'Slabo 27px', serif",
-        "'Roboto Mono', Courier New, monospace",
-        "'Source Code Pro', Courier, monospace",
-        "'Fira Code', Courier, monospace",
-        "'Orbitron', sans-serif",
-        "Digital, monospace",
-        "Segment7, monospace",
-        "'Bebas Neue', sans-serif",
-        "Anton, sans-serif",
-        "Impact, sans-serif",
-        "Verdana, Geneva, sans-serif",
-        "'Trebuchet MS', sans-serif",
-        "Georgia, serif",
-        "'Palatino Linotype', Book Antiqua, Palatino, serif"
-    ];
-    
-    // Clear existing options
-    fontSelect.innerHTML = '';
-    
-    // Get the default font from state
-    const state = getState();
-    const defaultFont = state.fontFamily || 
-                      (state.global && state.global.fontFamily) || 
-                      "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
-    
-    // Add font options
-    fonts.forEach(font => {
-        const option = document.createElement('option');
-        option.value = font;
-        option.textContent = font.split(',')[0].replace(/'/g, '');
-        
-        // Set selected attribute if this is the default font
-        if (font === defaultFont) {
-            option.selected = true;
+
+    // Apply initial state for options
+    const initialOptionsState = StateManager.getNestedValue(StateManager.getState(), this.statePath);
+    if (initialOptionsState) {
+      console.log(`[ClockControls ${this.elementId}] Applying initial options state:`, initialOptionsState);
+      this._updateOptionsUI(initialOptionsState); // Use helper
+    } else {
+       console.log(`[ClockControls ${this.elementId}] No initial options state found at path: ${this.statePath}`);
+       this._updateOptionsUI({}); // Apply option defaults
+    }
+
+    // Apply initial state for element properties
+    const initialElementState = StateManager.getNestedValue(StateManager.getState(), elementStatePath);
+    if (initialElementState) {
+        console.log(`[ClockControls ${this.elementId}] Applying initial element state:`, initialElementState);
+        this._updateElementUI(initialElementState); // Use helper
+    } else {
+        console.log(`[ClockControls ${this.elementId}] No initial element state found.`);
+        this._updateElementUI({}); // Apply element defaults
+    }
+  }
+
+  /**
+   * Updates UI elements based on the provided clock options state.
+   * @param {object} optionsState - The clock options state object.
+   */
+  _updateOptionsUI(optionsState = {}) {
+     console.log(`[ClockControls ${this.elementId}] Updating UI from options state:`, optionsState);
+     if (!this.elements) return;
+
+     if (this.elements.faceSelect) this.elements.faceSelect.value = optionsState.face || 'led';
+     if (this.elements.formatSelect) this.elements.formatSelect.value = optionsState.timeFormat || '12';
+     if (this.elements.secondsCheckbox) this.elements.secondsCheckbox.checked = optionsState.showSeconds ?? true;
+     if (this.elements.fontSelect) this.elements.fontSelect.value = optionsState.fontFamily || 'Segoe UI';
+     if (this.elements.boldCheckbox) this.elements.boldCheckbox.checked = (optionsState.fontWeight === 'bold');
+     if (this.elements.colorPicker) this.elements.colorPicker.value = optionsState.color || '#FFFFFF';
+     if (this.elements.separatorCheckbox) this.elements.separatorCheckbox.checked = optionsState.showSeparator ?? false;
+  }
+
+  /**
+   * Updates UI elements based on the provided top-level element state (scale, opacity, effect).
+   * @param {object} elementState - The element state object.
+   */
+  _updateElementUI(elementState = {}) {
+      console.log(`[ClockControls ${this.elementId}] Updating UI from element state:`, elementState);
+      if (!this.elements) return;
+
+      // Scale
+      const currentScale = elementState.scale ?? 1.0;
+      if (this.elements.sizeSlider) {
+          this.elements.sizeSlider.value = currentScale;
+          if (this.elements.sizeValue) {
+              this.elements.sizeValue.textContent = parseFloat(currentScale).toFixed(2);
+          }
+      }
+
+      // Opacity
+      const currentOpacity = elementState.opacity ?? 1.0;
+      if (this.elements.opacitySlider) {
+          this.elements.opacitySlider.value = currentOpacity;
+          if (this.elements.opacityValue) {
+              this.elements.opacityValue.textContent = parseFloat(currentOpacity).toFixed(2);
+          }
+      }
+
+      // Effect Style
+      const currentStyle = elementState.effectStyle || 'flat';
+      if (this.elements.effectSelect) {
+          this.elements.effectSelect.value = currentStyle;
+      }
+  }
+
+  // Removed old updateUIScale, updateUIOpacity, updateUIEffectStyle methods
+  // Removed old updateUIFromState (replaced by _updateOptionsUI)
+
+  /**
+   * Adds event listeners to the UI elements to dispatch state updates.
+   */
+  addEventListeners() {
+    if (!this.elements) return;
+    this._addOptionsListeners();
+    this._addElementListeners();
+  }
+
+  /** Adds listeners for controls that modify the element's 'options' state */
+  _addOptionsListeners() {
+    this.elements.faceSelect?.addEventListener('change', (e) => this.dispatchStateUpdate({ face: e.target.value }));
+    this.elements.formatSelect?.addEventListener('change', (e) => this.dispatchStateUpdate({ timeFormat: e.target.value }));
+    this.elements.secondsCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ showSeconds: e.target.checked }));
+    this.elements.fontSelect?.addEventListener('change', (e) => this.dispatchStateUpdate({ fontFamily: e.target.value }));
+    this.elements.boldCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ fontWeight: e.target.checked ? 'bold' : 'normal' }));
+    this.elements.colorPicker?.addEventListener('input', (e) => this.dispatchStateUpdate({ color: e.target.value }));
+    this.elements.separatorCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ showSeparator: e.target.checked }));
+  }
+
+  /** Adds listeners for controls that modify the top-level element state (scale, opacity, effect) */
+  _addElementListeners() {
+    // Size Slider Change
+    this.elements.sizeSlider?.addEventListener('input', (e) => {
+        const newScale = parseFloat(e.target.value);
+        if (this.elements.sizeValue) {
+            this.elements.sizeValue.textContent = newScale.toFixed(2);
         }
-        
-        fontSelect.appendChild(option);
+        this.dispatchElementStateUpdate({ scale: newScale });
     });
-    
-    console.log("Font select populated with default:", defaultFont);
+
+    // Opacity Slider Change
+    this.elements.opacitySlider?.addEventListener('input', (e) => {
+        const newOpacity = parseFloat(e.target.value);
+        if (this.elements.opacityValue) {
+            this.elements.opacityValue.textContent = newOpacity.toFixed(2);
+        }
+        this.dispatchElementStateUpdate({ opacity: newOpacity });
+    });
+
+    // Effect Style Select Change
+    this.elements.effectSelect?.addEventListener('change', (e) => {
+        this.dispatchElementStateUpdate({ effectStyle: e.target.value });
+    });
+  }
+
+  /**
+   * Dispatches an update to the StateManager for this clock element's options.
+   * @param {object} optionChanges - An object containing the specific changes to the clock options.
+   */
+  dispatchStateUpdate(optionChanges) {
+    console.log(`[ClockControls ${this.elementId}] Dispatching options state update:`, optionChanges);
+    // Construct the nested update payload for StateManager under options
+    const updatePayload = {
+        elements: {
+            [this.elementId]: {
+                options: optionChanges
+            }
+        }
+    };
+    StateManager.update(updatePayload);
+  }
+  
+  /**
+   * Dispatches an update to the StateManager for the top-level element properties (like scale).
+   * @param {object} elementChanges - An object containing the specific changes to the element state.
+   */
+  dispatchElementStateUpdate(elementChanges) {
+      console.log(`[ClockControls ${this.elementId}] Dispatching element state update:`, elementChanges);
+      const updatePayload = {
+          elements: {
+              [this.elementId]: elementChanges
+          }
+      };
+      StateManager.update(updatePayload);
+  }
+
+  /**
+   * Cleans up resources used by the clock controls.
+   */
+  destroy() {
+    console.log(`Destroying ClockControls for ${this.elementId}...`);
+    // Unsubscribe from EventBus
+    this.unsubscribers.forEach(unsubscribe => unsubscribe());
+    this.unsubscribers = [];
+
+    // Remove elements from DOM (clear the container we created)
+    if (this.container && this.container.parentNode) {
+      this.container.parentNode.removeChild(this.container);
+    }
+    this.container = null; // Nullify the container we created
+    this.elements = {}; // Clear references
+    console.log(`ClockControls for ${this.elementId} destroyed.`);
+  }
 }

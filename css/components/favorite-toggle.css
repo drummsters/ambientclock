@@ -1,0 +1,74 @@
+/**
+ * Styles for the Favorite Toggle Element (v2 - Adapted from v1 background-info heart)
+ */
+
+.favorite-toggle-element-container { /* Container for positioning */
+    position: fixed;
+    top: 15px; /* Adjust as needed */
+    right: 15px; /* Adjust as needed */
+    z-index: var(--z-index-element-info); /* Use variable */
+    opacity: 0; /* Start hidden - controlled by VisibilityManager */
+    visibility: hidden; /* Start hidden */
+    transition: var(--visibility-transition); /* Use variable */
+    pointer-events: none; /* Don't capture events when hidden */
+}
+
+.favorite-toggle-element-container.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto; /* Allow interactions when visible */
+}
+
+.favorite-toggle { /* Style the button directly */
+    display: inline-flex; /* Use inline-flex */
+    align-items: center;
+    justify-content: center; /* Center the icon */
+    padding: 8px; /* Adjust padding for icon-only */
+    background-color: var(--favorite-button-color); /* Use variable */
+    border: none;
+    border-radius: 50%; /* Make it circular */
+    color: white;
+    cursor: pointer;
+    transition: var(--button-transition); /* Use variable */
+    width: 32px; /* Explicit size */
+    height: 32px; /* Explicit size */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.favorite-toggle:hover {
+    background-color: var(--favorite-button-hover-color); /* Use variable */
+    transform: translateY(-1px);
+    box-shadow: var(--control-button-hover-shadow); /* Use variable */
+}
+
+.favorite-toggle.favorited {
+    background-color: var(--favorited-button-color); /* Use variable */
+}
+
+.favorite-toggle.favorited:hover {
+    background-color: var(--favorited-button-hover-color); /* Use variable */
+}
+
+.heart-icon {
+    display: inline-block;
+    width: 16px; /* Icon size */
+    height: 16px; /* Icon size */
+    /* Inlined SVG for simplicity and reduced requests */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'%3E%3C/path%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    transform-origin: center;
+    vertical-align: middle; /* Align icon nicely */
+}
+
+.favorite-toggle.favorited .heart-icon {
+    /* Inlined SVG for filled heart */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'%3E%3C/path%3E%3C/svg%3E");
+    animation: heartbeat 0.3s ease-in-out;
+}
+
+@keyframes heartbeat {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}

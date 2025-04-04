@@ -1,0 +1,74 @@
+/**
+ * Styles for the Controls Hint Element (v2)
+ */
+
+.controls-hint-element {
+    position: fixed;
+    bottom: 20px; /* Position like v1 hint */
+    left: 50%; /* Center horizontally */
+    transform: translateX(-50%);
+    background-color: rgba(20, 20, 30, 0.7); /* Slightly more opaque */
+    color: var(--control-text-color);
+    padding: 10px 15px; /* Slightly larger padding */
+    border-radius: 8px;
+    font-size: 13px; /* Slightly smaller font */
+    z-index: var(--z-index-hint); /* Use variable */
+    opacity: 0; /* Start hidden */
+    visibility: hidden; /* Start hidden */
+    transition: var(--visibility-transition); /* Use variable */
+    cursor: pointer; /* Add pointer cursor */
+    box-shadow: var(--control-input-shadow);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border: 1px solid var(--control-section-border);
+    white-space: nowrap;
+    pointer-events: none; /* Don't capture events when hidden */
+}
+
+/* Control visibility with the 'visible' class */
+.controls-hint-element.visible {
+    opacity: 0.9; /* Match v1 style */
+    visibility: visible;
+    pointer-events: auto; /* Allow interactions when visible */
+}
+
+.controls-hint-element:hover {
+    background-color: rgba(30, 30, 40, 0.8); /* Slightly darker on hover */
+    box-shadow: var(--control-button-hover-shadow);
+}
+
+.controls-hint-element p {
+    margin: 0;
+}
+
+/* --- Deprecated V1 Hint Style (Keep for reference or remove later) --- */
+/*
+.controls-hint {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background-color: rgba(20, 20, 30, 0.5);
+    color: var(--control-text-color);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    z-index: 95;
+    opacity: 0;
+    transition: var(--fade-transition);
+    pointer-events: auto;
+    cursor: pointer;
+    box-shadow: var(--control-input-shadow);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border: 1px solid var(--control-section-border);
+}
+
+.controls-hint:hover {
+    background-color: rgba(30, 30, 40, 0.6);
+    box-shadow: var(--control-button-hover-shadow);
+}
+
+.controls-hint.visible {
+    opacity: 0.9;
+}
+*/

@@ -1,0 +1,68 @@
+/**
+ * Core Layout Styles for Ambient Clock v2
+ * Defines background, overlay, and element container structure.
+ */
+
+/* Background Layers */
+.app-background { /* Target the class */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: var(--z-index-background); /* Use variable */
+  background-color: var(--background-color); /* Fallback background */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat; /* Ensure no repeat */
+  opacity: 1; /* Default opacity */
+  transition: var(--background-transition); /* Use variable */
+  will-change: opacity; /* Performance hint */
+}
+
+/* Second background layer for crossfade */
+#app-background-b {
+  opacity: 0; /* Start second layer hidden */
+}
+
+/* Zoom Animation */
+@keyframes v2SlowZoom {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05); /* Subtle zoom */
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Zoom effect class */
+.app-background.zoom-effect {
+    animation: v2SlowZoom 60s ease-in-out infinite;
+    transform-origin: center center;
+}
+
+/* Overlay Layer */
+#app-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Opacity controlled by JS, set base color */
+  background-color: var(--overlay-color);
+  z-index: var(--z-index-overlay); /* Use variable */
+  pointer-events: none; /* Allow interaction with elements below */
+  transition: var(--overlay-transition); /* Use variable */
+}
+
+/* Elements Container */
+#elements-container {
+  position: relative; /* Allows absolute positioning of children */
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Contain elements */
+  z-index: var(--z-index-elements); /* Ensure elements are above overlay */
+}
