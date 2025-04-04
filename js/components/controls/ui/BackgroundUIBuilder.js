@@ -125,6 +125,9 @@ export class BackgroundUIBuilder {
         this.elements.customCategoryInput.type = 'text';
         this.elements.customCategoryInput.id = 'background-custom-category-input';
         this.elements.customCategoryInput.placeholder = 'Enter custom category';
+        // Allow any text input including spaces
+        this.elements.customCategoryInput.pattern = '.*';
+        this.elements.customCategoryInput.spellcheck = false;
         customGroup.appendChild(this.elements.customCategoryInput);
         customGroup.style.display = 'none'; // Hide initially
         this.elements.customCategoryGroup = customGroup; // Store reference
