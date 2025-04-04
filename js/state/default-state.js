@@ -10,14 +10,12 @@ export function getDefaultState() {
             type: 'image', // 'image' or 'color' (future)
             query: 'nature',
             provider: 'unsplash', // 'unsplash', 'pexels', 'peapix'
-            cycleEnabled: false,
-            cycleInterval: 15, // minutes
             color: '#000000', // Default background/overlay color
             overlayOpacity: 0.3,
             zoomEnabled: true,
                 showInfo: true, // Added default for showing background info
                 peapixCountry: 'us',
-                cycleEnabled: false, // Whether to automatically cycle backgrounds
+                cycleEnabled: true, // Whether to automatically cycle backgrounds
                 cycleInterval: 300000, // Interval in milliseconds (e.g., 300000 = 5 minutes)
             },
             // effects: { // Keep commented out unless re-implemented

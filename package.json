@@ -5,5 +5,8 @@
   },
   "dependencies": {
     "axios": "^1.8.4"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.7"
   }
 }

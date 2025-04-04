@@ -1,6 +1,20 @@
 import axios from 'axios';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Determine the directory of the current module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load .env.local ONLY if not in production (Vercel sets VERCEL_ENV)
+if (process.env.VERCEL_ENV !== 'production') {
+  dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
+  console.log('[API/Unsplash] Loaded .env.local for non-production environment.');
+}
 
 // Vercel environment variable (or similar for other platforms)
+// Now loaded by dotenv if not already set by Vercel
 const UNSPLASH_API_KEY = process.env.UNSPLASH_API_KEY;
 
 export default async (req, res) => {
