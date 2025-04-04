@@ -17,18 +17,22 @@ export class BackgroundService {
    * @param {HTMLElement} overlayContainer - The DOM element for the overlay layer.
    * @param {ConfigManager} configManager - The application's configuration manager.
    */
-  constructor(backgroundContainerA, backgroundContainerB, overlayContainer, configManager) {
+  constructor(backgroundContainerA, backgroundContainerB, overlayContainer, configManager, favoritesService) {
     if (!backgroundContainerA || !backgroundContainerB || !overlayContainer) {
       throw new Error('BackgroundService requires valid background (A & B) and overlay container elements.');
     }
     if (!configManager) {
       throw new Error('BackgroundService requires a ConfigManager instance.');
     }
+    if (!favoritesService) {
+      throw new Error('BackgroundService requires a FavoritesService instance.');
+    }
 
     this.backgroundContainerA = backgroundContainerA; // Store ref to first element
     this.backgroundContainerB = backgroundContainerB; // Store ref to second element
     this.overlayContainer = overlayContainer;
     this.configManager = configManager; // To check API keys later
+    this.favoritesService = favoritesService; // Store ref to favorites service
     this.currentBackgroundHandler = null; // Instance to handle current background type (ColorBackground, ImageBackground)
     this.imageProviders = new Map(); // Stores instances of image providers
     this.unsubscribeState = null;
@@ -132,7 +136,7 @@ export class BackgroundService {
             // }
 
             // Check if the selected provider is actually registered/configured
-            const selectedProviderName = config.source || 'unsplash'; // Default if not set
+            const selectedProviderName = config.provider || config.source || 'unsplash'; // Use provider field first
             if (!this.imageProviders.has(selectedProviderName)) {
                  console.warn(`[BackgroundService] Selected image provider "${selectedProviderName}" is not configured or registered. Falling back to color.`);
                  // Destroy the potentially half-created image handler if it exists
@@ -143,21 +147,48 @@ export class BackgroundService {
                  return; // Stop further processing for image type
             }
 
-            // Create and initialize the handler, passing both background elements
+            // Process config to preserve query and ensure provider is set
+            const processedConfig = { 
+                ...config,
+                source: selectedProviderName,
+                provider: selectedProviderName
+            };
+            // Only set default query if not switching to Other category and no query exists
+            if (!processedConfig.query && (!processedConfig.category || processedConfig.category !== 'Other')) {
+                processedConfig.query = this.getQueryFromConfig(processedConfig);
+            } else if (processedConfig.category === 'Other') {
+                // Clear query when switching to Other
+                delete processedConfig.query;
+            }
+            
             this.currentBackgroundHandler = new ImageBackgroundHandler(
                 this.backgroundContainerA,
                 this.backgroundContainerB,
-                config,
-                this.imageProviders, // Pass registered providers map
-                this.configManager
+                processedConfig,
+                this.imageProviders,
+                this.configManager,
+                this.favoritesService
             );
             await this.currentBackgroundHandler.init(); // Initialize (loads first image)
             // Start cycling if enabled
             this.updateCycling(config);
         } else {
-            // If already using ImageBackgroundHandler, just update it
+            // If already using ImageBackgroundHandler, update it with processed config
             console.log('[BackgroundService] Updating existing ImageBackgroundHandler.');
-            await this.currentBackgroundHandler.update(config);
+            const selectedProviderName = config.provider || config.source || 'unsplash';
+            const processedConfig = { 
+                ...config,
+                source: selectedProviderName,
+                provider: selectedProviderName
+            };
+            // Only set default query if not switching to Other category and no query exists
+            if (!processedConfig.query && (!processedConfig.category || processedConfig.category !== 'Other')) {
+                processedConfig.query = this.getQueryFromConfig(processedConfig);
+            } else if (processedConfig.category === 'Other') {
+                // Clear query when switching to Other
+                delete processedConfig.query;
+            }
+            await this.currentBackgroundHandler.update(processedConfig);
             // Update cycling based on potentially changed config
             this.updateCycling(config);
         }
@@ -179,6 +210,34 @@ export class BackgroundService {
         console.log('[BackgroundService] Updating existing ColorBackgroundHandler.');
         await this.currentBackgroundHandler.update(config); // Use await if update becomes async
     }
+  }
+
+  /**
+   * Gets the appropriate query string from the config.
+   * @param {object} config - The background configuration.
+   * @returns {string} The query to use for image search.
+   * @private
+   */
+  getQueryFromConfig(config) {
+    let query;
+    // If category is 'Other', use customCategory as the query
+    if (config.category === 'Other' && config.customCategory) {
+        query = config.customCategory;
+    }
+    // For standard categories, use the category name
+    else if (config.category && config.category !== 'Other') {
+        query = config.category;
+    }
+    // Preserve existing query if present
+    else if (config.query) {
+        query = config.query;
+    }
+    // Default to nature
+    else {
+        query = 'nature';
+    }
+    // Ensure consistent case
+    return query.toLowerCase();
   }
 
   /**

@@ -2,18 +2,94 @@ import { StateManager } from '../core/state-manager.js';
 import { StyleHandler } from '../components/base/mixins/StyleHandler.js';
 import * as logger from './logger.js'; // Import the logger
 
-// Store reference to control panel instance when setting up listeners
+// Store references to instances and state
 let controlPanelInstance = null;
+const NUDGE_AMOUNT = 0.1; // Percentage to move on each arrow key press
 
 /**
- * Sets up global keyboard listeners.
+ * Sets up global keyboard listeners and element selection.
  * @param {ControlPanel} panelInstance - The instance of the ControlPanel to toggle.
  */
 export function setupGlobalKeyListeners(panelInstance) {
     controlPanelInstance = panelInstance; // Store the instance
     logger.debug('Setting up global key listeners...');
-    window.removeEventListener('keydown', handleKeyDown); // Remove previous listener if any
+    
+    // Remove previous listeners if any
+    window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('keyup', handleKeyUp);
+    document.body.removeEventListener('click', handleBodyClick);
+    
+    // Add listeners
     window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    document.body.addEventListener('click', handleBodyClick);
+    
+    // Add click listeners to all draggable elements
+    setupElementSelection();
+}
+
+/**
+ * Sets up click listeners for element selection
+ */
+function setupElementSelection() {
+    document.querySelectorAll('.base-element').forEach(element => {
+        // Remove existing listener if any
+        element.removeEventListener('click', handleElementClick);
+        // Add new listener
+        element.addEventListener('click', handleElementClick);
+    });
+}
+
+/**
+ * Handles element click for selection
+ * @param {MouseEvent} event - The click event
+ */
+function handleElementClick(event) {
+    event.stopPropagation(); // Prevent body click from immediately deselecting
+    
+    // Deselect any previously selected elements
+    document.querySelectorAll('.base-element.selected').forEach(el => {
+        if (el !== event.currentTarget) {
+            el.classList.remove('selected', 'nudging');
+        }
+    });
+    
+    // Clear any existing hide timer
+    if (window.nudgeHideTimer) {
+        clearTimeout(window.nudgeHideTimer);
+        window.nudgeHideTimer = null;
+    }
+    
+    // Toggle selection on clicked element
+    event.currentTarget.classList.toggle('selected');
+    event.currentTarget.classList.remove('nudging');
+}
+
+/**
+ * Handles click on body to deselect elements
+ */
+function handleBodyClick(event) {
+    // Check if click was on control panel or its children
+    let target = event.target;
+    while (target && target !== document.body) {
+        if (target.classList?.contains('control-panel-element')) {
+            return; // Don't do anything if clicked on control panel
+        }
+        target = target.parentElement;
+    }
+
+    // If we get here, click was on background
+    
+    // Deselect any selected elements
+    document.querySelectorAll('.base-element.selected').forEach(el => {
+        el.classList.remove('selected');
+    });
+
+    // Only hide control panel if it's visible
+    const panel = document.querySelector('.control-panel');
+    if (panel?.style.display !== 'none') {
+        controlPanelInstance?.toggleVisibility();
+    }
 }
 
 /**
@@ -21,23 +97,87 @@ export function setupGlobalKeyListeners(panelInstance) {
  * @param {KeyboardEvent} event - The keyboard event.
  */
 function handleKeyDown(event) {
+    // Check if we're in an input field
+    const isInInput = document.activeElement?.tagName === 'INPUT' || 
+                     document.activeElement?.tagName === 'SELECT' || 
+                     document.activeElement?.tagName === 'TEXTAREA';
+
+    // Show outline when Ctrl is pressed if an element is selected
+    if (event.ctrlKey && !isInInput) {
+        const selectedElement = document.querySelector('.base-element.selected');
+        if (selectedElement) {
+            selectedElement.classList.add('nudging');
+        }
+    }
+
     // Toggle Control Panel with Space or 'c'
-    if (event.code === 'Space' || event.key === 'c') {
-        // Prevent default spacebar scroll
+    if (!isInInput && (event.code === 'Space' || event.key === 'c')) {
         if (event.code === 'Space') {
             event.preventDefault();
         }
-        // Check if focus is inside an input field to avoid toggling while typing
-        if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'SELECT') {
-            controlPanelInstance?.toggleVisibility(); // Use the stored instance
-        }
+        controlPanelInstance?.toggleVisibility();
     }
     // Toggle Debug Mode with Ctrl+Shift+Z
-    else if (event.ctrlKey && event.shiftKey && event.key === 'Z') { // Changed key from 'D' to 'Z'
-        event.preventDefault(); // Prevent default browser action if any
+    else if (event.ctrlKey && event.shiftKey && event.key === 'Z') {
+        event.preventDefault();
         logger.toggleDebugMode();
     }
-    // Example: Handle other global key presses if needed
+    // Handle nudge controls (Ctrl + Arrow keys)
+    else if (event.ctrlKey && !isInInput) {
+        const selectedElement = document.querySelector('.base-element.selected');
+        if (!selectedElement) return;
+
+        // Get the element's current position from state
+        const elementId = selectedElement.id;
+        const elementState = StateManager.getNestedValue(StateManager.getState(), `elements.${elementId}`);
+        if (!elementState?.position) return;
+
+        // Add nudging class for visual feedback
+        selectedElement.classList.add('nudging');
+
+        // Clear any existing hide timer
+        if (window.nudgeHideTimer) {
+            clearTimeout(window.nudgeHideTimer);
+        }
+
+        // Set timer to hide outline after nudging stops
+        window.nudgeHideTimer = setTimeout(() => {
+            selectedElement.classList.remove('nudging');
+        }, 1000);
+
+        let newX = elementState.position.x;
+        let newY = elementState.position.y;
+
+        switch (event.key) {
+            case 'ArrowLeft':
+                event.preventDefault();
+                newX = Math.max(0, newX - NUDGE_AMOUNT);
+                break;
+            case 'ArrowRight':
+                event.preventDefault();
+                newX = Math.min(100, newX + NUDGE_AMOUNT);
+                break;
+            case 'ArrowUp':
+                event.preventDefault();
+                newY = Math.max(0, newY - NUDGE_AMOUNT);
+                break;
+            case 'ArrowDown':
+                event.preventDefault();
+                newY = Math.min(100, newY + NUDGE_AMOUNT);
+                break;
+            default:
+                return;
+        }
+
+        // Update the element's position in state
+        StateManager.update({
+            elements: {
+                [elementId]: {
+                    position: { x: newX, y: newY }
+                }
+            }
+        });
+    }
 }
 
 /**
@@ -119,11 +259,32 @@ function handleWheelResize(event) {
 }
 
 /**
+ * Handle keyup events
+ * @param {KeyboardEvent} event - The keyboard event.
+ */
+function handleKeyUp(event) {
+    // Hide outline when Ctrl is released
+    if (!event.ctrlKey) {
+        const selectedElement = document.querySelector('.base-element.selected');
+        if (selectedElement) {
+            selectedElement.classList.remove('nudging');
+        }
+    }
+}
+
+/**
  * Removes all global listeners set up by this module.
  */
 export function removeGlobalListeners() {
     logger.debug('Removing global listeners...');
     window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('keyup', handleKeyUp);
+    document.body.removeEventListener('click', handleBodyClick);
+
+    // Remove selection listeners from elements
+    document.querySelectorAll('.base-element').forEach(element => {
+        element.removeEventListener('click', handleElementClick);
+    });
 
     const elementsContainer = document.getElementById('elements-container');
     if (elementsContainer) {

@@ -23,11 +23,21 @@ export class StyleHandler {
      * Updates the element's position based on percentage values.
      * @param {object} position - Object with x and y properties (percentages).
      */
-    updatePosition(position) {
-        if (!this.element.container || typeof position?.x !== 'number' || typeof position?.y !== 'number') return;
+    updatePosition(position, centered = false) {
+        if (!this.element.container) return;
 
-        this.element.container.style.left = `${position.x}%`;
-        this.element.container.style.top = `${position.y}%`;
+        // Update position in state when centering
+        if (centered) {
+            this.element.container.style.left = '50%';
+            this.element.container.style.top = '50%';
+            // Update state with centered position
+            this.element.stateBinding.updateElementState({
+                position: { x: 50, y: 50 }
+            });
+        } else if (typeof position?.x === 'number' && typeof position?.y === 'number') {
+            this.element.container.style.left = `${position.x}%`;
+            this.element.container.style.top = `${position.y}%`;
+        }
         // Use translate to center the element on its coordinates
         this.element.container.style.transform = `translate(-50%, -50%)`; // Only translate
         // Trigger render if needed (handled by updateFromState calling element.render)

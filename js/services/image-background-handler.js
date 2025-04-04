@@ -28,7 +28,7 @@ export class ImageBackgroundHandler {
    * @param {Map<string, object>} providers - Map of available image provider instances.
    * @param {ConfigManager} configManager - The application's configuration manager.
    */
-  constructor(containerA, containerB, initialConfig, providers, configManager) {
+  constructor(containerA, containerB, initialConfig, providers, configManager, favoritesService) {
     this.containerA = containerA;
     this.containerB = containerB;
     this.activeContainer = containerA; // Start with A as active
@@ -36,6 +36,7 @@ export class ImageBackgroundHandler {
     this.config = initialConfig;
     this.providers = providers; // Map of provider instances
     this.configManager = configManager;
+    this.favoritesService = favoritesService;
     this.type = 'image';
     this.currentImageUrl = null; // URL of the image in the *active* container
     this.isLoading = false; // Tracks if currently processing loadImage/loadNext
@@ -180,6 +181,35 @@ export class ImageBackgroundHandler {
    * @private
    */
   async _fetchImageData() {
+    // Check if we should use favorites
+    const useFavoritesOnly = this.config.useFavoritesOnly ?? false;
+    const favoritesCount = this.favoritesService.getFavoritesCount();
+
+    // If using favorites only mode, check minimum favorites requirement
+    if (useFavoritesOnly) {
+        if (favoritesCount < 2) {
+            logger.warn('[ImageBackgroundHandler] Favorites-only mode requires at least 2 favorites.');
+            return { error: 'insufficient_favorites', message: 'At least 2 favorites are required to use favorites-only mode.' };
+        }
+    }
+
+    // If using favorites only mode or random chance (10%) with available favorites
+    if ((useFavoritesOnly || (Math.random() < 0.1 && favoritesCount >= 2))) {
+        const favorite = this.favoritesService.getRandomFavorite();
+        if (favorite) {
+            logger.debug('[ImageBackgroundHandler] Using random favorite:', favorite);
+            return favorite;
+        }
+        // If favorites-only mode and getRandomFavorite failed, show error
+        if (useFavoritesOnly) {
+            logger.error('[ImageBackgroundHandler] Failed to get random favorite in favorites-only mode.');
+            return { error: 'favorites_error', message: 'Error loading favorite image.' };
+        }
+        // If random chance but failed to get favorite, fall through to normal provider logic
+        logger.warn('[ImageBackgroundHandler] Random favorite selection failed, using provider instead.');
+    }
+
+    // Normal provider logic
     const providerName = this.config.source || 'unsplash';
     let query = '';
     let countryCode = null;
@@ -195,10 +225,17 @@ export class ImageBackgroundHandler {
             : (this.config.category || 'nature');
         currentQueryKey = query;
 
-        // Prevent API call if category is 'Other' and customCategory is empty
-        if (this.config.category === 'Other' && !query) {
-            logger.warn('[ImageBackgroundHandler] Cannot fetch: Category is "Other" but custom category is empty.');
-            return { error: 'custom_category_empty', message: 'Enter Custom Category' };
+        // Handle empty query cases
+        if (!query) {
+            if (this.config.category === 'Other') {
+                logger.warn('[ImageBackgroundHandler] Cannot fetch: Category is "Other" but custom category is empty.');
+                return { error: 'custom_category_empty', message: 'Enter Custom Category' };
+            }
+            // Only default to nature if not in Other category
+            if (!this.config.category || this.config.category !== 'Other') {
+                query = 'nature';
+                logger.debug('[ImageBackgroundHandler] Empty query, defaulting to "nature"');
+            }
         }
     }
 
@@ -272,67 +309,133 @@ export class ImageBackgroundHandler {
    */
   async _fetchImageBatch() {
     if (this.isFetchingBatch) {
-        logger.debug('[ImageBackgroundHandler] _fetchImageBatch called while already fetching.'); // Changed to debug
+        logger.debug('[ImageBackgroundHandler] _fetchImageBatch called while already fetching.');
         return; // Prevent concurrent fetches
     }
     this.isFetchingBatch = true;
-    const providerName = this.config.source || 'unsplash'; // Get provider name early for logging
-    logger.debug(`[ImageBackgroundHandler] Starting batch fetch for provider: ${providerName}...`);
 
-    const provider = this.providers.get(providerName);
+    // Get initial provider name from config
+    let currentProviderName = this.config.source || 'unsplash';
+    
+    // Create ordered list of providers to try (excluding Peapix as it uses different params)
+    let providerFallbackOrder = [];
+    
+    // Start with the current provider
+    if (currentProviderName !== 'peapix') {
+        providerFallbackOrder.push(currentProviderName);
+    }
+    
+    // Add remaining providers in order, excluding the current one and Peapix
+    ['unsplash', 'pexels'].forEach(name => {
+        if (name !== currentProviderName && name !== 'peapix') {
+            providerFallbackOrder.push(name);
+        }
+    });
+
+    let lastError = null;
     let query = '';
     let countryCode = null;
     let newCacheKey = null;
 
-    if (!provider || typeof provider.getImageBatch !== 'function') {
-        logger.error(`[ImageBackgroundHandler] Provider "${providerName}" not found or doesn't support getImageBatch.`);
-        this.isFetchingBatch = false;
-        // Throw error to be caught by the awaiting caller (_fetchImageData)
-        throw new Error(`Invalid provider or missing getImageBatch for ${providerName}`);
-    }
+    // Special handling for Peapix - no fallback since it uses country codes
+    if (currentProviderName === 'peapix') {
+        const provider = this.providers.get('peapix');
+        if (!provider || typeof provider.getImageBatch !== 'function') {
+            this.isFetchingBatch = false;
+            throw new Error('Invalid provider or missing getImageBatch for peapix');
+        }
 
-    try {
-        // Determine query/country for the fetch
-        if (providerName === 'peapix') {
+        try {
             countryCode = this.config.peapixCountry || 'us';
             newCacheKey = countryCode;
-            logger.debug(`[ImageBackgroundHandler] Fetching batch for Peapix, country: ${countryCode}`); // Changed to debug
-            // Peapix getImageBatch takes countryCode as 3rd arg in our implementation
+            logger.debug(`[ImageBackgroundHandler] Fetching batch for Peapix, country: ${countryCode}`);
             this.imageCache = await provider.getImageBatch(query, BATCH_SIZE, countryCode);
-        } else {
+            this.currentBatchCountry = newCacheKey;
+            this.currentBatchQuery = null;
+            logger.debug(`[ImageBackgroundHandler] Peapix batch fetch successful. Added ${this.imageCache.length} images to cache.`);
+            this.isFetchingBatch = false;
+            return;
+        } catch (error) {
+            logger.error('[ImageBackgroundHandler] Error during Peapix batch fetch:', error);
+            this.imageCache = [];
+            this.isFetchingBatch = false;
+            throw error;
+        }
+    }
+
+    // For non-Peapix providers, try each one in order until success
+    for (const providerName of providerFallbackOrder) {
+        const provider = this.providers.get(providerName);
+        if (!provider || typeof provider.getImageBatch !== 'function') {
+            logger.warn(`[ImageBackgroundHandler] Provider "${providerName}" not found or invalid, trying next...`);
+            continue;
+        }
+
+        try {
             query = (this.config.category === 'Other')
-                ? (this.config.customCategory || '')
-                : (this.config.category || 'nature');
+                ? (this.config.customCategory?.toLowerCase() || '')
+                : (this.config.category?.toLowerCase() || 'nature');
             newCacheKey = query;
 
+            // Skip fetch if category is Other and query is empty
             if (this.config.category === 'Other' && !query) {
-                logger.warn('[ImageBackgroundHandler] Cannot fetch batch: Category is "Other" but custom category is empty.');
-                this.imageCache = []; // Clear cache if query is invalid
+                logger.debug('[ImageBackgroundHandler] Skipping fetch: Category is "Other" with no query.');
+                this.imageCache = [];
+                this.isFetchingBatch = false;
+                return;
+            }
+
+            logger.debug(`[ImageBackgroundHandler] Trying batch fetch from ${providerName}, query: "${query}"`);
+            this.imageCache = await provider.getImageBatch(query, BATCH_SIZE);
+            
+            // If successful, update state and cache keys
+            this.currentBatchQuery = newCacheKey;
+            this.currentBatchCountry = null;
+            
+            // If this wasn't the original provider, update the config
+            if (providerName !== currentProviderName) {
+                logger.log(`[ImageBackgroundHandler] Switched to provider ${providerName} due to rate limit on ${currentProviderName}`);
+                // Update both source and provider in config
+                this.config.source = providerName;
+                this.config.provider = providerName;
+                // Notify state of provider change while preserving query and other settings
+                const currentState = StateManager.getNestedValue(StateManager.getState(), 'settings.background') || {};
+                // Ensure both source and provider are updated together
+                const updatedState = {
+                    ...currentState,
+                    source: providerName,
+                    provider: providerName,
+                    query: this.config.query || newCacheKey // Preserve existing query if present
+                };
+                // Update state with synchronized fields
+                StateManager.update({
+                    settings: {
+                        background: updatedState
+                    }
+                });
+            }
+
+            logger.debug(`[ImageBackgroundHandler] Batch fetch successful from ${providerName}. Added ${this.imageCache.length} images to cache.`);
+            this.isFetchingBatch = false;
+            return;
+
+        } catch (error) {
+            lastError = error;
+            // Check if error is RateLimitError or has RateLimitError in its name (for cross-module instanceof issues)
+            if (error instanceof RateLimitError || error.name === 'RateLimitError') {
+                logger.warn(`[ImageBackgroundHandler] Rate limit hit for ${providerName}, trying next provider...`);
+                continue;
             } else {
-                 logger.debug(`[ImageBackgroundHandler] Fetching batch for ${providerName}, query: "${query}"`); // Changed to debug
-                 this.imageCache = await provider.getImageBatch(query, BATCH_SIZE);
+                logger.error(`[ImageBackgroundHandler] Non-rate-limit error from ${providerName}:`, error);
+                break; // Exit on non-rate-limit errors
             }
         }
-
-        // Update cache query/country key *after* successful fetch
-        if (providerName === 'peapix') {
-            this.currentBatchCountry = newCacheKey;
-            this.currentBatchQuery = null; // Clear the other key type
-        } else {
-            this.currentBatchQuery = newCacheKey;
-            this.currentBatchCountry = null; // Clear the other key type
-        }
-        logger.debug(`[ImageBackgroundHandler] Batch fetch successful for key: ${newCacheKey}. Added ${this.imageCache.length} images to cache.`);
-
-    } catch (error) {
-        logger.error(`[ImageBackgroundHandler] Error during batch fetch from ${providerName}:`, error);
-        this.imageCache = []; // Clear cache on error
-        // Re-throw the error so the awaiting caller (_fetchImageData) can handle it appropriately
-        throw error; // This could be RateLimitError or a generic Error
-    } finally {
-        this.isFetchingBatch = false;
-        logger.debug(`[ImageBackgroundHandler] Batch fetch process finished for provider: ${providerName}.`);
     }
+
+    // If we get here, all providers failed or we hit a non-rate-limit error
+    this.imageCache = [];
+    this.isFetchingBatch = false;
+    throw lastError || new Error('All providers failed or were invalid');
   }
 
 
@@ -375,9 +478,16 @@ export class ImageBackgroundHandler {
     }
 
     if (displayPlaceholder) {
-        // Use placeholder.com for visual feedback
-        const encodedText = encodeURIComponent(placeholderText);
-        targetContainer.style.backgroundImage = `url('https://via.placeholder.com/1920x1080.png/333333/FFFFFF?text=${encodedText}')`;
+        // Use data URL for placeholder to avoid external service dependencies
+        const placeholderDataUrl = `data:image/svg+xml,${encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+                <rect width="100%" height="100%" fill="#333333"/>
+                <text x="50%" y="50%" font-family="Arial" font-size="24" fill="#FFFFFF" text-anchor="middle" dy=".3em">
+                    ${placeholderText}
+                </text>
+            </svg>
+        `)}`;
+        targetContainer.style.backgroundImage = `url('${placeholderDataUrl}')`;
         this.applyStyles(targetContainer); // Apply styles even to placeholder
         logger.debug(`[ImageBackgroundHandler] Displaying placeholder in ${targetContainer.id}: ${placeholderText}`);
     } else if (finalImageUrl) {
@@ -406,7 +516,16 @@ export class ImageBackgroundHandler {
 
         } catch (preloadError) {
             logger.error(`[ImageBackgroundHandler] Error preloading image ${finalImageUrl}:`, preloadError);
-            targetContainer.style.backgroundImage = `url('https://via.placeholder.com/1920x1080.png/FF0000/FFFFFF?text=Error:+Failed+to+preload')`;
+            // Use data URL for preload error placeholder
+            const errorDataUrl = `data:image/svg+xml,${encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+                    <rect width="100%" height="100%" fill="#FF0000"/>
+                    <text x="50%" y="50%" font-family="Arial" font-size="24" fill="#FFFFFF" text-anchor="middle" dy=".3em">
+                        Error: Failed to preload image
+                    </text>
+                </svg>
+            `)}`;
+            targetContainer.style.backgroundImage = `url('${errorDataUrl}')`;
             this.applyStyles(targetContainer);
             metadataForState = null; // Clear metadata on preload error
         }
@@ -443,7 +562,16 @@ export class ImageBackgroundHandler {
         // Optionally display a generic error placeholder in inactive container
         const targetContainer = this.inactiveContainer;
         if (targetContainer) {
-            targetContainer.style.backgroundImage = `url('https://via.placeholder.com/1920x1080.png/FF0000/FFFFFF?text=Error+Loading+Favorite')`;
+            // Use data URL for favorite error placeholder
+            const errorDataUrl = `data:image/svg+xml,${encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+                    <rect width="100%" height="100%" fill="#FF0000"/>
+                    <text x="50%" y="50%" font-family="Arial" font-size="24" fill="#FFFFFF" text-anchor="middle" dy=".3em">
+                        Error Loading Favorite
+                    </text>
+                </svg>
+            `)}`;
+            targetContainer.style.backgroundImage = `url('${errorDataUrl}')`;
             this.applyStyles(targetContainer);
         }
     } finally {

@@ -157,6 +157,11 @@ export class ClockControls {
       if (this.elements.effectSelect) {
           this.elements.effectSelect.value = currentStyle;
       }
+
+      // Center
+      if (this.elements.centerCheckbox) {
+          this.elements.centerCheckbox.checked = elementState.centered ?? false;
+      }
   }
 
   // Removed old updateUIScale, updateUIOpacity, updateUIEffectStyle methods
@@ -205,6 +210,12 @@ export class ClockControls {
     // Effect Style Select Change
     this.elements.effectSelect?.addEventListener('change', (e) => {
         this.dispatchElementStateUpdate({ effectStyle: e.target.value });
+    });
+
+    // Center Link Click
+    this.elements.centerLink?.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.dispatchElementStateUpdate({ position: { x: 50, y: 50 } });
     });
   }
 

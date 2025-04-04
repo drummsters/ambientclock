@@ -34,7 +34,7 @@ export default async (req, res) => {
   }
 
   // Extract query parameters from the incoming request (e.g., query, orientation)
-  const { query, orientation, count = 10 } = req.query; // Default count to 10
+  const { query, orientation, count = 30, content_filter = 'high' } = req.query; // Default count to 10
 
   if (!query) {
     return res.status(400).json({ error: 'Missing required parameter: query' });
@@ -52,7 +52,8 @@ export default async (req, res) => {
       params: {
         query: query,
         orientation: orientation || 'landscape', // Default to landscape if not provided
-        count: count
+        count: count,
+        content_filter: content_filter
       }
     });
 

@@ -259,6 +259,40 @@ export class FavoritesService {
     }
 
     /**
+     * Gets a random favorite that is different from the current image.
+     * @returns {object|null} A randomly selected favorite object, or null if no suitable favorites exist.
+     */
+    getRandomFavorite() {
+        const favorites = this.getFavorites();
+        if (favorites.length < 2) {
+            logger.debug('[FavoritesService] getRandomFavorite: Not enough favorites exist (minimum 2 required).');
+            return null;
+        }
+
+        // Get current image URL
+        const currentImageUrl = StateManager.getState().currentImageMetadata?.url;
+        if (!currentImageUrl) {
+            // If no current image, just return a random favorite
+            const randomIndex = Math.floor(Math.random() * favorites.length);
+            return favorites[randomIndex];
+        }
+
+        // Filter out the current image
+        const availableFavorites = favorites.filter(fav => 
+            normalizeUrl(fav.url) !== normalizeUrl(currentImageUrl)
+        );
+
+        if (availableFavorites.length === 0) {
+            logger.debug('[FavoritesService] getRandomFavorite: No different favorites available.');
+            return null;
+        }
+
+        const randomIndex = Math.floor(Math.random() * availableFavorites.length);
+        logger.debug(`[FavoritesService] getRandomFavorite: Selected index ${randomIndex} from ${availableFavorites.length} available favorites.`);
+        return availableFavorites[randomIndex];
+    }
+
+    /**
      * Sets the background to a favorite image by its ID.
      * Publishes an event for the BackgroundService to handle the actual change.
      * @param {string} id - The ID of the favorite to apply.

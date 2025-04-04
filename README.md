@@ -19,16 +19,27 @@ A highly customizable ambient clock application featuring multiple display style
     *   Persistence via `localStorage`.
 *   **Flexible Element Customization:**
     *   Adjust opacity, position (drag & drop), and scale for Clock and Date elements independently.
+    *   Precise positioning system:
+        *   Click to select element (invisible selection state)
+        *   Hold Ctrl to show white dashed outline
+        *   Use Ctrl + Arrow keys to nudge by 0.1%
+        *   Release Ctrl to hide outline
+    *   Quick centering option for Clock and Date elements.
     *   Font selection and bold toggle for Clock and Date.
     *   Optional separator line for Clock and Date.
     *   Visual effects (Flat, Raised, Reflected).
 *   **Configurable Date Display:** Toggle visibility and choose from various formats.
 *   **Intuitive Controls:**
     *   Auto-hiding control panel organized by element (Background, Clock, Date, Favorites).
+    *   Panel automatically hides when clicking anywhere on background.
     *   UI Builder pattern used for complex controls, separating concerns.
     *   Live preview for color picker.
     *   Clickable hint message for easy access.
-*   **Keyboard Shortcuts:** Quick access to common actions (toggle controls, next background, toggle favorite, etc.).
+*   **Keyboard Shortcuts:**
+    *   Space/C: Show/hide controls panel
+    *   N: Load next background image
+    *   F: Toggle current image as favorite
+    *   Ctrl + Arrow keys: Nudge selected element in small increments
 *   **Settings Persistence:** User customizations are saved using `localStorage`.
 *   **Backend Proxy for APIs:** Simplifies setup by handling API keys server-side (using Vercel Serverless Functions defined in `/api`).
 
@@ -118,7 +129,8 @@ The V2 application resides primarily within the `/v2` directory and follows a mo
 *   `Space` or `C`: Show/hide controls panel
 *   `N`: Load next background image (if applicable)
 *   `F`: Toggle current image as favorite (if applicable)
-*   *(Add other relevant V2 shortcuts if they differ from V1)*
+*   `Ctrl`: Show outline on selected element
+*   `Ctrl + Arrow keys`: Nudge selected element by 0.1%
 
 ## Development
 

@@ -54,6 +54,11 @@ async function initApp() {
     // 4. Initialize Device Service (Optional, for responsive/touch features)
     // const deviceService = new DeviceService();
 
+    // 5. Initialize Favorites Service
+    logger.debug('[app.js] Initializing FavoritesService...');
+    const favoritesService = new FavoritesService(StateManager);
+
+    // 6. Initialize Background Service
     logger.debug('[app.js] Initializing BackgroundService...');
     const backgroundElementA = document.getElementById('app-background-a');
     const backgroundElementB = document.getElementById('app-background-b');
@@ -62,18 +67,14 @@ async function initApp() {
         throw new Error("Required background or overlay elements not found in the DOM.");
     }
 
-    // 5. Initialize Background Service
     const backgroundService = new BackgroundService(
       backgroundElementA,
       backgroundElementB,
       overlayElement,
-      configManager
+      configManager,
+      favoritesService
     );
     await backgroundService.init();
-
-    // 5.5 Initialize Favorites Service
-    logger.debug('[app.js] Initializing FavoritesService...');
-    const favoritesService = new FavoritesService(StateManager);
 
     // 6. Initialize Element Manager
     const elementManager = new ElementManager(
@@ -146,6 +147,14 @@ function setupAppListeners() {
 
 // --- Start Application ---
 // Wait for the DOM to be fully loaded before initializing
+// Add global reset function
+window.ambientClock = {
+    resetAndReload: () => {
+        localStorage.clear();
+        window.location.reload();
+    }
+};
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initApp().then(() => {

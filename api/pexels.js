@@ -20,7 +20,7 @@ export default async (req, res) => {
   }
 
   // Extract query parameters
-  const { query, orientation, per_page = 15 } = req.query; // Default per_page
+  const { query, orientation, per_page = 30, size = 'medium', page = Math.floor(Math.random() * 20) + 1  } = req.query; // Default per_page
 
   if (!query) {
     return res.status(400).json({ error: 'Missing required parameter: query' });
@@ -37,7 +37,9 @@ export default async (req, res) => {
       params: {
         query: query,
         orientation: orientation || 'landscape', // Default to landscape
-        per_page: per_page
+        per_page: per_page,
+        size: size,
+        page: page
       }
     });
 

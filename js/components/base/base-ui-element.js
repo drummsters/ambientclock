@@ -163,7 +163,9 @@ export class BaseUIElement {
     }
 
     // Delegate style updates to StyleHandler
-    if (state.position !== undefined) this.styleHandler.updatePosition(state.position);
+    if (state.position !== undefined || state.centered !== undefined) {
+      this.styleHandler.updatePosition(state.position, state.centered);
+    }
     if (state.scale !== undefined) this.styleHandler.updateScale(state.scale);
     if (state.opacity !== undefined) this.styleHandler.updateOpacity(state.opacity);
     if (state.effectStyle !== undefined) this.styleHandler.updateEffects(state.effectStyle);

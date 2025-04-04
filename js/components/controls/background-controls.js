@@ -185,6 +185,10 @@ export class BackgroundControls {
     if (this.elements.infoCheckbox) {
       this.elements.infoCheckbox.checked = state.showInfo ?? true;
     }
+    // Use Favorites Only
+    if (this.elements.favoritesOnlyCheckbox) {
+      this.elements.favoritesOnlyCheckbox.checked = state.useFavoritesOnly ?? false;
+    }
     // Color Picker
     if (this.elements.colorPicker) {
         this.elements.colorPicker.value = state.color || '#000000'; // Default black
@@ -213,6 +217,7 @@ export class BackgroundControls {
     const isImageType = currentType === 'image';
     const isPeapixSource = currentSource === 'peapix';
     const isCycleEnabled = state.cycleEnabled ?? false;
+    const useFavoritesOnly = state.useFavoritesOnly ?? false;
 
     // --- Visibility ---
     const setGroupDisplay = (element, condition) => {
@@ -222,6 +227,7 @@ export class BackgroundControls {
     };
 
     setGroupDisplay(this.elements.sourceSelect, isImageType);
+    setGroupDisplay(this.elements.favoritesOnlyCheckbox, isImageType); // Show favorites only for image type
     // Peapix visibility handled in _updatePeapixControls
     // Category visibility handled in _updateCategoryControls
     // Custom Category visibility handled in _updateCategoryControls
@@ -234,10 +240,10 @@ export class BackgroundControls {
     // --- Disabled State ---
     const imageControlsDisabled = !isImageType;
     if (this.elements.colorPicker) this.elements.colorPicker.disabled = isImageType; // Disable color picker if type is 'image'
-    if (this.elements.sourceSelect) this.elements.sourceSelect.disabled = imageControlsDisabled;
-    if (this.elements.categorySelect) this.elements.categorySelect.disabled = imageControlsDisabled || isPeapixSource;
-    if (this.elements.customCategoryInput) this.elements.customCategoryInput.disabled = imageControlsDisabled || isPeapixSource;
-    if (this.elements.peapixCountrySelect) this.elements.peapixCountrySelect.disabled = imageControlsDisabled || !isPeapixSource;
+    if (this.elements.sourceSelect) this.elements.sourceSelect.disabled = imageControlsDisabled || useFavoritesOnly;
+    if (this.elements.categorySelect) this.elements.categorySelect.disabled = imageControlsDisabled || isPeapixSource || useFavoritesOnly;
+    if (this.elements.customCategoryInput) this.elements.customCategoryInput.disabled = imageControlsDisabled || isPeapixSource || useFavoritesOnly;
+    if (this.elements.peapixCountrySelect) this.elements.peapixCountrySelect.disabled = imageControlsDisabled || !isPeapixSource || useFavoritesOnly;
     if (this.elements.zoomCheckbox) this.elements.zoomCheckbox.disabled = imageControlsDisabled;
     if (this.elements.infoCheckbox) this.elements.infoCheckbox.disabled = imageControlsDisabled;
     if (this.elements.cycleEnableCheckbox) this.elements.cycleEnableCheckbox.disabled = imageControlsDisabled;
@@ -250,6 +256,17 @@ export class BackgroundControls {
    */
   addEventListeners() {
     if (!this.elements) return;
+
+    // Use Favorites Only Change
+    if (this.elements.favoritesOnlyCheckbox) {
+        this.elements.favoritesOnlyCheckbox.addEventListener('change', (event) => {
+            const isEnabled = event.target.checked;
+            this.dispatchStateUpdate({ useFavoritesOnly: isEnabled });
+            // Immediately update UI visibility
+            const currentState = StateManager.getNestedValue(StateManager.getState(), this.statePath) || {};
+            this.updateUIFromState({ ...currentState, useFavoritesOnly: isEnabled });
+        });
+    }
 
     // Background Type Change
     if (this.elements.typeSelect) {
@@ -266,8 +283,15 @@ export class BackgroundControls {
     if (this.elements.sourceSelect) {
         this.elements.sourceSelect.addEventListener('change', (event) => {
             const newSource = event.target.value;
+            // Get current state to preserve settings
+            const currentState = StateManager.getNestedValue(StateManager.getState(), this.statePath) || {};
             // Dispatch update for source AND ensure type is 'image'
-            this.dispatchStateUpdate({ type: 'image', source: newSource });
+            this.dispatchStateUpdate({ 
+                ...currentState,
+                type: 'image', 
+                source: newSource,
+                provider: newSource // Ensure provider is set correctly
+            });
             // Immediately update UI visibility based on the new source/type
             this.updateUIFromState({ ...StateManager.getNestedValue(StateManager.getState(), this.statePath), type: 'image', source: newSource });
         });
@@ -285,44 +309,81 @@ export class BackgroundControls {
     if (this.elements.categorySelect) {
         this.elements.categorySelect.addEventListener('change', (event) => {
             const newCategory = event.target.value;
-            this.dispatchStateUpdate({ category: newCategory });
-            // If 'Other' is not selected, clear custom category
-            if (newCategory !== 'Other') {
-                this.dispatchStateUpdate({ customCategory: '' });
-             }
-             // Immediately update UI visibility
-             this.updateUIFromState({ ...StateManager.getNestedValue(StateManager.getState(), this.statePath), category: newCategory });
+            const currentState = StateManager.getNestedValue(StateManager.getState(), this.statePath) || {};
+            const provider = currentState.provider || currentState.source || 'unsplash';
+            
+            if (newCategory === 'Other') {
+                // When switching to Other, only update category and clear customCategory
+                this.dispatchStateUpdate({ 
+                    category: newCategory,
+                    customCategory: ''
+                });
+            } else {
+                // For standard categories, update category and query
+                this.dispatchStateUpdate({ 
+                    category: newCategory,
+                    customCategory: '',
+                    query: newCategory.toLowerCase() // Ensure consistent case for queries
+                });
+            }
+            
+            // Immediately update UI visibility
+            this.updateUIFromState({ 
+                ...StateManager.getNestedValue(StateManager.getState(), this.statePath), 
+                category: newCategory 
+            });
          });
      }
 
     // Custom Image Category Input Change
     if (this.elements.customCategoryInput) {
-        // Create a debounced version of the update function
-        let debounceTimeout;
-        const debouncedUpdate = (value) => {
-            clearTimeout(debounceTimeout);
-            debounceTimeout = setTimeout(() => {
-                if (this.elements.categorySelect?.value === 'Other') {
-                    this.dispatchStateUpdate({ customCategory: value });
-                }
-            }, 500); // 500ms delay
-        };
-
-        // Handle input updates with debounce
+        // Handle input changes
         this.elements.customCategoryInput.addEventListener('input', (event) => {
-            debouncedUpdate(event.target.value);
-        });
-
-        // Immediate update on blur (when input loses focus)
-        this.elements.customCategoryInput.addEventListener('blur', (event) => {
-            clearTimeout(debounceTimeout); // Clear any pending debounce
+            // Update UI immediately without triggering state update
+            const value = event.target.value.trim();
             if (this.elements.categorySelect?.value === 'Other') {
-                this.dispatchStateUpdate({ customCategory: event.target.value });
+                const existingState = StateManager.getNestedValue(StateManager.getState(), this.statePath) || {};
+                this.updateUIFromState({ 
+                    ...existingState, 
+                    category: 'Other',
+                    customCategory: value
+                });
             }
         });
 
-        // Clean up debounce timeout on destroy
-        this.unsubscribers.push(() => clearTimeout(debounceTimeout));
+        // Handle blur event
+        this.elements.customCategoryInput.addEventListener('blur', (event) => {
+            if (this.elements.categorySelect?.value === 'Other') {
+                const value = event.target.value.trim();
+                if (value) {
+                    // Get current state to preserve settings
+                    const currentState = StateManager.getNestedValue(StateManager.getState(), this.statePath) || {};
+                    // Ensure we preserve provider and source
+                    const provider = currentState.provider || currentState.source || 'unsplash';
+                    // Dispatch state update with all necessary fields
+                    this.dispatchStateUpdate({ 
+                        ...currentState,
+                        type: 'image', // Ensure type is set
+                        source: provider,
+                        provider: provider,
+                        category: 'Other',
+                        customCategory: value,
+                        query: value // Set query directly to ensure it's used immediately
+                    });
+                } else {
+                    // If empty, revert to previous state
+                    const existingState = StateManager.getNestedValue(StateManager.getState(), this.statePath) || {};
+                    this.updateUIFromState(existingState);
+                }
+            }
+        });
+        
+        // Handle Enter key
+        this.elements.customCategoryInput.addEventListener('keyup', (event) => {
+            if (event.key === 'Enter' && this.elements.categorySelect?.value === 'Other') {
+                event.target.blur(); // Remove focus to trigger blur event
+            }
+        });
     }
 
     // Zoom Checkbox Change
@@ -393,9 +454,23 @@ export class BackgroundControls {
    */
   dispatchStateUpdate(changes) {
     console.log('[BackgroundControls] Dispatching state update:', changes);
+    // Get current state to preserve settings
+    const currentState = StateManager.getNestedValue(StateManager.getState(), this.statePath) || {};
+    // If we're updating category/customCategory, ensure query is set correctly
+    let finalChanges = { ...changes };
+    if (changes.category === 'Other') {
+        // When switching to Other, only update category and customCategory
+        // Let the service handle query when customCategory is provided
+        delete finalChanges.query;
+    } else if (changes.category && changes.category !== 'Other') {
+        finalChanges.query = changes.category.toLowerCase();
+    }
     StateManager.update({
       settings: {
-        background: changes
+        background: {
+          ...currentState,
+          ...finalChanges
+        }
       }
     });
   }

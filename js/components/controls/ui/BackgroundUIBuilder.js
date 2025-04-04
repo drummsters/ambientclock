@@ -121,13 +121,11 @@ export class BackgroundUIBuilder {
         this.elements.categorySelectGroup = categoryGroup; // Store reference
 
         const customGroup = this.createControlGroup('Custom:');
-        this.elements.customCategoryInput = document.createElement('textarea');
+        this.elements.customCategoryInput = document.createElement('input');
+        this.elements.customCategoryInput.type = 'text';
         this.elements.customCategoryInput.id = 'background-custom-category-input';
         this.elements.customCategoryInput.placeholder = 'Enter custom category';
-        this.elements.customCategoryInput.rows = 1;
-        this.elements.customCategoryInput.style.resize = 'none';
-        this.elements.customCategoryInput.style.overflow = 'hidden';
-        this.elements.customCategoryInput.style.lineHeight = '1.5';
+        this.elements.customCategoryInput.maxLength = 30;
         this.elements.customCategoryInput.style.padding = '4px 8px';
         this.elements.customCategoryInput.style.width = '140px';
         customGroup.appendChild(this.elements.customCategoryInput);
@@ -172,6 +170,16 @@ export class BackgroundUIBuilder {
         infoGroup.appendChild(this.elements.infoCheckbox);
         infoGroup.querySelector('label').htmlFor = this.elements.infoCheckbox.id;
         controls.push(infoGroup);
+
+        // Use Favorites Only
+        const favoritesOnlyGroup = this.createControlGroup('Use Favorites Only:');
+        this.elements.favoritesOnlyCheckbox = document.createElement('input');
+        this.elements.favoritesOnlyCheckbox.type = 'checkbox';
+        this.elements.favoritesOnlyCheckbox.id = 'background-favorites-only-checkbox';
+        favoritesOnlyGroup.appendChild(this.elements.favoritesOnlyCheckbox);
+        favoritesOnlyGroup.querySelector('label').htmlFor = this.elements.favoritesOnlyCheckbox.id;
+        controls.push(favoritesOnlyGroup);
+        this.elements.favoritesOnlyGroup = favoritesOnlyGroup; // Store reference to group for visibility toggling
 
         // Cycle Enable
         const cycleEnableGroup = this.createControlGroup('Auto Cycle:');

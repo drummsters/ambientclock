@@ -20,3 +20,23 @@
     z-index: var(--z-index-dragging); /* Bring to front while dragging */
     opacity: 0.8; /* Slightly transparent when dragging (optional, can be overridden) */
 }
+
+.base-element.selected {
+    outline: 2px dashed rgba(255, 255, 255, 0.8); /* White dashed outline */
+    outline-offset: 2px; /* Space between element and outline */
+    z-index: calc(var(--z-index-dragging) + 1); /* Ensure selected element is on top */
+    transition: outline-color 0.3s ease; /* Smooth transition for outline hiding */
+}
+
+/* Hide outline during dragging */
+.base-element.selected.is-dragging {
+    outline-color: transparent;
+}
+
+.base-element.selected.nudging {
+    outline-color: rgba(255, 255, 255, 0.8); /* Show outline while nudging */
+}
+
+.base-element.selected:not(.nudging) {
+    outline-color: transparent; /* Hide outline when not nudging */
+}

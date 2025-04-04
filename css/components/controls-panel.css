@@ -305,6 +305,14 @@
     box-shadow: var(--control-button-shadow);
 }
 
+/* Center button specific styling */
+#controls-panel .center-button {
+    width: 100%;
+    margin-top: 4px;
+    font-size: 13px;
+    padding: 6px 12px;
+}
+
 #controls-panel button:hover {
     background-color: var(--button-hover-color);
     transform: translateY(-1px);
@@ -349,6 +357,28 @@
 }
 
 #apply-custom-category:active {
+    background-color: var(--link-active-bg);
+}
+
+/* Center link styling */
+#controls-panel .center-link {
+    color: var(--link-color);
+    text-decoration: none;
+    cursor: pointer;
+    transition: var(--button-transition);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    display: inline-block;
+    margin-left: auto;
+}
+
+#controls-panel .center-link:hover {
+    color: var(--link-hover-color);
+    background-color: var(--link-hover-bg);
+}
+
+#controls-panel .center-link:active {
     background-color: var(--link-active-bg);
 }
 

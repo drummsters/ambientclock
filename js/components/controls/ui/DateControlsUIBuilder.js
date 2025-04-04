@@ -43,6 +43,9 @@ export class DateControlsUIBuilder {
         const effectControls = this._createEffectControls();
         effectControls.forEach(control => container.appendChild(control));
 
+        const positionControls = this._createPositionControls();
+        positionControls.forEach(control => container.appendChild(control));
+
         console.log(`Date control elements for ${this.elementId} built.`);
         return this.elements;
     }
@@ -179,6 +182,20 @@ export class DateControlsUIBuilder {
         opacityGroup.appendChild(this.elements.opacityValue);
         controls.push(opacityGroup);
 
+        return controls;
+    }
+
+    /** Creates controls for Position */
+    _createPositionControls() {
+        const controls = [];
+        // Center
+        const centerGroup = this._createControlGroup('Position:');
+        this.elements.centerLink = document.createElement('a');
+        this.elements.centerLink.textContent = 'Center on Screen';
+        this.elements.centerLink.className = 'center-link';
+        this.elements.centerLink.href = '#';
+        centerGroup.appendChild(this.elements.centerLink);
+        controls.push(centerGroup);
         return controls;
     }
 

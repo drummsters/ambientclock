@@ -6,13 +6,14 @@ export function getDefaultState() {
     return {
         settings: {
             theme: 'dark', // Example global setting
-        background: {
-            type: 'image', // 'image' or 'color' (future)
-            query: 'nature',
-            provider: 'unsplash', // 'unsplash', 'pexels', 'peapix'
-            color: '#000000', // Default background/overlay color
-            overlayOpacity: 0.3,
-            zoomEnabled: true,
+            background: {
+                type: 'image', // 'image' or 'color' (future)
+                query: 'nature',
+                useFavoritesOnly: false, // Whether to use only favorites as background source
+                provider: 'unsplash', // 'unsplash', 'pexels', 'peapix'
+                color: '#000000', // Default background/overlay color
+                overlayOpacity: 0.3,
+                zoomEnabled: true,
                 showInfo: true, // Added default for showing background info
                 peapixCountry: 'us',
                 cycleEnabled: true, // Whether to automatically cycle backgrounds
