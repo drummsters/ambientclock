@@ -8,6 +8,10 @@
   cursor: grab; /* Indicate draggable */
   transition: opacity 0.3s ease; /* Add opacity transition */
   z-index: var(--z-index-elements); /* Base stacking context */
+
+  /* Font rendering hints for potentially crisper text when scaled */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .base-element.is-dragging {
