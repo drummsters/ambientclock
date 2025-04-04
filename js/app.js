@@ -93,14 +93,28 @@ async function initApp() {
     );
     await controlPanel.init();
 
-    // 8. Initialize Visibility Manager for Hint, Donate, Favorite Toggle
-    logger.debug('[app.js] Initializing VisibilityManager...');
-    const visibilityManager = new VisibilityManager(
+    // 8. Initialize Visibility Managers
+    logger.debug('[app.js] Initializing VisibilityManagers...');
+    
+    // Visibility manager for elements that should show on mouse movement
+    const alwaysShowVisibilityManager = new VisibilityManager(
         StateManager,
-        ['controls-hint-default', 'donate-default', 'favorite-toggle-default', 'next-background-button-default'], // Corrected ID to match DOM
-        // Optional config can be added here if needed
+        ['controls-hint-default', 'donate-default'],
+        {
+            showOnActivityWhenClosed: true
+        }
     );
-    visibilityManager.init();
+    alwaysShowVisibilityManager.init();
+
+    // Visibility manager for elements that should only show when controls are open
+    const controlsVisibilityManager = new VisibilityManager(
+        StateManager,
+        ['favorite-toggle-default', 'next-background-button-default'],
+        {
+            showOnActivityWhenClosed: false
+        }
+    );
+    controlsVisibilityManager.init();
 
     // 9. Setup global listeners (now called separately after initApp)
 
