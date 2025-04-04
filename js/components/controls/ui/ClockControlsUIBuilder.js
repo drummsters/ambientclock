@@ -95,12 +95,15 @@ export class ClockControlsUIBuilder {
         const fontGroup = this._createControlGroup('Clock Font:');
         this.elements.fontSelect = document.createElement('select');
         this.elements.fontSelect.id = `${this.elementId}-font-select`;
+        // Expanded and sorted font list
         [
-            'Segoe UI', 'Arial', 'Helvetica', 'Verdana', 'Tahoma', 'Geneva',
-            'Times New Roman', 'Georgia', 'Garamond',
-            'Courier New', 'Lucida Console', 'Monaco',
-            'cursive', 'fantasy', 'monospace', 'sans-serif', 'serif'
-        ].forEach(font => {
+            'Arial', 'Helvetica', 'Verdana', 'Tahoma', 'Geneva', // Standard Sans-Serif
+            'Times New Roman', 'Georgia', 'Garamond', // Standard Serif
+            'Courier New', 'Lucida Console', 'Monaco', // Standard Monospace
+            'Open Sans', 'Lato', 'Montserrat', 'Roboto', // Clean & Simple Google Fonts (assuming availability)
+            'Comic Sans MS', 'Impact', 'Lobster', 'Pacifico', // Fun & Exciting (assuming availability)
+            'cursive', 'fantasy', 'monospace', 'sans-serif', 'serif' // Generic families
+        ].sort().forEach(font => { // Sort alphabetically
             const option = document.createElement('option');
             option.value = font;
             option.textContent = font;

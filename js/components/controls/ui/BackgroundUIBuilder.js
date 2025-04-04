@@ -178,15 +178,18 @@ export class BackgroundUIBuilder {
         controls.push(cycleEnableGroup);
         this.elements.cycleEnableGroup = cycleEnableGroup; // Store reference
 
-        // Cycle Interval
+        // Cycle Interval Slider
         const cycleIntervalGroup = this.createControlGroup('Cycle Interval (min):');
-        this.elements.cycleIntervalInput = document.createElement('input');
-        this.elements.cycleIntervalInput.type = 'number';
-        this.elements.cycleIntervalInput.id = 'background-cycle-interval-input';
-        this.elements.cycleIntervalInput.min = '1'; // Minimum 1 minute
-        this.elements.cycleIntervalInput.step = '1';
-        this.elements.cycleIntervalInput.style.width = '60px'; // Adjust width
-        cycleIntervalGroup.appendChild(this.elements.cycleIntervalInput);
+        this.elements.cycleIntervalSlider = document.createElement('input');
+        this.elements.cycleIntervalSlider.type = 'range';
+        this.elements.cycleIntervalSlider.id = 'background-cycle-interval-slider';
+        this.elements.cycleIntervalSlider.min = '1';  // 1 minute
+        this.elements.cycleIntervalSlider.max = '60'; // 60 minutes
+        this.elements.cycleIntervalSlider.step = '1';
+        this.elements.cycleIntervalValue = document.createElement('span');
+        this.elements.cycleIntervalValue.className = 'range-value'; // Reuse class for styling
+        cycleIntervalGroup.appendChild(this.elements.cycleIntervalSlider);
+        cycleIntervalGroup.appendChild(this.elements.cycleIntervalValue);
         controls.push(cycleIntervalGroup);
         this.elements.cycleIntervalGroup = cycleIntervalGroup; // Store reference
 

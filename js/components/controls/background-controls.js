@@ -196,10 +196,15 @@ export class BackgroundControls {
     if (this.elements.cycleEnableCheckbox) {
         this.elements.cycleEnableCheckbox.checked = state.cycleEnabled ?? false;
     }
-    if (this.elements.cycleIntervalInput) {
-        // Convert milliseconds from state to minutes for the input
-        const intervalMinutes = Math.round((state.cycleInterval ?? 300000) / 60000);
-        this.elements.cycleIntervalInput.value = intervalMinutes;
+    // Update slider and value display
+    if (this.elements.cycleIntervalSlider) {
+        // Convert milliseconds from state to minutes for the slider
+        const intervalMinutes = Math.round((state.cycleInterval ?? 300000) / 60000); // Default 5 min
+        const clampedMinutes = Math.max(1, Math.min(60, intervalMinutes)); // Ensure value is within 1-60 range
+        this.elements.cycleIntervalSlider.value = clampedMinutes;
+        if (this.elements.cycleIntervalValue) {
+            this.elements.cycleIntervalValue.textContent = clampedMinutes;
+        }
     }
   }
 
@@ -223,7 +228,7 @@ export class BackgroundControls {
     setGroupDisplay(this.elements.zoomCheckbox, isImageType);
     setGroupDisplay(this.elements.infoCheckbox, isImageType);
     setGroupDisplay(this.elements.cycleEnableCheckbox, isImageType); // Show cycle enable only for images
-    setGroupDisplay(this.elements.cycleIntervalInput, isImageType && isCycleEnabled); // Show interval only if image type and cycle enabled
+    setGroupDisplay(this.elements.cycleIntervalSlider, isImageType && isCycleEnabled); // Show interval slider only if image type and cycle enabled
     setGroupDisplay(this.elements.colorPicker, !isImageType); // Show color picker only if type is 'color'
 
     // --- Disabled State ---
@@ -236,7 +241,7 @@ export class BackgroundControls {
     if (this.elements.zoomCheckbox) this.elements.zoomCheckbox.disabled = imageControlsDisabled;
     if (this.elements.infoCheckbox) this.elements.infoCheckbox.disabled = imageControlsDisabled;
     if (this.elements.cycleEnableCheckbox) this.elements.cycleEnableCheckbox.disabled = imageControlsDisabled;
-    if (this.elements.cycleIntervalInput) this.elements.cycleIntervalInput.disabled = imageControlsDisabled || !isCycleEnabled;
+    if (this.elements.cycleIntervalSlider) this.elements.cycleIntervalSlider.disabled = imageControlsDisabled || !isCycleEnabled;
   }
 
 
@@ -337,11 +342,15 @@ export class BackgroundControls {
         });
     }
 
-    // Cycle Interval Input Change
-    if (this.elements.cycleIntervalInput) {
-        this.elements.cycleIntervalInput.addEventListener('change', (event) => {
+    // Cycle Interval Slider Change (use 'input' for live update)
+    if (this.elements.cycleIntervalSlider) {
+        this.elements.cycleIntervalSlider.addEventListener('input', (event) => {
             const intervalMinutes = parseInt(event.target.value, 10);
-            if (!isNaN(intervalMinutes) && intervalMinutes >= 1) {
+            if (this.elements.cycleIntervalValue) {
+                this.elements.cycleIntervalValue.textContent = intervalMinutes;
+            }
+            // Debounce this later if needed for performance
+            if (!isNaN(intervalMinutes) && intervalMinutes >= 1 && intervalMinutes <= 60) {
                 const intervalMs = intervalMinutes * 60000; // Convert minutes to milliseconds
                 this.dispatchStateUpdate({ cycleInterval: intervalMs });
             }
