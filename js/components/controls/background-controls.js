@@ -297,22 +297,32 @@ export class BackgroundControls {
 
     // Custom Image Category Input Change
     if (this.elements.customCategoryInput) {
-        // Prevent any default key behavior
-        this.elements.customCategoryInput.addEventListener('keydown', (event) => {
-            // Allow all keys to function normally
-            event.stopPropagation();
+        // Create a debounced version of the update function
+        let debounceTimeout;
+        const debouncedUpdate = (value) => {
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                if (this.elements.categorySelect?.value === 'Other') {
+                    this.dispatchStateUpdate({ customCategory: value });
+                }
+            }, 500); // 500ms delay
+        };
+
+        // Handle input updates with debounce
+        this.elements.customCategoryInput.addEventListener('input', (event) => {
+            debouncedUpdate(event.target.value);
         });
 
-        // Handle input updates
-        const updateCustomCategory = (event) => {
-            // Only update if 'Other' is the selected category type
+        // Immediate update on blur (when input loses focus)
+        this.elements.customCategoryInput.addEventListener('blur', (event) => {
+            clearTimeout(debounceTimeout); // Clear any pending debounce
             if (this.elements.categorySelect?.value === 'Other') {
                 this.dispatchStateUpdate({ customCategory: event.target.value });
             }
-        };
-        
-        this.elements.customCategoryInput.addEventListener('input', updateCustomCategory);
-        this.elements.customCategoryInput.addEventListener('change', updateCustomCategory);
+        });
+
+        // Clean up debounce timeout on destroy
+        this.unsubscribers.push(() => clearTimeout(debounceTimeout));
     }
 
     // Zoom Checkbox Change

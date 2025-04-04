@@ -85,19 +85,41 @@ export class DateControlsUIBuilder {
         const fontGroup = this._createControlGroup('Date Font:');
         this.elements.fontSelect = document.createElement('select');
         this.elements.fontSelect.id = `${this.elementId}-font-select`;
-        // Expanded and sorted font list (same as clock)
+        // Group fonts by category
         [
-            'Arial', 'Helvetica', 'Verdana', 'Tahoma', 'Geneva', // Standard Sans-Serif
-            'Times New Roman', 'Georgia', 'Garamond', // Standard Serif
-            'Courier New', 'Lucida Console', 'Monaco', // Standard Monospace
-            'Open Sans', 'Lato', 'Montserrat', 'Roboto', // Clean & Simple Google Fonts (assuming availability)
-            'Comic Sans MS', 'Impact', 'Lobster', 'Pacifico', // Fun & Exciting (assuming availability)
-            'cursive', 'fantasy', 'monospace', 'sans-serif', 'serif' // Generic families
-        ].sort().forEach(font => { // Sort alphabetically
-            const option = document.createElement('option');
-            option.value = font;
-            option.textContent = font;
-            this.elements.fontSelect.appendChild(option);
+            {
+                label: 'Sans-Serif Fonts',
+                fonts: ['Arial', 'Helvetica', 'Open Sans', 'Roboto', 'Segoe UI', 'Tahoma', 'Verdana']
+            },
+            {
+                label: 'Serif Fonts',
+                fonts: ['Garamond', 'Georgia', 'Times New Roman']
+            },
+            {
+                label: 'Monospace Fonts',
+                fonts: ['Consolas', 'Courier New', 'Lucida Console', 'Monaco']
+            },
+            {
+                label: 'System Fonts',
+                fonts: ['system-ui', '-apple-system']
+            },
+            {
+                label: 'Generic Families',
+                fonts: ['sans-serif', 'serif', 'monospace']
+            }
+        ].forEach(group => {
+            // Add group header
+            const groupHeader = document.createElement('optgroup');
+            groupHeader.label = group.label;
+            this.elements.fontSelect.appendChild(groupHeader);
+            
+            // Add sorted fonts in this group
+            group.fonts.sort().forEach(font => {
+                const option = document.createElement('option');
+                option.value = font;
+                option.textContent = font;
+                groupHeader.appendChild(option);
+            });
         });
         fontGroup.appendChild(this.elements.fontSelect);
         controls.push(fontGroup);
