@@ -43,31 +43,11 @@ export class StyleHandler {
         // Clamp scale
         const clampedScale = Math.max(StyleHandler.MIN_SCALE, Math.min(StyleHandler.MAX_SCALE, scale));
 
-        // --- V1 Style Scaling: Reverted - Adjust font-size was removed previously ---
-        // const baseFontSize = this.element.responsiveConfig?.baseFontSize || 2; // Base size in 'em' units
-        // const newSize = baseFontSize * clampedScale;
-        // Apply to the main container or a specific 'face' element if needed
-        // const targetElement = this.element.elements?.face || this.element.container;
-        // if (targetElement) {
-        //     // REMOVED: Do not override CSS font-size for vw scaling
-        //     // targetElement.style.fontSize = `${newSize.toFixed(2)}em`;
-        // }
-
-        // --- Apply transform: scale() along with translate ---
-        // Reverted back to using scale() in transform
-        this.element.container.style.transform = `translate(-50%, -50%) scale(${clampedScale})`;
-
-        // For analog clock, adjust width/height of the face container (still needed)
-        if (this.element.type === 'clock' && this.element.options?.face === 'analog' && this.element.elements?.analogFace) {
-            const baseDimWidth = this.element.responsiveConfig?.baseWidth || 150; // Base width/height in px
-            const baseDimHeight = this.element.responsiveConfig?.baseHeight || 150;
-            const newWidth = baseDimWidth * clampedScale;
-            const newHeight = baseDimHeight * clampedScale;
-            // Apply to the .analog-face div within the main container
-            this.element.elements.analogFace.style.width = `${newWidth}px`;
-            this.element.elements.analogFace.style.height = `${newHeight}px`;
-        }
-        // Trigger render if needed (handled by updateFromState calling element.render)
+        // Set scale as a CSS custom property for font-size calculations
+        this.element.container.style.setProperty('--element-scale', clampedScale);
+        
+        // Keep transform for positioning only
+        this.element.container.style.transform = `translate(-50%, -50%)`;
     }
 
     /**
@@ -95,8 +75,6 @@ export class StyleHandler {
      */
     updateEffects(style = 'flat') { // Default to 'flat'
         if (!this.element.container) return;
-
-        // console.log(`[${this.element.id} via StyleHandler] Updating effect style to: ${style}`);
 
         // Remove existing effect classes
         this.element.container.classList.remove('effect-flat', 'effect-raised', 'effect-reflected');

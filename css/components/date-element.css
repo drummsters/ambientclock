@@ -7,7 +7,8 @@
 
 /* Date Face */
 .date-face {
-    font-size: 5vw; /* Responsive font size similar to clean clock but smaller */
+    /* Base size multiplied by scale factor */
+    font-size: calc(5vw * var(--element-scale, 1));
     text-align: center;
     /* cursor: move; /* Inherited from .base-element */
     user-select: none; /* Prevent text selection during drag */
@@ -16,6 +17,9 @@
     text-shadow: var(--text-shadow-base); /* Use variable */
     width: fit-content; /* Ensure container fits the scaled text */
     transform-origin: center center; /* Ensure scaling happens from the center */
+    /* Basic font smoothing */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     /* transition: opacity 0.2s ease; /* Inherited from .base-element */
     /* font-family and font-weight are now handled by data attributes below */
     letter-spacing: 0.05em;

@@ -38,18 +38,15 @@
     font-family: var(--font-family-clean, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif); /* Default clean font */
     font-weight: bold;
     letter-spacing: 0.05em;
-    font-size: 5vw; /* Base responsive size - MATCHED TO DATE */
+    /* Base size multiplied by scale factor */
+    font-size: calc(5vw * var(--element-scale, 1));
     white-space: nowrap; /* Prevent wrapping */
     /* width: fit-content; /* Let it fill parent */
     /* margin: auto; /* Centering handled by parent flex */
 
-    /* Font rendering optimizations */
+    /* Basic font smoothing */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    backface-visibility: hidden;
-    transform-style: preserve-3d;
-    perspective: 1000px;
-    text-rendering: optimizeLegibility;
 }
 
 /* Specific styles for LED face (can override container styles) */
@@ -65,9 +62,9 @@
 
 /* Set explicit size on the container when analog is active */
 .clock-face[data-face-type="analog"] {
-    /* width: 30vmin; /* Size will be set by JS on the main container */
-    /* height: 30vmin; */
-    /* Ensure flex centering still applies if needed, though SVG scales */
+    /* Base size multiplied by scale factor */
+    width: calc(30vmin * var(--element-scale, 1));
+    height: calc(30vmin * var(--element-scale, 1));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -78,9 +75,6 @@
     /* Ensure SVG fills the container */
     width: 100%;
     height: 100%;
-    /* Set a size for the clock face container if needed, or let parent control */
-    /* width: 30vmin; */
-    /* height: 30vmin; */
     overflow: visible; /* Allow hands/markers to potentially exceed viewBox slightly if needed */
 }
 

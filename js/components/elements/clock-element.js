@@ -149,9 +149,7 @@ export class ClockElement extends BaseUIElement {
     if (this.options.face === 'analog') {
         if (analogRoot) analogRoot.style.display = ''; // Show SVG
         if (digitalRoot) digitalRoot.style.display = 'none'; // Hide digital container
-        // Set explicit size on the main container for analog
-        this.container.style.width = analogSize;
-        this.container.style.height = analogSize;
+        // Size is now handled by CSS using --element-scale
         // Remove potentially conflicting class if it was used before
         this.elements.face.classList.remove('analog-face-active');
     } else { // 'led' or 'clean'
