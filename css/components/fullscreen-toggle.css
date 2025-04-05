@@ -1,0 +1,71 @@
+fullscreen-toggle-element {
+    display: none;
+}
+
+.fullscreen-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: var(--z-index-controls-trigger);
+    display: none; /* Hidden by default */
+    transition: opacity 0.3s ease;
+}
+
+.fullscreen-toggle.visible {
+    display: block;
+}
+
+.fullscreen-button {
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    padding: 12px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.fullscreen-button:hover,
+.fullscreen-button:focus {
+    background: rgba(0, 0, 0, 0.8);
+    outline: none;
+}
+
+.fullscreen-button:active {
+    transform: scale(0.95);
+}
+
+.fullscreen-icon {
+    fill: white;
+    width: 100%;
+    height: 100%;
+}
+
+/* Show enter icon when not in fullscreen */
+:not(:fullscreen) .exit-fullscreen {
+    display: none;
+}
+
+/* Show exit icon when in fullscreen */
+:fullscreen .enter-fullscreen {
+    display: none;
+}
+
+/* Webkit fullscreen selector */
+:-webkit-full-screen .enter-fullscreen {
+    display: none;
+}
+
+/* Firefox fullscreen selector */
+:-moz-full-screen .enter-fullscreen {
+    display: none;
+}
+
+/* Show on mobile */
+@media (max-width: 1023px) {
+    fullscreen-toggle-element {
+        display: block;
+    }
+}

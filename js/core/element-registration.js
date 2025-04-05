@@ -6,6 +6,8 @@ import { BackgroundInfoElement } from '../components/elements/background-info-el
 import { DonateElement } from '../components/elements/donate-element.js';
 import { FavoriteToggleElement } from '../components/elements/favorite-toggle-element.js';
 import { NextBackgroundButtonElement } from '../components/elements/next-background-button.js';
+import { FullscreenToggleElement } from '../components/elements/fullscreen-toggle-element.js';
+import { ControlPanelToggleElement } from '../components/elements/control-panel-toggle-element.js';
 import * as logger from '../utils/logger.js'; // Import the logger
 
 /**
@@ -52,6 +54,18 @@ export function registerElementTypes() {
 
     // Register Next Background Button element
     ComponentRegistry.registerElementType('next-background-button', NextBackgroundButtonElement, {
+        controlPanelConfig: [], // No controls needed
+        capabilities: []      // No capabilities needed
+    });
+
+    // Register Fullscreen Toggle element
+    ComponentRegistry.registerElementType('fullscreen-toggle', FullscreenToggleElement, {
+        controlPanelConfig: [], // No controls needed
+        capabilities: []      // No capabilities needed
+    });
+
+    // Register Control Panel Toggle element
+    ComponentRegistry.registerElementType('control-panel-toggle', ControlPanelToggleElement, {
         controlPanelConfig: [], // No controls needed
         capabilities: []      // No capabilities needed
     });

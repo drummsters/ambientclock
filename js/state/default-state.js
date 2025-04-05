@@ -93,6 +93,18 @@ export function getDefaultState() {
                 id: 'next-background-button-default',
                 // Fixed position, no options needed initially
                 options: {}
+            },
+            'fullscreen-toggle-default': {
+                type: 'fullscreen-toggle',
+                id: 'fullscreen-toggle-default',
+                // Fixed position, visibility managed by the component
+                options: {}
+            },
+            'control-panel-toggle-default': {
+                type: 'control-panel-toggle',
+                id: 'control-panel-toggle-default',
+                // Fixed position, visibility managed by the component
+                options: {}
             }
         },
         // Add other top-level state keys as needed (e.g., currentImageMetadata)

@@ -4,21 +4,24 @@
 
 .base-element {
   position: absolute; /* Positioned by JS */
-  will-change: transform, opacity; /* Performance hint */
+  will-change: transform, opacity, scale; /* Performance hint for scale */
   cursor: grab; /* Indicate draggable */
-  transition: opacity 0.3s ease; /* Add opacity transition */
+  transition: opacity 0.3s ease, transform 0.1s ease; /* Smooth transitions */
   z-index: var(--z-index-elements); /* Base stacking context */
+  touch-action: none; /* Prevent default touch behaviors */
+  -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
 
   /* Font rendering hints for potentially crisper text when scaled */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-.base-element.is-dragging {
-    cursor: grabbing; /* Indicate active drag */
-    user-select: none; /* Prevent text selection during drag */
-    z-index: var(--z-index-dragging); /* Bring to front while dragging */
-    opacity: 0.8; /* Slightly transparent when dragging (optional, can be overridden) */
+.base-element.is-dragging,
+.base-element.is-pinching {
+    cursor: grabbing; /* Indicate active interaction */
+    user-select: none; /* Prevent text selection during interaction */
+    z-index: var(--z-index-dragging); /* Bring to front while interacting */
+    opacity: 0.8; /* Slightly transparent when interacting */
 }
 
 .base-element.selected {

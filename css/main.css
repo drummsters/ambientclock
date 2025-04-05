@@ -25,6 +25,8 @@
 @import url('./components/date-element.css');
 @import url('./components/clock-element.css');
 @import url('./components/toast.css');
+@import url('./components/fullscreen-toggle.css');
+@import url('./components/control-panel-toggle.css');
 
 /* Feature Styles */
 @import url('./features/effects.css');

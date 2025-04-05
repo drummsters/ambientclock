@@ -10,6 +10,29 @@ const NUDGE_AMOUNT = 0.1; // Percentage to move on each arrow key press
  * Sets up global keyboard listeners and element selection.
  * @param {ControlPanel} panelInstance - The instance of the ControlPanel to toggle.
  */
+// Track double tap
+let lastTapTime = 0;
+const DOUBLE_TAP_DELAY = 300; // milliseconds
+
+function handleTouchStart(event) {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTapTime;
+    
+    if (tapLength < DOUBLE_TAP_DELAY && tapLength > 0) {
+        // Double tap detected
+        event.preventDefault();
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                console.error(`Error attempting to enable fullscreen: ${err.message}`);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }
+    
+    lastTapTime = currentTime;
+}
+
 export function setupGlobalKeyListeners(panelInstance) {
     controlPanelInstance = panelInstance; // Store the instance
     logger.debug('Setting up global key listeners...');
@@ -18,11 +41,17 @@ export function setupGlobalKeyListeners(panelInstance) {
     window.removeEventListener('keydown', handleKeyDown);
     window.removeEventListener('keyup', handleKeyUp);
     document.body.removeEventListener('click', handleBodyClick);
+    document.body.removeEventListener('touchstart', handleTouchStart);
     
     // Add listeners
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     document.body.addEventListener('click', handleBodyClick);
+    
+    // Add double tap listener for mobile fullscreen
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        document.body.addEventListener('touchstart', handleTouchStart);
+    }
     
     // Add click listeners to all draggable elements
     setupElementSelection();
@@ -280,6 +309,7 @@ export function removeGlobalListeners() {
     window.removeEventListener('keydown', handleKeyDown);
     window.removeEventListener('keyup', handleKeyUp);
     document.body.removeEventListener('click', handleBodyClick);
+    document.body.removeEventListener('touchstart', handleTouchStart);
 
     // Remove selection listeners from elements
     document.querySelectorAll('.base-element').forEach(element => {
