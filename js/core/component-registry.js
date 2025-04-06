@@ -47,17 +47,23 @@ export const ComponentRegistry = {
     }
 
     try {
-      // Pass necessary info and dependencies to the constructor
-      const elementInstance = new typeInfo.constructor({
-        id,
-        type,
+      // Ensure id and type are explicitly set
+      const constructorConfig = {
+        ...dependencies, // Put dependencies first
         options,
-        capabilities: typeInfo.capabilities, // Pass capabilities defined during registration
-        ...dependencies // Spread dependencies (e.g., configManager) into the constructor args object
-      });
+        capabilities: typeInfo.capabilities,
+        id: id,         // Explicitly set id
+        type: type      // Explicitly set type
+      };
+
+      // Force console log (not using logger) to ensure visibility
+      console.log(`[ComponentRegistry] Creating ${type} with ID ${id}. Config:`, constructorConfig);
+
+      // Pass the prepared config object to the constructor
+      const elementInstance = new typeInfo.constructor(constructorConfig);
       return elementInstance;
     } catch (error) {
-      logger.error(`ComponentRegistry: Error creating element of type "${type}" with ID "${id}":`, error); // Use logger.error
+      logger.error(`ComponentRegistry: Error creating element of type "${type}" with ID "${id}":`, error);
       return null;
     }
   },

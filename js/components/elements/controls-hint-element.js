@@ -7,8 +7,8 @@ import { EventBus } from '../../core/event-bus.js';
  * @extends BaseUIElement
  */
 export class ControlsHintElement extends BaseUIElement {
-    constructor({ id, type, options }) { // Removed stateManager dependency
-        super({ id, type, options });
+    constructor(config) { // Accept the whole config object
+        super(config); // Pass the whole config object to the base constructor
         // Removed visibility state, timers, listeners array, and subscription property
     }
 

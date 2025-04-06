@@ -2,8 +2,8 @@ import { StateManager } from '../../core/state-manager.js';
 import { BaseUIElement } from '../base/base-ui-element.js';
 
 export class FullscreenToggleElement extends BaseUIElement {
-    constructor() {
-        super('fullscreen-toggle');
+    constructor(config) { // Accept the whole config object
+        super(config); // Pass the whole config object to the base constructor
         
         // Bind methods
         this._handleClick = this._handleClick.bind(this);
@@ -12,8 +12,12 @@ export class FullscreenToggleElement extends BaseUIElement {
         this._isFullscreen = false;
     }
 
-    init() {
-        super.init();
+    async init() {
+        const success = await super.init();
+        if (!success || !this.container) {
+            console.error(`[FullscreenToggleElement ${this.id}] Base init failed or container missing.`);
+            return false;
+        }
         
         // Add fullscreen-toggle class to container
         this.container.classList.add('fullscreen-toggle');
@@ -37,6 +41,8 @@ export class FullscreenToggleElement extends BaseUIElement {
             // Force display block on the container
             this.container.style.display = 'block';
         }
+        
+        return true; // Signal successful initialization
     }
 
     _handleClick() {
@@ -58,6 +64,3 @@ export class FullscreenToggleElement extends BaseUIElement {
         super.destroy();
     }
 }
-
-// Register the element
-customElements.define('fullscreen-toggle-element', FullscreenToggleElement);

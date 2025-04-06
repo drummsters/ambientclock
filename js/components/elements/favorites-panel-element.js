@@ -10,11 +10,10 @@ import { EventBus } from '../../core/event-bus.js';
  * @extends BaseUIElement
  */
 export class FavoritesPanelElement extends BaseUIElement {
-    constructor(id, options) {
-        // This element is likely fixed, similar to DonateElement
-        super(id, options);
+    constructor(config) { // Accept the whole config object
+        super(config); // Pass the whole config object to the base constructor
         this.isOpen = false; // Internal state for panel visibility
-        // Inject FavoritesService later if needed: constructor(id, options, favoritesService)
+        // Inject FavoritesService later if needed: constructor(config, favoritesService)
         // this.favoritesService = favoritesService;
     }
 

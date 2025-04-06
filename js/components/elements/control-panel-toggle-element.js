@@ -2,15 +2,19 @@ import { StateManager } from '../../core/state-manager.js';
 import { BaseUIElement } from '../base/base-ui-element.js';
 
 export class ControlPanelToggleElement extends BaseUIElement {
-    constructor() {
-        super('control-panel-toggle');
+    constructor(config) { // Accept the whole config object
+        super(config); // Pass the whole config object to the base constructor
         
         // Bind methods
         this._handleClick = this._handleClick.bind(this);
     }
 
-    init() {
-        super.init();
+    async init() {
+        const success = await super.init();
+        if (!success || !this.container) {
+            console.error(`[ControlPanelToggleElement ${this.id}] Base init failed or container missing.`);
+            return false;
+        }
         
         // Add control-panel-toggle class to container
         this.container.classList.add('control-panel-toggle');
@@ -36,6 +40,8 @@ export class ControlPanelToggleElement extends BaseUIElement {
 
         // Subscribe to control panel state changes
         StateManager.subscribe(state => state.settings.controls.isOpen, this._updateButtonState.bind(this));
+        
+        return true; // Signal successful initialization
     }
 
     _handleClick() {
@@ -69,6 +75,3 @@ export class ControlPanelToggleElement extends BaseUIElement {
         super.destroy();
     }
 }
-
-// Register the element
-customElements.define('control-panel-toggle-element', ControlPanelToggleElement);

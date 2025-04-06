@@ -8,8 +8,8 @@ import { EventBus } from '../../core/event-bus.js';
  * @extends BaseUIElement
  */
 export class BackgroundInfoElement extends BaseUIElement {
-    constructor(id, options) {
-        super(id, options);
+    constructor(config) { // Accept the whole config object
+        super(config); // Pass the whole config object to the base constructor
         this.info = null; // Store current background info
     }
 

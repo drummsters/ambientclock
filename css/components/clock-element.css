@@ -35,7 +35,7 @@
     padding: 0;
     margin: 0;
     line-height: 1;
-    font-family: var(--font-family-clean, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif); /* Default clean font */
+    font-family: var(--font-family-futuristic, 'Exo', sans-serif); /* Updated clean font */
     font-weight: bold;
     letter-spacing: 0.05em;
     /* Base size multiplied by scale factor */
@@ -51,7 +51,7 @@
 
 /* Specific styles for LED face (can override container styles) */
 .clock-face[data-face-type="led"] .digital-clean-container {
-    font-family: var(--font-family-digital, 'Orbitron', sans-serif); /* Use digital font */
+    font-family: var(--font-family-technical, 'Share Tech Mono', monospace); /* Updated LED font */
     color: var(--led-color); /* Use LED color variable */
     text-shadow: 0 0 5px var(--led-glow), 0 0 10px var(--led-glow); /* LED glow effect */
     font-weight: normal; /* Orbitron might not need bold */

@@ -100,11 +100,15 @@ export class DateControlsUIBuilder {
             },
             {
                 label: 'Monospace Fonts',
-                fonts: ['Consolas', 'Courier New', 'Lucida Console', 'Monaco']
+                fonts: ['Consolas', 'Courier New', 'Lucida Console', 'Monaco', 'Share Tech Mono', 'VT323']
+            },
+            {
+                label: 'Futuristic Fonts',
+                fonts: ['Exo', 'Rajdhani', 'Syncopate']
             },
             {
                 label: 'Creative Fonts',
-                fonts: ['Comic Sans MS', 'Impact', 'Lobster', 'Pacifico']
+                fonts: ['Bangers', 'Comic Sans MS', 'Dancing Script', 'Impact', 'Indie Flower', 'Lobster', 'Pacifico', 'Permanent Marker', 'Press Start 2P', 'Shadows Into Light', 'Special Elite']
             },
             {
                 label: 'System Fonts',

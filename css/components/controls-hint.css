@@ -13,6 +13,17 @@
     z-index: var(--z-index-controls);
     text-align: center;
     user-select: none;
+    opacity: 0; /* Start hidden */
+    visibility: hidden; /* Start hidden */
+    font-family: var(--font-family-clean);
+    transition: var(--visibility-transition); /* Use variable */
+    pointer-events: none; /* Don't capture mouse events when hidden */
+}
+
+.controls-hint-element.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto; /* Capture mouse events when visible */
 }
 
 .controls-hint-element:hover {

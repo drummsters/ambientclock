@@ -102,6 +102,8 @@
     /* --- Fonts --- */
     --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     --font-family-digital: 'Orbitron', sans-serif; /* Example for digital clocks */
+    --font-family-futuristic: 'Exo', sans-serif; /* New futuristic font */
+    --font-family-technical: 'Share Tech Mono', monospace; /* New technical font */
     --font-family-clean: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Example for clean clock/date */
 
     /* --- Z-Indexes --- */

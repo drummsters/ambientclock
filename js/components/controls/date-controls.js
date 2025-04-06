@@ -164,7 +164,10 @@ export class DateControls {
   _addOptionsListeners() {
     this.elements.visibleCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ visible: e.target.checked }));
     this.elements.formatSelect?.addEventListener('change', (e) => this.dispatchStateUpdate({ format: e.target.value }));
-    this.elements.fontSelect?.addEventListener('change', (e) => this.dispatchStateUpdate({ fontFamily: e.target.value })); // Added
+    this.elements.fontSelect?.addEventListener('change', (e) => {
+      this.dispatchStateUpdate({ fontFamily: e.target.value });
+      this._updateFontCSSVariable(e.target.value);
+    }); // Added
     this.elements.boldCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ fontWeight: e.target.checked ? 'bold' : 'normal' })); // Added
     this.elements.colorPicker?.addEventListener('input', (e) => this.dispatchStateUpdate({ color: e.target.value }));
     this.elements.separatorCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ showSeparator: e.target.checked }));
@@ -224,6 +227,17 @@ export class DateControls {
           }
       };
       StateManager.update(updatePayload);
+  }
+
+  /**
+   * Updates the CSS variable for the font family.
+   * @param {string} fontFamily - The selected font family.
+   */
+  _updateFontCSSVariable(fontFamily) {
+    const dateElement = document.querySelector(`#${this.elementId}`);
+    if (dateElement) {
+      dateElement.style.setProperty('font-family', fontFamily);
+    }
   }
 
   /** Cleans up resources. */

@@ -181,7 +181,10 @@ export class ClockControls {
     this.elements.faceSelect?.addEventListener('change', (e) => this.dispatchStateUpdate({ face: e.target.value }));
     this.elements.formatSelect?.addEventListener('change', (e) => this.dispatchStateUpdate({ timeFormat: e.target.value }));
     this.elements.secondsCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ showSeconds: e.target.checked }));
-    this.elements.fontSelect?.addEventListener('change', (e) => this.dispatchStateUpdate({ fontFamily: e.target.value }));
+    this.elements.fontSelect?.addEventListener('change', (e) => {
+      this.dispatchStateUpdate({ fontFamily: e.target.value });
+      this._updateFontCSSVariable(e.target.value);
+    });
     this.elements.boldCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ fontWeight: e.target.checked ? 'bold' : 'normal' }));
     this.elements.colorPicker?.addEventListener('input', (e) => this.dispatchStateUpdate({ color: e.target.value }));
     this.elements.separatorCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ showSeparator: e.target.checked }));
@@ -248,6 +251,18 @@ export class ClockControls {
           }
       };
       StateManager.update(updatePayload);
+  }
+
+  /**
+   * Updates the CSS variable for the font family.
+   * @param {string} fontFamily - The selected font family.
+   */
+  _updateFontCSSVariable(fontFamily) {
+    const clockFace = document.querySelector(`#${this.elementId} .clock-face`);
+    if (clockFace) {
+      clockFace.style.setProperty('--font-family-futuristic', fontFamily);
+      clockFace.style.setProperty('--font-family-technical', fontFamily);
+    }
   }
 
   /**
