@@ -124,6 +124,31 @@ export class ClockControls {
      if (this.elements.boldCheckbox) this.elements.boldCheckbox.checked = (optionsState.fontWeight === 'bold');
      if (this.elements.colorPicker) this.elements.colorPicker.value = optionsState.color || '#FFFFFF';
      if (this.elements.separatorCheckbox) this.elements.separatorCheckbox.checked = optionsState.showSeparator ?? false;
+
+     // Update Spacing Slider
+     const currentSpacing = optionsState.charSpacing ?? 0.65; // Use default from state
+     if (this.elements.spacingSlider) {
+         this.elements.spacingSlider.value = currentSpacing;
+         if (this.elements.spacingValue) {
+             this.elements.spacingValue.textContent = parseFloat(currentSpacing).toFixed(2);
+         }
+     }
+     // Update Colon Adjust X Slider
+     const currentColonAdjustX = optionsState.colonAdjustX ?? 0; // Renamed state property
+     if (this.elements.colonXSlider) { // Renamed element reference
+         this.elements.colonXSlider.value = currentColonAdjustX;
+         if (this.elements.colonXValue) { // Renamed element reference
+             this.elements.colonXValue.textContent = `${currentColonAdjustX}%`;
+         }
+     }
+     // Update Colon Vertical Adjust Slider
+     const currentColonAdjustY = optionsState.colonAdjustY ?? 0;
+     if (this.elements.colonYSlider) {
+         this.elements.colonYSlider.value = currentColonAdjustY;
+         if (this.elements.colonYValue) {
+             this.elements.colonYValue.textContent = `${currentColonAdjustY}%`;
+         }
+     }
   }
 
   /**
@@ -188,6 +213,33 @@ export class ClockControls {
     this.elements.boldCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ fontWeight: e.target.checked ? 'bold' : 'normal' }));
     this.elements.colorPicker?.addEventListener('input', (e) => this.dispatchStateUpdate({ color: e.target.value }));
     this.elements.separatorCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ showSeparator: e.target.checked }));
+
+    // Spacing Slider Change
+    this.elements.spacingSlider?.addEventListener('input', (e) => {
+        const newSpacing = parseFloat(e.target.value);
+        if (this.elements.spacingValue) {
+            this.elements.spacingValue.textContent = newSpacing.toFixed(2);
+         }
+         this.dispatchStateUpdate({ charSpacing: newSpacing });
+     });
+
+     // Colon Adjust X Slider Change
+     this.elements.colonXSlider?.addEventListener('input', (e) => { // Renamed element reference
+         const newAdjustX = parseInt(e.target.value, 10);
+         if (this.elements.colonXValue) { // Renamed element reference
+             this.elements.colonXValue.textContent = `${newAdjustX}%`;
+         }
+         this.dispatchStateUpdate({ colonAdjustX: newAdjustX }); // Renamed state property
+     });
+
+     // Colon Vertical Adjust Slider Change
+     this.elements.colonYSlider?.addEventListener('input', (e) => {
+         const newAdjustY = parseInt(e.target.value, 10);
+         if (this.elements.colonYValue) {
+             this.elements.colonYValue.textContent = `${newAdjustY}%`;
+         }
+         this.dispatchStateUpdate({ colonAdjustY: newAdjustY });
+     });
   }
 
   /** Adds listeners for controls that modify the top-level element state (scale, opacity, effect) */

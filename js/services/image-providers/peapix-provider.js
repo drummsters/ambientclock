@@ -20,14 +20,39 @@ export class PeapixProvider {
    * @param {string} [countryCode=''] - Optional country code (e.g., 'us', 'jp').
    * @returns {Promise<object|null>} A promise that resolves to an object containing image details or null if an error occurs.
    */
-  async getImage(query = '', countryCode = '') { // Added countryCode parameter
+  async getImage(query = '', countryCode = '') {
+    logger.debug(`[PeapixProvider] getImage called (country: ${countryCode}). Using getImageBatch(1).`);
+    try {
+        // Fetch a batch (API returns multiple, but we only need one)
+        // Pass query (ignored), count=1 (ignored), and countryCode
+        const batch = await this.getImageBatch(query, 1, countryCode);
+        // Return the first item if the batch is not empty
+        return batch && batch.length > 0 ? batch[0] : null;
+    } catch (error) {
+        // Log the error but return null as per original getImage signature
+        logger.error(`[PeapixProvider] Error in getImage via getImageBatch:`, error);
+        // Handle specific errors like RateLimitError if Peapix ever implements it
+        return null;
+    }
+  }
+
+  /**
+   * Fetches a batch of images from Peapix via the backend proxy.
+   * The proxy now returns an array based on the Peapix feed.
+   * @param {string} query - Ignored for Peapix, kept for interface consistency.
+   * @param {number} [count=10] - Ignored by the current Peapix API/proxy, but kept for consistency.
+   * @param {string} [countryCode=''] - Optional country code (e.g., 'us', 'jp').
+   * @returns {Promise<Array<object>>} A promise resolving to an array of image data objects.
+   * @throws {Error} For fetch or processing errors.
+   */
+  async getImageBatch(query = '', count = 10, countryCode = '') {
     let url = this.baseUrl;
     if (countryCode) {
       const params = new URLSearchParams({ country: countryCode });
       url = `${this.baseUrl}?${params.toString()}`;
     }
 
-    logger.debug(`[PeapixProvider] Fetching image via proxy: ${url}`);
+    logger.debug(`[PeapixProvider] Fetching batch via proxy: ${url}`);
 
     try {
       const response = await fetch(url);
@@ -44,44 +69,23 @@ export class PeapixProvider {
         throw new Error(errorMsg);
       }
 
-      const data = await response.json(); // Our API returns a single object
-      logger.debug('[PeapixProvider] Received data via proxy:', data);
+      const dataArray = await response.json(); // API now returns an array
+      logger.debug(`[PeapixProvider] Received batch data (${dataArray?.length || 0} items) via proxy.`);
 
-      // Validate the received data structure based on what api/peapix.js returns
-      if (data && data.url && data.authorName) {
-        return {
-          url: data.url,
-          authorName: data.authorName,
-          authorUrl: data.authorUrl || '#',
-          source: this.name
-        };
-      } else {
-        logger.error('[PeapixProvider] Invalid or empty data received via proxy:', data);
-        return null;
+      // Validate the received data structure (should be an array)
+      if (!Array.isArray(dataArray)) {
+          logger.error('[PeapixProvider] Invalid data received (not an array):', dataArray);
+          return []; // Return empty array if data is not as expected
       }
-    } catch (error) {
-      logger.error('[PeapixProvider] Error fetching image:', error);
-      return null; // Return null on error
-    }
-  }
 
-  /**
-   * Fetches a "batch" of images from Peapix.
-   * Since Peapix API (via our proxy) likely only returns the latest daily image,
-   * this method effectively just calls getImage and returns a single-element array.
-   * @param {string} query - Ignored for Peapix.
-   * @param {number} [count=1] - Ignored for Peapix, always fetches one.
-   * @param {string} [countryCode=''] - Optional country code.
-   * @returns {Promise<Array<object>>} A promise resolving to an array containing zero or one image data object.
-   */
-  async getImageBatch(query = '', count = 1, countryCode = '') {
-    logger.debug(`[PeapixProvider] getImageBatch called (count=${count}, country=${countryCode}). Fetching single image.`);
-    try {
-      const singleImage = await this.getImage(query, countryCode);
-      return singleImage ? [singleImage] : []; // Return array with the single image or empty array
+      // The backend already maps to the standard format, so just return the array.
+      // Add validation for each item if needed, though backend should handle it.
+      return dataArray.filter(item => item && item.url && item.authorName); // Basic filter for valid items
+
     } catch (error) {
-      logger.error('[PeapixProvider] Error in getImageBatch:', error);
-      return []; // Return empty array on error
+      logger.error('[PeapixProvider] Error fetching image batch:', error);
+      // Re-throw allows the caller (ImageBackgroundHandler) to handle it
+      throw error;
     }
     // No rate limiting implemented for Peapix as it's likely less constrained
     // and doesn't provide standard rate limit headers via the proxy.

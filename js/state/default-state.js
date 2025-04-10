@@ -44,6 +44,9 @@ export function getDefaultState() {
                     fontWeight: 'normal', // Added default
                     color: '#FFFFFF',
                     showSeparator: false, // Added default
+                    charSpacing: 0.65, // Default character spacing in ch units
+                    colonAdjustX: 0, // Renamed from colonAdjust
+                    colonAdjustY: 0, // Default colon vertical adjustment (%) - Reverted to 0
                 }
             },
             'date-default': {

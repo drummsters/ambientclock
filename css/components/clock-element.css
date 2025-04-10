@@ -49,6 +49,33 @@
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* Style for individual characters within the digital clock to mimic monospace */
+.digital-clean-container .time-char {
+    display: inline-block; /* Allow width and keep inline flow */
+    /* Use CSS variable set by JS, provide fallback */
+    width: var(--time-char-width, 0.65ch);
+    text-align: center;   /* Center the character within its block */
+    /* Prevent characters from collapsing if empty (though unlikely with \u00A0) */
+    min-width: 0.1ch;
+}
+
+/* Make colons narrower and adjustable */
+.digital-clean-container .time-char-narrow {
+    position: relative; /* Needed for left adjustment */
+    /* Calculate half of the main character width variable */
+    width: calc(var(--time-char-width, 0.65ch) / 2);
+    /* Apply horizontal adjustment */
+    left: var(--time-colon-adjust-x, 0%); /* Renamed CSS variable */
+    /* Apply base vertical shift (-5%) + user adjustment */
+    transform: translateY(calc(-10% + var(--time-colon-adjust-y, 0%)));
+}
+
+/* Make spaces even narrower */
+.digital-clean-container .time-char-space {
+    /* Calculate quarter of the main character width variable */
+    width: calc(var(--time-char-width, 0.65ch) / 4);
+}
+
 /* Specific styles for LED face (can override container styles) */
 .clock-face[data-face-type="led"] .digital-clean-container {
     font-family: var(--font-family-technical, 'Share Tech Mono', monospace); /* Updated LED font */

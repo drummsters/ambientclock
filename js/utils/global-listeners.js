@@ -5,6 +5,8 @@ import * as logger from './logger.js'; // Import the logger
 // Store references to instances and state
 let controlPanelInstance = null;
 const NUDGE_AMOUNT = 0.1; // Percentage to move on each arrow key press
+const SELECTION_VISIBILITY_DURATION = 5000; // 5 seconds in milliseconds
+let selectionVisibilityTimer = null; // Timer for auto-deselect
 
 /**
  * Sets up global keyboard listeners and element selection.
@@ -58,46 +60,71 @@ export function setupGlobalKeyListeners(panelInstance) {
 }
 
 /**
- * Sets up click listeners for element selection
+ * Sets up double-click listeners for element selection
  */
 function setupElementSelection() {
     document.querySelectorAll('.base-element').forEach(element => {
         // Remove existing listener if any
-        element.removeEventListener('click', handleElementClick);
+        element.removeEventListener('dblclick', handleElementDoubleClick);
         // Add new listener
-        element.addEventListener('click', handleElementClick);
+        element.addEventListener('dblclick', handleElementDoubleClick);
     });
 }
 
 /**
- * Handles element click for selection
- * @param {MouseEvent} event - The click event
+ * Handles element double-click for selection
+ * @param {MouseEvent} event - The double-click event
  */
-function handleElementClick(event) {
+function handleElementDoubleClick(event) {
     event.stopPropagation(); // Prevent body click from immediately deselecting
+    const clickedElement = event.currentTarget;
+    const wasSelected = clickedElement.classList.contains('selected');
+
+    // Clear any existing auto-deselect timer
+    if (selectionVisibilityTimer) {
+        clearTimeout(selectionVisibilityTimer);
+        selectionVisibilityTimer = null;
+    }
     
-    // Deselect any previously selected elements
+    // Deselect any *other* previously selected elements
     document.querySelectorAll('.base-element.selected').forEach(el => {
-        if (el !== event.currentTarget) {
+        if (el !== clickedElement) {
             el.classList.remove('selected', 'nudging');
         }
     });
     
-    // Clear any existing hide timer
+    // Clear any existing nudge hide timer (related to Ctrl key)
     if (window.nudgeHideTimer) {
         clearTimeout(window.nudgeHideTimer);
         window.nudgeHideTimer = null;
     }
     
-    // Toggle selection on clicked element
-    event.currentTarget.classList.toggle('selected');
-    event.currentTarget.classList.remove('nudging');
+    // Toggle selection on the clicked element
+    clickedElement.classList.toggle('selected');
+    clickedElement.classList.remove('nudging'); // Ensure nudging class is off initially
+
+    // If the element is now selected, start the auto-deselect timer
+    if (!wasSelected && clickedElement.classList.contains('selected')) {
+        selectionVisibilityTimer = setTimeout(() => {
+            // Only deselect if this element is still the one selected
+            if (clickedElement.classList.contains('selected')) {
+                 logger.debug(`Auto-deselecting ${clickedElement.id} after ${SELECTION_VISIBILITY_DURATION}ms`);
+                 clickedElement.classList.remove('selected', 'nudging');
+            }
+            selectionVisibilityTimer = null;
+        }, SELECTION_VISIBILITY_DURATION);
+    }
 }
 
 /**
  * Handles click on body to deselect elements
  */
 function handleBodyClick(event) {
+    // Check if the click originated from within a base-element
+    if (event.target.closest('.base-element')) {
+        return; // Do nothing if click is on an element itself
+    }
+
     // Check if click was on control panel or its children
     let target = event.target;
     while (target && target !== document.body) {
@@ -109,9 +136,15 @@ function handleBodyClick(event) {
 
     // If we get here, click was on background
     
+    // Clear auto-deselect timer if clicking outside
+    if (selectionVisibilityTimer) {
+        clearTimeout(selectionVisibilityTimer);
+        selectionVisibilityTimer = null;
+    }
+    
     // Deselect any selected elements
     document.querySelectorAll('.base-element.selected').forEach(el => {
-        el.classList.remove('selected');
+        el.classList.remove('selected', 'nudging'); // Also remove nudging class
     });
 
     // Only hide control panel if it's visible
@@ -171,8 +204,10 @@ function handleKeyDown(event) {
 
         // Set timer to hide outline after nudging stops
         window.nudgeHideTimer = setTimeout(() => {
-            selectedElement.classList.remove('nudging');
-        }, 1000);
+            // Note: We don't need the separate nudgeHideTimer anymore,
+            // the main selectionVisibilityTimer handles the final removal.
+            // selectedElement.classList.remove('nudging');
+        }, 1000); // Keep this short timer for removing only the .nudging class visual cue
 
         let newX = elementState.position.x;
         let newY = elementState.position.y;
@@ -206,6 +241,20 @@ function handleKeyDown(event) {
                 }
             }
         });
+
+        // --- Reset the main auto-deselect timer on nudge ---
+        if (selectionVisibilityTimer) {
+            clearTimeout(selectionVisibilityTimer);
+        }
+        selectionVisibilityTimer = setTimeout(() => {
+            // Only deselect if this element is still the one selected
+            if (selectedElement.classList.contains('selected')) {
+                 logger.debug(`Auto-deselecting ${selectedElement.id} after ${SELECTION_VISIBILITY_DURATION}ms of inactivity`);
+                 selectedElement.classList.remove('selected', 'nudging'); // Remove both classes
+            }
+            selectionVisibilityTimer = null;
+        }, SELECTION_VISIBILITY_DURATION);
+        // --- End timer reset ---
     }
 }
 
@@ -292,11 +341,14 @@ function handleWheelResize(event) {
  * @param {KeyboardEvent} event - The keyboard event.
  */
 function handleKeyUp(event) {
-    // Hide outline when Ctrl is released
+    // Hide the specific 'nudging' visual cue when Ctrl is released,
+    // but don't affect the main 'selected' state or its timer.
     if (!event.ctrlKey) {
-        const selectedElement = document.querySelector('.base-element.selected');
-        if (selectedElement) {
-            selectedElement.classList.remove('nudging');
+        const nudgingElement = document.querySelector('.base-element.nudging');
+        if (nudgingElement) {
+            // We might not even need the .nudging class anymore if .selected handles the outline
+            // For now, just remove .nudging on keyup
+             nudgingElement.classList.remove('nudging');
         }
     }
 }
@@ -311,9 +363,19 @@ export function removeGlobalListeners() {
     document.body.removeEventListener('click', handleBodyClick);
     document.body.removeEventListener('touchstart', handleTouchStart);
 
+    // Clear timers
+    if (selectionVisibilityTimer) {
+        clearTimeout(selectionVisibilityTimer);
+        selectionVisibilityTimer = null;
+    }
+    if (window.nudgeHideTimer) {
+        clearTimeout(window.nudgeHideTimer);
+        window.nudgeHideTimer = null;
+    }
+
     // Remove selection listeners from elements
     document.querySelectorAll('.base-element').forEach(element => {
-        element.removeEventListener('click', handleElementClick);
+        element.removeEventListener('dblclick', handleElementDoubleClick);
     });
 
     const elementsContainer = document.getElementById('elements-container');

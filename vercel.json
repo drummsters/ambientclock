@@ -3,6 +3,7 @@
   "rewrites": [
     { "source": "/api/pexels", "destination": "/api/pexels.js" },
     { "source": "/api/unsplash", "destination": "/api/unsplash.js" },
-    { "source": "/api/peapix", "destination": "/api/peapix.js" }
+    { "source": "/api/peapix", "destination": "/api/peapix.js" },
+    { "source": "/api/pixabay", "destination": "/api/pixabay.js" }
   ]
 }

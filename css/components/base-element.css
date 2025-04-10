@@ -39,7 +39,3 @@
 .base-element.selected.nudging {
     outline-color: rgba(255, 255, 255, 0.8); /* Show outline while nudging */
 }
-
-.base-element.selected:not(.nudging) {
-    outline-color: transparent; /* Hide outline when not nudging */
-}

@@ -40,6 +40,9 @@ export class ClockControlsUIBuilder {
         const appearanceControls = this._createAppearanceControls();
         appearanceControls.forEach(control => container.appendChild(control));
 
+        const spacingControls = this._createSpacingControls(); // Add spacing controls
+        spacingControls.forEach(control => container.appendChild(control));
+
         const effectControls = this._createEffectControls();
         effectControls.forEach(control => container.appendChild(control));
 
@@ -153,6 +156,55 @@ export class ClockControlsUIBuilder {
         boldGroup.appendChild(this.elements.boldCheckbox);
         boldGroup.querySelector('label').htmlFor = this.elements.boldCheckbox.id;
         controls.push(boldGroup);
+
+        return controls;
+    }
+
+    /** Creates controls for Character Spacing */
+    _createSpacingControls() {
+        const controls = [];
+        // Character Spacing
+        const spacingGroup = this._createControlGroup('Char Spacing (ch):');
+        this.elements.spacingSlider = document.createElement('input');
+        this.elements.spacingSlider.type = 'range';
+        this.elements.spacingSlider.id = `${this.elementId}-spacing-slider`;
+        this.elements.spacingSlider.min = '0.1'; // Min spacing
+        this.elements.spacingSlider.max = '1.5'; // Max spacing (adjust as needed)
+        this.elements.spacingSlider.step = '0.01'; // Fine control
+        this.elements.spacingValue = document.createElement('span');
+        this.elements.spacingValue.className = 'range-value';
+        spacingGroup.appendChild(this.elements.spacingSlider);
+        spacingGroup.appendChild(this.elements.spacingValue);
+        controls.push(spacingGroup);
+
+        // Colon X Adjustment
+        const colonGroup = this._createControlGroup('Colon Position X:'); // Renamed Label
+        this.elements.colonXSlider = document.createElement('input'); // Renamed element reference
+        this.elements.colonXSlider.type = 'range';
+        this.elements.colonXSlider.id = `${this.elementId}-colon-x-slider`; // Renamed ID
+        this.elements.colonXSlider.min = '-5'; // Limit range to -5%
+        this.elements.colonXSlider.max = '5';  // Limit range to +5%
+        this.elements.colonXSlider.step = '1';
+        this.elements.colonXValue = document.createElement('span'); // Renamed element reference
+        this.elements.colonXValue.className = 'range-value';
+        colonGroup.appendChild(this.elements.colonXSlider);
+        colonGroup.appendChild(this.elements.colonXValue);
+        controls.push(colonGroup);
+
+        // Colon Vertical Adjustment
+        const colonYGroup = this._createControlGroup('Colon Position Y:');
+        this.elements.colonYSlider = document.createElement('input');
+        this.elements.colonYSlider.type = 'range';
+        this.elements.colonYSlider.id = `${this.elementId}-colon-y-slider`;
+        this.elements.colonYSlider.min = '-5'; // Limit range to -5%
+        this.elements.colonYSlider.max = '5';  // Limit range to +5%
+        this.elements.colonYSlider.step = '1';
+        this.elements.colonYValue = document.createElement('span');
+        this.elements.colonYValue.className = 'range-value';
+        colonYGroup.appendChild(this.elements.colonYSlider);
+        colonYGroup.appendChild(this.elements.colonYValue);
+        controls.push(colonYGroup);
+
 
         return controls;
     }

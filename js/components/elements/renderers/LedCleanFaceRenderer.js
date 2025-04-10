@@ -43,42 +43,10 @@ export class LedCleanFaceRenderer {
             console.error('LedCleanFaceRenderer: Cannot create elements without a parent container. Call setContainer first.');
             return null;
         }
-        // Clear existing content in case of re-creation (though ClockElement usually handles this)
-        // this.parentContainer.innerHTML = ''; // Let ClockElement manage clearing
 
+        // Create the main container for the digital/clean face
         this.rootElement = document.createElement('div');
         this.rootElement.className = 'digital-clean-container';
-        // Add relative positioning and padding for separator line (handled in ClockElement's face container)
-        // this.rootElement.style.position = 'relative';
-        // this.rootElement.style.paddingBottom = '5px'; // Adjust as needed
-
-        // Create spans
-        this.elements.hours = document.createElement('span');
-        this.elements.minutes = document.createElement('span');
-        this.elements.seconds = document.createElement('span');
-        this.elements.ampm = document.createElement('span');
-
-        // Add classes
-        this.elements.hours.className = 'clock-hours';
-        this.elements.minutes.className = 'clock-minutes';
-        this.elements.seconds.className = 'clock-seconds';
-        this.elements.ampm.className = 'clock-ampm';
-
-        // Create separators
-        this.elements.separator1 = document.createElement('span');
-        this.elements.separator1.className = 'clock-separator';
-        this.elements.separator1.textContent = ':';
-        this.elements.separator2 = document.createElement('span');
-        this.elements.separator2.className = 'clock-separator';
-        this.elements.separator2.textContent = ':';
-
-        // Append elements in order
-        this.rootElement.appendChild(this.elements.hours);
-        this.rootElement.appendChild(this.elements.separator1);
-        this.rootElement.appendChild(this.elements.minutes);
-        this.rootElement.appendChild(this.elements.separator2);
-        this.rootElement.appendChild(this.elements.seconds);
-        this.rootElement.appendChild(this.elements.ampm);
 
         // Initially hide the root element, ClockElement will manage visibility
         this.rootElement.style.display = 'none';
@@ -86,8 +54,8 @@ export class LedCleanFaceRenderer {
         // Append the created root to the designated parent container
         this.parentContainer.appendChild(this.rootElement);
 
-        console.log('LedCleanFaceRenderer elements created and appended.');
-        return this.rootElement; // Still return the root for potential direct manipulation
+        console.log('LedCleanFaceRenderer container created and appended.');
+        return this.rootElement;
     }
 
     /**
@@ -101,8 +69,8 @@ export class LedCleanFaceRenderer {
      * @param {boolean} options.showSeconds - Whether to display seconds.
      */
     render(timeData, options) {
-        if (!this.rootElement || !this.elements.hours) {
-            console.warn('LedCleanFaceRenderer cannot render - elements not created.');
+        if (!this.rootElement) {
+            console.warn('LedCleanFaceRenderer cannot render - root element not created.');
             return;
         }
 
@@ -111,32 +79,37 @@ export class LedCleanFaceRenderer {
         let ampm = '';
 
         if (options.timeFormat === '12') {
-            ampm = hours >= 12 ? 'PM' : 'AM';
+            ampm = hours >= 12 ? ' PM' : ' AM'; // Add space before AM/PM
             displayHours = hours % 12;
             displayHours = displayHours ? displayHours : 12; // Hour '0' should be '12'
         }
 
-        // Update content
-        this.elements.hours.textContent = options.timeFormat === '12' ? displayHours : padZero(displayHours);
-        this.elements.minutes.textContent = padZero(minutes);
-
+        // Format the time string
+        let timeString = options.timeFormat === '12'
+            ? String(displayHours) // No padding for 12hr format hours
+            : padZero(displayHours);
+        timeString += `:${padZero(minutes)}`;
         if (options.showSeconds) {
-            this.elements.seconds.textContent = padZero(seconds);
-            this.elements.seconds.style.display = '';
-            this.elements.separator2.style.display = '';
-        } else {
-            this.elements.seconds.textContent = '';
-            this.elements.seconds.style.display = 'none';
-            this.elements.separator2.style.display = 'none';
+            timeString += `:${padZero(seconds)}`;
         }
+        timeString += ampm; // Append AM/PM (with leading space if applicable)
 
-        if (options.timeFormat === '12') {
-            this.elements.ampm.textContent = ampm;
-            this.elements.ampm.style.display = '';
-            this.elements.ampm.style.marginLeft = '0.2em'; // Keep style for spacing
-        } else {
-            this.elements.ampm.textContent = '';
-            this.elements.ampm.style.display = 'none';
+        // Clear previous characters
+        this.rootElement.innerHTML = '';
+
+        // Wrap each character in a span
+        for (const char of timeString) {
+            const charSpan = document.createElement('span');
+            charSpan.className = 'time-char';
+            // Add specific classes for narrow characters
+            if (char === ' ') {
+                charSpan.classList.add('time-char-space'); // Class for spaces
+            } else if (char === ':') {
+                charSpan.classList.add('time-char-narrow'); // Class for colons
+            }
+            // Use non-breaking space for spaces to ensure they take up width
+            charSpan.textContent = char === ' ' ? '\u00A0' : char;
+            this.rootElement.appendChild(charSpan);
         }
     }
 
@@ -146,12 +119,27 @@ export class LedCleanFaceRenderer {
      * @param {string} options.fontFamily - Font family string.
      * @param {string} options.color - Color string.
      * @param {string} options.fontWeight - Font weight string ('bold' or 'normal').
+     * @param {number} options.charSpacing - Character spacing in ch units.
+     * @param {number} options.colonAdjustX - Horizontal adjustment for colons in %. (Renamed)
+     * @param {number} options.colonAdjustY - Vertical adjustment for colons in %.
      */
     applyStyles(options) {
         if (!this.rootElement) return;
         this.rootElement.style.fontFamily = options.fontFamily || 'Segoe UI';
         this.rootElement.style.color = options.color || '#FFFFFF';
         this.rootElement.style.fontWeight = options.fontWeight || 'normal';
+
+        // Apply character spacing using a CSS variable
+        const spacing = options.charSpacing ?? 0.65; // Use default from state
+        this.rootElement.style.setProperty('--time-char-width', `${spacing}ch`);
+
+        // Apply colon X adjustment using a CSS variable
+        const colonAdjustX = options.colonAdjustX ?? 0; // Renamed state property
+        this.rootElement.style.setProperty('--time-colon-adjust-x', `${colonAdjustX}%`); // Renamed CSS variable
+
+        // Apply colon vertical adjustment using a CSS variable
+        const colonAdjustY = options.colonAdjustY ?? 0; // Default to 0%
+        this.rootElement.style.setProperty('--time-colon-adjust-y', `${colonAdjustY}%`);
     }
 
     /**
@@ -170,7 +158,8 @@ export class LedCleanFaceRenderer {
             this.rootElement.parentNode.removeChild(this.rootElement);
         }
         this.rootElement = null;
-        this.elements = {};
+        // No longer need this.elements for individual time parts
+        // this.elements = {};
         console.log('LedCleanFaceRenderer destroyed.');
     }
 }
