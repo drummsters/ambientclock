@@ -4,6 +4,7 @@ import { ImageBackgroundHandler } from './image-background-handler.js';
 import { UnsplashProvider } from './image-providers/unsplash-provider.js';
 import { PexelsProvider } from './image-providers/pexels-provider.js';
 import { PeapixProvider } from './image-providers/peapix-provider.js'; // Added Peapix
+import { determineImageQueryKey } from './utils/background-helpers.js';
 
 /**
  * Manages the application's background (color or image) and overlay,
@@ -153,11 +154,18 @@ export class BackgroundService {
                 source: selectedProviderName,
                 provider: selectedProviderName
             };
-            // Only set default query if not switching to Other category and no query exists
-            if (!processedConfig.query && (!processedConfig.category || processedConfig.category !== 'Other')) {
-                processedConfig.query = this.getQueryFromConfig(processedConfig);
-            } else if (processedConfig.category === 'Other') {
-                // Clear query when switching to Other
+            // Determine query key using the helper
+            const queryKey = determineImageQueryKey(processedConfig);
+            if (queryKey) {
+                // If the provider is Peapix, the key is the country code, not the query
+                if (processedConfig.source === 'peapix') {
+                    processedConfig.peapixCountry = queryKey;
+                    delete processedConfig.query; // Ensure query is not set for Peapix
+                } else {
+                    processedConfig.query = queryKey;
+                }
+            } else {
+                // If queryKey is null (e.g., 'Other' category with no input), clear the query
                 delete processedConfig.query;
             }
             
@@ -181,11 +189,18 @@ export class BackgroundService {
                 source: selectedProviderName,
                 provider: selectedProviderName
             };
-            // Only set default query if not switching to Other category and no query exists
-            if (!processedConfig.query && (!processedConfig.category || processedConfig.category !== 'Other')) {
-                processedConfig.query = this.getQueryFromConfig(processedConfig);
-            } else if (processedConfig.category === 'Other') {
-                // Clear query when switching to Other
+            // Determine query key using the helper
+            const queryKey = determineImageQueryKey(processedConfig);
+             if (queryKey) {
+                // If the provider is Peapix, the key is the country code, not the query
+                if (processedConfig.source === 'peapix') {
+                    processedConfig.peapixCountry = queryKey;
+                    delete processedConfig.query; // Ensure query is not set for Peapix
+                } else {
+                    processedConfig.query = queryKey;
+                }
+            } else {
+                // If queryKey is null (e.g., 'Other' category with no input), clear the query
                 delete processedConfig.query;
             }
             await this.currentBackgroundHandler.update(processedConfig);
@@ -213,37 +228,8 @@ export class BackgroundService {
   }
 
   /**
-   * Gets the appropriate query string from the config.
-   * @param {object} config - The background configuration.
-   * @returns {string} The query to use for image search.
-   * @private
-   */
-  getQueryFromConfig(config) {
-    let query;
-    // If category is 'Other', use customCategory as the query
-    if (config.category === 'Other' && config.customCategory) {
-        query = config.customCategory;
-    }
-    // For standard categories, use the category name
-    else if (config.category && config.category !== 'Other') {
-        query = config.category;
-    }
-    // Preserve existing query if present
-    else if (config.query) {
-        query = config.query;
-    }
-    // Default to nature
-    else {
-        query = 'nature';
-    }
-    // Ensure consistent case
-    return query.toLowerCase();
-  }
-
-  /**
    * @deprecated Use applyBackground which handles type switching.
    */
-
   // async applyColorBackground(config) {
   //   console.log('[BackgroundService] Applying color background.');
   //   if (!this.currentBackgroundHandler || this.currentBackgroundHandler.type !== 'color') {

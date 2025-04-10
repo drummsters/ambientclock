@@ -1,12 +1,15 @@
 {
   "type": "module",
   "scripts": {
-    "build": "echo \"No build required\""
+    "build": "echo \"No build required\"",
+    "test": "vitest"
   },
   "dependencies": {
     "axios": "^1.8.4"
   },
   "devDependencies": {
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "jsdom": "^26.0.0",
+    "vitest": "^3.1.1"
   }
 }

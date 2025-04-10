@@ -1,16 +1,8 @@
 import { StateManager } from '../core/state-manager.js';
 import { EventBus } from '../core/event-bus.js';
 import * as logger from '../utils/logger.js'; // Import the logger
-
-// Define RateLimitError locally for this module's use
-// Assumes providers throw this specific error type upon hitting limits.
-class RateLimitError extends Error {
-  constructor(message, resetTimestamp = null) {
-    super(message);
-    this.name = 'RateLimitError';
-    this.resetTimestamp = resetTimestamp;
-  }
-}
+import { RateLimitError } from '../core/errors.js';
+import { determineImageQueryKey } from './utils/background-helpers.js';
 
 const PROACTIVE_FETCH_THRESHOLD = 2; // Fetch next batch when cache size is <= this value
 const BATCH_SIZE = 10; // Default number of images to fetch in a batch
@@ -78,24 +70,11 @@ export class ImageBackgroundHandler {
     let needsCacheClear = false; // Flag to clear cache
 
     // Determine the current query/country key based on the new config
-    let newQueryKey = null;
-    if (this.config.source === 'peapix') {
-        newQueryKey = this.config.peapixCountry || 'us';
-    } else {
-        newQueryKey = (this.config.category === 'Other')
-            ? (this.config.customCategory || '')
-            : (this.config.category || 'nature');
-    }
+    // Determine the current query/country key based on the new config
+    const newQueryKey = determineImageQueryKey(this.config);
 
     // Determine the previous query/country key based on the old config
-    let oldQueryKey = null;
-     if (oldConfig.source === 'peapix') {
-        oldQueryKey = oldConfig.peapixCountry || 'us';
-    } else {
-        oldQueryKey = (oldConfig.category === 'Other')
-            ? (oldConfig.customCategory || '')
-            : (oldConfig.category || 'nature');
-    }
+    const oldQueryKey = determineImageQueryKey(oldConfig);
 
     // 1. Source changed? Always reload and clear cache.
     if (oldConfig.source !== this.config.source) {
@@ -211,32 +190,12 @@ export class ImageBackgroundHandler {
 
     // Normal provider logic
     const providerName = this.config.source || 'unsplash';
-    let query = '';
-    let countryCode = null;
-    let currentQueryKey = null; // Key to check against cache
+    const currentQueryKey = determineImageQueryKey(this.config); // Use helper
 
-    // Determine current query/country key
-    if (providerName === 'peapix') {
-        countryCode = this.config.peapixCountry || 'us';
-        currentQueryKey = countryCode;
-    } else {
-        query = (this.config.category === 'Other')
-            ? (this.config.customCategory || '')
-            : (this.config.category || 'nature');
-        currentQueryKey = query;
-
-        // Handle empty query cases
-        if (!query) {
-            if (this.config.category === 'Other') {
-                logger.warn('[ImageBackgroundHandler] Cannot fetch: Category is "Other" but custom category is empty.');
-                return { error: 'custom_category_empty', message: 'Enter Custom Category' };
-            }
-            // Only default to nature if not in Other category
-            if (!this.config.category || this.config.category !== 'Other') {
-                query = 'nature';
-                logger.debug('[ImageBackgroundHandler] Empty query, defaulting to "nature"');
-            }
-        }
+    // Handle cases where query key is null (e.g., 'Other' category with no input)
+    if (currentQueryKey === null) {
+        logger.warn('[ImageBackgroundHandler] Cannot fetch: Query key is null (likely "Other" category with empty custom input).');
+        return { error: 'custom_category_empty', message: 'Enter Custom Category' };
     }
 
     // --- Batch Cache Logic ---
@@ -333,8 +292,8 @@ export class ImageBackgroundHandler {
     });
 
     let lastError = null;
-    let query = '';
-    let countryCode = null;
+    // let query = ''; // No longer needed here
+    // let countryCode = null; // No longer needed here
     let newCacheKey = null;
 
     // Special handling for Peapix - no fallback since it uses country codes
@@ -346,12 +305,16 @@ export class ImageBackgroundHandler {
         }
 
         try {
-            countryCode = this.config.peapixCountry || 'us';
-            newCacheKey = countryCode;
-            logger.debug(`[ImageBackgroundHandler] Fetching batch for Peapix, country: ${countryCode}`);
-            this.imageCache = await provider.getImageBatch(query, BATCH_SIZE, countryCode);
-            this.currentBatchCountry = newCacheKey;
-            this.currentBatchQuery = null;
+            newCacheKey = determineImageQueryKey(this.config); // Use helper
+            if (newCacheKey === null) { // Should not happen if provider is peapix, but safeguard
+                 this.isFetchingBatch = false;
+                 throw new Error('Cannot fetch for Peapix without a country code.');
+            }
+            logger.debug(`[ImageBackgroundHandler] Fetching batch for Peapix, country: ${newCacheKey}`);
+            // Pass null for query, BATCH_SIZE, and the determined country code (newCacheKey)
+            this.imageCache = await provider.getImageBatch(null, BATCH_SIZE, newCacheKey);
+            this.currentBatchCountry = newCacheKey; // Store the country code used
+            this.currentBatchQuery = null; // Clear query cache key
             logger.debug(`[ImageBackgroundHandler] Peapix batch fetch successful. Added ${this.imageCache.length} images to cache.`);
             this.isFetchingBatch = false;
             return;
@@ -372,25 +335,23 @@ export class ImageBackgroundHandler {
         }
 
         try {
-            query = (this.config.category === 'Other')
-                ? (this.config.customCategory?.toLowerCase() || '')
-                : (this.config.category?.toLowerCase() || 'nature');
-            newCacheKey = query;
+            newCacheKey = determineImageQueryKey(this.config); // Use helper
 
-            // Skip fetch if category is Other and query is empty
-            if (this.config.category === 'Other' && !query) {
-                logger.debug('[ImageBackgroundHandler] Skipping fetch: Category is "Other" with no query.');
-                this.imageCache = [];
+            // Skip fetch if query key is null (e.g., 'Other' category with no input)
+            if (newCacheKey === null) {
+                logger.debug('[ImageBackgroundHandler] Skipping fetch: Query key is null.');
+                this.imageCache = []; // Clear cache
                 this.isFetchingBatch = false;
-                return;
+                return; // Don't throw, just return as no fetch is possible
             }
 
-            logger.debug(`[ImageBackgroundHandler] Trying batch fetch from ${providerName}, query: "${query}"`);
-            this.imageCache = await provider.getImageBatch(query, BATCH_SIZE);
-            
+            logger.debug(`[ImageBackgroundHandler] Trying batch fetch from ${providerName}, query: "${newCacheKey}"`);
+            // Pass the determined query key (newCacheKey) and BATCH_SIZE
+            this.imageCache = await provider.getImageBatch(newCacheKey, BATCH_SIZE);
+
             // If successful, update state and cache keys
-            this.currentBatchQuery = newCacheKey;
-            this.currentBatchCountry = null;
+            this.currentBatchQuery = newCacheKey; // Store the query used
+            this.currentBatchCountry = null; // Clear country cache key
             
             // If this wasn't the original provider, update the config
             if (providerName !== currentProviderName) {
@@ -405,9 +366,11 @@ export class ImageBackgroundHandler {
                     ...currentState,
                     source: providerName,
                     provider: providerName,
-                    query: this.config.query || newCacheKey // Preserve existing query if present
+                    // Ensure query is set correctly in the updated state
+                    query: (providerName === 'peapix') ? currentState.query : newCacheKey,
+                    peapixCountry: (providerName === 'peapix') ? newCacheKey : currentState.peapixCountry
                 };
-                // Update state with synchronized fields
+                // Update state with synchronized fields, ensuring only relevant key (query or country) is active
                 StateManager.update({
                     settings: {
                         background: updatedState
