@@ -1,20 +1,34 @@
+const PIXABAY_BATCH_SIZE = 50; // Fetch larger batches for client-side caching/randomization
+
 export default async function handler(req, res) {
     const apiKey = process.env.PIXABAY_API_KEY; // Ensure this is set in Vercel environment variables
-    // console.log('[API/Pixabay] Attempting to read PIXABAY_API_KEY...'); // Logging removed for now
-    // console.log(`[API/Pixabay] PIXABAY_API_KEY value: ${apiKey ? 'Loaded' : 'MISSING or undefined'}`); // Logging removed for now
 
-    const { q: query, count = 10 } = req.query;
+    // Get parameters from query string
+    const { q: query, orientation = 'horizontal', page = 1 } = req.query;
 
     if (!apiKey) {
-        // console.error('[API/Pixabay] API key is missing!'); // Logging removed for now
+        console.error('[API/Pixabay] API key is missing!');
         return res.status(500).json({ error: 'Pixabay API key is missing' });
     }
 
     if (!query) {
-        return res.status(400).json({ error: 'Query parameter is required' });
+        return res.status(400).json({ error: 'Query parameter (q) is required' });
     }
 
-    const url = `https://pixabay.com/api/?key=${apiKey}&q=${encodeURIComponent(query)}&per_page=${count}&safesearch=true`;
+    // Construct Pixabay API URL with desired parameters
+    const params = new URLSearchParams({
+        key: apiKey,
+        q: query,
+        image_type: 'photo',
+        orientation: orientation,
+        min_width: 1920,
+        min_height: 1080,
+        safesearch: 'true',
+        per_page: PIXABAY_BATCH_SIZE.toString(),
+        page: page.toString()
+    });
+    const url = `https://pixabay.com/api/?${params.toString()}`;
+    console.log(`[API/Pixabay] Fetching URL: ${url}`); // Log the final URL
 
     try {
         const response = await fetch(url);
