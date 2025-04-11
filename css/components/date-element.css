@@ -53,7 +53,7 @@
 /* Apply font styles based on CSS variable and data attributes */
 .date-face {
     /* Use the CSS variable set by JS, provide a fallback */
-    font-family: var(--font-family-futuristic, 'Exo', sans-serif);
+    font-family: var(--date-font-family, 'Segoe UI', sans-serif); /* Use the correct variable */
 }
 
 .date-face[data-font-weight="bold"] {

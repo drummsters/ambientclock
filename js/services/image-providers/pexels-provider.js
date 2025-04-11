@@ -84,6 +84,7 @@ export class PexelsProvider {
     // API key is no longer needed here
     this.baseUrl = '/api/pexels'; // Point to our serverless function
     this.name = 'pexels'; // Identifier for this provider
+    this.requiresBackendKey = true; // Indicates backend API key setup is needed
     logger.debug('[PexelsProvider] Initialized. Using backend proxy at:', this.baseUrl);
   }
 

@@ -74,7 +74,13 @@ export class BackgroundUIBuilder {
             this.availableProviders.forEach((providerInstance, providerName) => {
                 const option = document.createElement('option');
                 option.value = providerName;
-                option.textContent = providerName.charAt(0).toUpperCase() + providerName.slice(1);
+                // Capitalize name and add indicator if backend key is required
+                let optionText = providerName.charAt(0).toUpperCase() + providerName.slice(1);
+                if (providerInstance.requiresBackendKey) {
+                    optionText += ' (API)'; // Indicate it uses a backend API key
+                }
+                option.textContent = optionText;
+                // Do not disable the option; let the backend/handler manage errors if key is missing.
                 this.elements.sourceSelect.appendChild(option);
             });
             this.elements.sourceSelect.disabled = false;

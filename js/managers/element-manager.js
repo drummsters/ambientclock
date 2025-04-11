@@ -72,27 +72,41 @@ export class ElementManager {
       this.destroyElement(id);
     });
 
+    // Create a document fragment to batch DOM insertions
+    const fragment = document.createDocumentFragment();
+
     // Add new elements present in state
     // Use Promise.all to handle asynchronous initialization
+    // Pass the fragment to createElementInstance
     await Promise.all(elementsToAdd.map(id => {
         const elementConfig = elementsState[id];
         if (elementConfig && elementConfig.type) {
-           return this.createElementInstance(elementConfig);
+           return this.createElementInstance(elementConfig, fragment); // Pass fragment
         } else {
             logger.warn(`Invalid config for element ID "${id}" in state. Skipping creation.`); // Use logger.warn
             return Promise.resolve(); // Resolve immediately for invalid configs
         }
     }));
 
+    // Append all new elements at once from the fragment
+    if (fragment.hasChildNodes()) {
+        this.containerElement.appendChild(fragment);
+        logger.debug(`[ElementManager] Appended fragment with new elements to container.`);
+    }
+
     logger.log(`Sync complete. Active elements: ${this.elementInstances.size}`); // Keep as log
+    // Publish event after sync is fully complete
+    EventBus.publish('elementmanager:sync:complete');
+    logger.debug('[ElementManager] Published elementmanager:sync:complete event.');
   }
 
   /**
-   * Creates and initializes a new element instance based on its configuration.
+   * Creates and initializes a new element instance based on its configuration, adding it to a fragment.
    * @param {object} elementConfig - The configuration object for the element from the state.
+   * @param {DocumentFragment} fragment - The document fragment to append the element's container to.
    * @returns {Promise<void>}
    */
-  async createElementInstance(elementConfig) {
+  async createElementInstance(elementConfig, fragment) { // Added fragment parameter
     const { id, type, options } = elementConfig;
     logger.log(`Creating element instance: ID=${id}, Type=${type}`); // Keep as log
 
@@ -110,16 +124,13 @@ export class ElementManager {
       const initSuccess = await elementInstance.init();
 
       if (initSuccess && elementInstance.container) {
-        // Add the element's container to the main elements container
-        if (this.containerElement) {
-          this.containerElement.appendChild(elementInstance.container);
-          logger.debug(`[ElementManager] Appended element ${id} to container.`); // Changed to debug
-          this.elementInstances.set(id, elementInstance);
-          logger.log(`Element ${id} successfully created and added to DOM.`); // Keep as log
-          EventBus.publish('element:created', { id, type });
-        } else {
-          logger.error('[ElementManager] containerElement is null. Cannot append element.'); // Use logger.error
-        }
+        // Add the element's container to the fragment instead of the main container
+        fragment.appendChild(elementInstance.container);
+        logger.debug(`[ElementManager] Appended element ${id} container to fragment.`); // Changed to debug
+        this.elementInstances.set(id, elementInstance);
+        logger.log(`Element ${id} successfully created and prepared for DOM insertion.`); // Keep as log
+        EventBus.publish('element:created', { id, type });
+        // Note: DOM insertion happens after Promise.all in syncElements
       } else {
         logger.error(`Failed to initialize element ${id} or its container is missing.`); // Use logger.error
         // Cleanup if init failed but instance was created

@@ -10,6 +10,7 @@ export class PeapixProvider {
   constructor() {
     this.baseUrl = '/api/peapix'; // Point to our serverless function
     this.name = 'peapix'; // Identifier for this provider
+    this.requiresBackendKey = false; // Indicates backend API key setup is NOT needed
     logger.debug('[PeapixProvider] Initialized. Using backend proxy at:', this.baseUrl);
   }
 

@@ -155,15 +155,31 @@ window.ambientClock = {
     }
 };
 
+// Helper function to initialize listeners after sync
+function initializeListeners() {
+    // Use a flag to ensure listeners are only set up once
+    if (window.listenersInitialized) return;
+    window.listenersInitialized = true;
+    logger.debug('[app.js] Element manager sync complete. Setting up app listeners...');
+    setupAppListeners();
+}
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initApp().then(() => {
-            setupAppListeners(); // Setup listeners after app init completes
+            // Wait for the element manager to confirm sync before setting up listeners
+            EventBus.subscribe('elementmanager:sync:complete', initializeListeners);
+            // In case the event fired *just* before subscription (unlikely but possible)
+            // or if the initial sync happens very quickly, check if elements exist
+            // and potentially call initializeListeners directly if needed.
+            // However, the event-based approach is generally safer.
         });
     });
 } else {
     // DOMContentLoaded has already fired
     initApp().then(() => {
-        setupAppListeners(); // Setup listeners after app init completes
+        // Wait for the element manager to confirm sync before setting up listeners
+        EventBus.subscribe('elementmanager:sync:complete', initializeListeners);
+        // Handle potential race condition as above if necessary.
     });
 }

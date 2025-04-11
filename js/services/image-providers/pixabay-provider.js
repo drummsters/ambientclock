@@ -11,6 +11,7 @@ export class PixabayProvider {
     constructor() {
         this.baseUrl = '/api/pixabay'; // Point to our serverless function
         this.name = 'pixabay'; // Identifier for this provider
+        this.requiresBackendKey = true; // Indicates backend API key setup is needed
         logger.debug('[PixabayProvider] Initialized. Using backend proxy at:', this.baseUrl);
     }
 

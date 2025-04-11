@@ -78,6 +78,7 @@ export class UnsplashProvider {
     // API key is no longer needed here
     this.baseUrl = '/api/unsplash'; // Point to our serverless function
     this.name = 'unsplash'; // Identifier for this provider
+    this.requiresBackendKey = true; // Indicates backend API key setup is needed
     logger.debug('[UnsplashProvider] Initialized. Using backend proxy at:', this.baseUrl);
   }
 
