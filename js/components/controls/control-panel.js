@@ -7,9 +7,10 @@ import * as logger from '../../utils/logger.js'; // Import the logger
 import { BackgroundControls } from './background-controls.js';
 import { ClockControls } from './clock-controls.js';
 import { DateControls } from './date-controls.js'; // Keep for potential direct use or type checking if needed elsewhere
-import { FavoritesControls } from './favorites-controls.js'; // Import FavoritesControls
-import { ControlPanelUIBuilder } from './ui/ControlPanelUIBuilder.js'; // Import the builder
-import { DynamicControlManager } from '../../managers/DynamicControlManager.js'; // Import the new manager
+import { FavoritesControls } from './favorites-controls.js';
+import { ControlPanelUIBuilder } from './ui/ControlPanelUIBuilder.js';
+import { DynamicControlManager } from '../../managers/DynamicControlManager.js';
+import { SettingsIOService } from '../../services/settings-io-service.js'; // Import the new service
 
 /**
  * Manages the main control panel UI.
@@ -46,14 +47,14 @@ export class ControlPanel extends BaseUIElement {
     this.backgroundService = backgroundService; // Store reference
     this.favoritesService = favoritesService; // Store reference
     // this.elementControls = new Map(); // Removed - Handled by DynamicControlManager
-    this.visibilityManager = null; // Add property for VisibilityManager
-    this.dynamicControlManager = null; // Add property for the dynamic controls manager
-    this.CONTROLS_HIDE_DELAY = 3000; // V1 default was 3000ms
-    this.subscriptions = []; // Add array for EventBus subscriptions
-    logger.debug(`ControlPanel constructor called with ID: ${this.id}`); // Keep as log
-    // The main container is expected to exist in the HTML already
+    this.visibilityManager = null;
+    this.dynamicControlManager = null;
+    this.settingsIOService = new SettingsIOService(); // Instantiate the service
+    this.CONTROLS_HIDE_DELAY = 3000;
+    this.subscriptions = [];
+    logger.debug(`ControlPanel constructor called with ID: ${this.id}`);
     this.container = document.getElementById(this.id);
-    this.uiBuilder = null; // Add property for the UI builder
+    this.uiBuilder = null;
   }
 
   /**
@@ -146,6 +147,9 @@ export class ControlPanel extends BaseUIElement {
     this.elements.backgroundSection = builtElements.backgroundSection;
     this.elements.favoritesSection = builtElements.favoritesSection;
     this.elements.settingsSection = builtElements.settingsSection;
+    this.elements.downloadButton = builtElements.downloadButton;
+    this.elements.uploadButton = builtElements.uploadButton;
+    this.elements.fileInput = builtElements.fileInput; // Store reference to hidden input
     this.elements.resetButton = builtElements.resetButton;
 
     // Now create and append the actual controls into the built structure
@@ -224,8 +228,18 @@ export class ControlPanel extends BaseUIElement {
     // Store unsubscribe functions
     this.subscriptions.push(toggleSub); // Only store the toggle subscription now
 
-    // Reset button listener (using reference from builder)
+    // Reset button listener
     this.elements.resetButton?.addEventListener('click', this.handleResetClick.bind(this));
+
+    // Settings Download button listener
+    this.elements.downloadButton?.addEventListener('click', () => this.settingsIOService.exportSettings());
+
+    // Settings Upload button listener (triggers hidden input)
+    this.elements.uploadButton?.addEventListener('click', () => this.elements.fileInput?.click());
+
+    // Hidden file input listener (handles the actual file selection)
+    this.elements.fileInput?.addEventListener('change', this.handleFileImport.bind(this));
+
 
     // Removed hover listener setup for the trigger element
   }
@@ -242,6 +256,25 @@ export class ControlPanel extends BaseUIElement {
         // Optionally, close the panel after reset?
         // StateManager.update({ settings: { controls: { isOpen: false } } });
     }
+  }
+
+  /**
+   * Handles the file selection event from the hidden input.
+   * @param {Event} event - The change event object.
+   */
+  async handleFileImport(event) {
+    const file = event.target.files[0];
+    if (!file) {
+      logger.log('[ControlPanel] No file selected for import.');
+      return;
+    }
+
+    // Call the service method, passing the file
+    // Note: We'll need to modify SettingsIOService.importSettings to accept the file
+    await this.settingsIOService.importSettings(file);
+
+    // Reset the file input value so the same file can be selected again if needed
+    event.target.value = null;
   }
 
   /**

@@ -402,3 +402,29 @@
 #controls-panel::-webkit-scrollbar-thumb:hover {
     background-color: rgba(255, 255, 255, 0.4);
 }
+
+/* Settings Import/Export Buttons */
+.settings-actions-group {
+    display: flex;
+    justify-content: space-around; /* Distribute space */
+    align-items: center;
+    flex-wrap: wrap; /* Allow wrapping */
+    gap: 10px; /* Space between buttons */
+    margin-top: 10px; /* Space above the button group */
+}
+
+/* Style for individual download/upload buttons */
+#controls-panel .settings-io-button {
+    /* Inherits general button styles */
+    flex-grow: 1; /* Allow buttons to grow */
+    min-width: 120px; /* Minimum width */
+    text-align: center;
+    /* Add specific styling if needed, e.g., different colors */
+    /* background-color: var(--info-button-color); */ /* Example */
+}
+
+/* Ensure reset button doesn't grow excessively if others wrap */
+#controls-panel .reset-button {
+    flex-grow: 1; /* Allow reset to grow too */
+    min-width: 120px;
+}

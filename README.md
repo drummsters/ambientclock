@@ -1,15 +1,15 @@
-# Ambient Clock V2
+# Ambient Clock
 
-A highly customizable ambient clock application featuring multiple display styles, dynamic backgrounds, and a modern architecture. This project has been significantly refactored (V2) for improved maintainability, scalability, and user experience.
+Transform your screen into a beautiful, dynamic timepiece with Ambient Clock! More than just a clock, it's a customizable visual experience perfect for a secondary monitor, casting to a TV, or any display where you want both function and beauty. Enjoy stunning, automatically rotating backgrounds from multiple sources (Unsplash, Pexels, Pixabay, Peapix) paired with elegant clock styles (Digital, Analog). Personalize colors, effects, and layouts for a quick glance at the time or simply to admire the view. Built with a modern design, it's visually captivating and easy to use.
 
-## V2 Features
+## Features
 
 *   **Modern Architecture:** Refactored using ES Modules, component-based structure, centralized state management (`StateManager`), and event bus (`EventBus`).
 *   **Multiple Clock Faces:**
-    *   Clean/LED (Digital)
+    *   Clean 
     *   Analog (Rendered with SVG for crisp scaling)
 *   **Customizable Backgrounds:**
-    *   Image providers: Unsplash, Pexels (via backend proxy - no client API keys needed!)
+    *   Image providers: Unsplash, Pexels, Pixabay, Peapix (via backend proxy - no client API keys needed!)
     *   Solid Color overlay option with color picker.
     *   Automatic background cycling with configurable interval.
     *   Background zoom effect to prevent screen burn-in.
@@ -20,8 +20,8 @@ A highly customizable ambient clock application featuring multiple display style
 *   **Flexible Element Customization:**
     *   Adjust opacity, position (drag & drop), and scale for Clock and Date elements independently.
     *   Precise positioning system:
-        *   Click to select element (invisible selection state)
-        *   Hold Ctrl to show white dashed outline
+        *   Click to select element (invisible selection state) to drag
+        *   Double Click to show white dashed outline
         *   Use Ctrl + Arrow keys to nudge by 0.1%
         *   Release Ctrl to hide outline
     *   Quick centering option for Clock and Date elements.
@@ -37,22 +37,21 @@ A highly customizable ambient clock application featuring multiple display style
     *   Clickable hint message for easy access.
 *   **Keyboard Shortcuts:**
     *   Space/C: Show/hide controls panel
-    *   N: Load next background image
-    *   F: Toggle current image as favorite
-    *   Ctrl + Arrow keys: Nudge selected element in small increments
+    *   Ctrl + Arrow keys: Nudge selected element in small increments (double click to select element first)
 *   **Settings Persistence:** User customizations are saved using `localStorage`.
 *   **Backend Proxy for APIs:** Simplifies setup by handling API keys server-side (using Vercel Serverless Functions defined in `/api`).
+*   **Settings Import/Export:** Download your current settings (including element configurations and favorites) to a JSON file, and upload it later to restore your preferences.
 
 ## Live Demo
 
-*(Link to live deployment if available - e.g., Vercel)*
+Vercel: https://ambient-clock.vercel.app/ 
 
 ## Installation & Setup
 
 1.  **Clone the repository:**
     ```bash
-    git clone <repository-url>
-    cd <repository-directory>
+    git clone https://github.com/jcdrumm/ambientclock.git
+    cd ambient-clock
     ```
 2.  **Install dependencies:**
     *   Requires Node.js and npm.
@@ -61,59 +60,63 @@ A highly customizable ambient clock application featuring multiple display style
     npm install
     ```
 3.  **Run locally:**
-    *   For simple local viewing, open `v2/index.html` directly in a modern web browser.
-    *   **Important:** For the background image features (Unsplash/Pexels) to work, you need to run the project using a local development server that can handle the API proxy routes defined in `vercel.json` and the `/api` directory. The recommended way is using the Vercel CLI:
+    *   For simple local viewing, open `index.html` directly in a modern web browser.
+    *   **Important:** For the background image features (Unsplash, Pexels, Pixabay, Peapix) to work, you need to run the project using a local development server that can handle the API proxy routes defined in `vercel.json` and the `/api` directory. The recommended way is using the Vercel CLI:
         ```bash
         npm install -g vercel # Install Vercel CLI globally (if not already installed)
         vercel dev           # Start local development server
         ```
-        This will typically start the server at `http://localhost:3000`. Access the V2 clock via `http://localhost:3000/v2/`.
+        This will typically start the server at `http://localhost:3000`. Access the clock at `http://localhost:3000/`.
 
-*(Note: If API keys are needed for the Vercel deployment environment variables, add instructions here on how to obtain and set them up in Vercel.)*
+*(Note: The backend proxy handles API keys, so no client-side keys are needed for local development when using `vercel dev`.)*
 
-## Project Structure (V2 Focus)
+## Project Structure
 
-The V2 application resides primarily within the `/v2` directory and follows a modular, component-based architecture:
+The application follows a modular, component-based architecture:
 
 ```
 /
-├── v2/
-│   ├── index.html          # Entry point for V2
-│   ├── css/                # V2 Styles (modularized)
-│   │   ├── base/
-│   │   ├── components/
-│   │   ├── features/
-│   │   └── layout/
-│   ├── js/                 # V2 JavaScript
-│   │   ├── app.js            # Main application setup
-│   │   ├── core/             # Core modules (StateManager, EventBus, etc.)
-│   │   ├── components/       # UI Components (Elements, Controls, Plugins)
-│   │   │   ├── base/         # Base classes and mixins
-│   │   │   ├── controls/     # Control panel sections (Background, Clock, etc.)
-│   │   │   │   └── ui/       # UI Builder classes
-│   │   │   ├── elements/     # Display elements (Clock, Date, etc.)
-│   │   │   │   └── renderers/ # Clock face renderers
-│   │   │   └── plugins/      # Reusable plugins (e.g., DragPlugin)
-│   │   ├── managers/         # Higher-level managers (Elements, Controls)
-│   │   ├── services/         # External services & handlers (Background, Favorites, API Providers)
-│   │   │   ├── image-providers/ # Unsplash, Pexels logic
-│   │   │   └── storage/      # LocalStorage interaction
-│   │   ├── state/            # Default state definition
-│   │   └── utils/            # Utility functions
-│   └── assets/             # Icons, etc.
+├── index.html              # Main HTML entry point
+├── css/                    # Styles (modularized)
+│   ├── base/
+│   ├── components/
+│   ├── features/
+│   └── layout/
+├── js/                     # JavaScript
+│   ├── app.js              # Main application setup
+│   ├── core/               # Core modules (StateManager, EventBus, etc.)
+│   ├── components/         # UI Components (Elements, Controls, Plugins)
+│   │   ├── base/           # Base classes and mixins
+│   │   ├── controls/       # Control panel sections (Background, Clock, etc.)
+│   │   │   └── ui/         # UI Builder classes
+│   │   ├── elements/       # Display elements (Clock, Date, etc.)
+│   │   │   └── renderers/  # Clock face renderers
+│   │   └── plugins/        # Reusable plugins (e.g., DragPlugin)
+│   ├── managers/           # Higher-level managers (Elements, Controls)
+│   ├── services/           # External services & handlers (Background, Favorites, API Providers)
+│   │   ├── image-providers/ # Unsplash, Pexels, Pixabay, Peapix logic
+│   │   └── storage/        # LocalStorage interaction
+│   ├── state/              # Default state definition
+│   └── utils/              # Utility functions
+├── assets/                 # Icons, etc.
 ├── api/                    # Vercel Serverless Functions (Backend Proxy)
 │   ├── unsplash.js
-│   └── pexels.js
+│   ├── pexels.js
+│   ├── pixabay.js
+│   └── peapix.js
 ├── cline_docs/             # Internal development documentation (Memory Bank)
+├── tests/                  # Vitest unit/integration tests
+├── .env.development.local  # Local environment variables (e.g., for API keys if needed directly)
 ├── .gitignore
 ├── package.json
+├── package-lock.json
 ├── README.md               # This file
-├── stylelint.config.js     # CSS linting config
+├── vitest.config.js        # Vitest configuration
 ├── eslint.config.mjs       # JS linting config
 └── vercel.json             # Vercel deployment/proxy configuration
 ```
 
-## Key V2 Architectural Patterns
+## Key Architectural Patterns
 
 *   **Component-Based:** UI is built from reusable custom elements (`BaseUIElement`).
 *   **Centralized State:** `StateManager` provides a single source of truth with reactive updates.
@@ -124,18 +127,20 @@ The V2 application resides primarily within the `/v2` directory and follows a mo
 *   **Plugins:** Encapsulate reusable behaviors like dragging (`DragPlugin`).
 *   **Backend Proxy:** Serverless functions handle API interactions and key management.
 
-## Keyboard Shortcuts (V2)
+## Keyboard Shortcuts
 
 *   `Space` or `C`: Show/hide controls panel
-*   `N`: Load next background image (if applicable)
-*   `F`: Toggle current image as favorite (if applicable)
-*   `Ctrl`: Show outline on selected element
+*   `Double Click`: Select element for nudging
 *   `Ctrl + Arrow keys`: Nudge selected element by 0.1%
 
 ## Development
 
-*   **Linting:** Run `npm run lint:css` for CSS linting. JS linting is likely integrated with the editor via `eslint.config.mjs`.
-*   **Debugging:** Add `?debug=true` to the URL (`v2/index.html?debug=true`) to enable enhanced console logging via the `Logger` utility.
+*   **Testing:** Run unit and integration tests using Vitest:
+    ```bash
+    npm test
+    ```
+*   **Linting:** JavaScript linting is configured via `eslint.config.mjs` and can typically be run via `npm run lint` (if defined in `package.json`) or integrated directly into your editor. CSS linting may require setup if needed.
+*   **Debugging:** Add `?debug=true` to the URL (e.g., `http://localhost:3000/?debug=true`) to enable enhanced console logging via the `Logger` utility.
 
 ## License
 

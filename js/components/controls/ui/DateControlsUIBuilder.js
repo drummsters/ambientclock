@@ -91,32 +91,28 @@ export class DateControlsUIBuilder {
         // Group fonts by category
         [
             {
-                label: 'Sans-Serif Fonts',
-                fonts: ['Arial', 'Helvetica', 'Open Sans', 'Roboto', 'Segoe UI', 'Tahoma', 'Verdana']
+                label: 'Serif Fonts (Classic and Elegant)',
+                fonts: ['Abril Fatface', 'Corben', 'Garamond', 'Georgia', 'Libre Baskerville', 'Lora', 'Merriweather', 'Noto Serif', 'Playfair Display', 'Roboto Slab', 'Rye', 'Serif', 'Times New Roman', 'Zilla Slab Highlight']
             },
             {
-                label: 'Serif Fonts',
-                fonts: ['Garamond', 'Georgia', 'Times New Roman']
+                label: 'Sans-serif Fonts (Modern and Clean)',
+                fonts: ['Anton', 'Apple System', 'Arial', 'Bebas Neue', 'Darker Grotesque', 'Exo', 'Helvetica', 'Impact', 'Michroma', 'Montserrat', 'Nunito', 'Open Sans', 'Oswald', 'Prosto One', 'Quicksand', 'Rajdhani', 'Raleway', 'Roboto', 'Sans-serif', 'Segoe UI', 'System UI', 'Syncopate', 'Tahoma', 'Verdana', 'Wallpoet']
             },
             {
-                label: 'Monospace Fonts',
-                fonts: ['Consolas', 'Courier New', 'Lucida Console', 'Monaco', 'Share Tech Mono', 'VT323']
+                label: 'Script/Handwriting Fonts (Personal and Artistic)',
+                fonts: ['Caveat', 'Comic Sans MS', 'Cursive', 'Damion', 'Dancing Script', 'Indie Flower', 'Pacifico', 'Permanent Marker', 'Satisfy', 'Schoolbell', 'Shadows Into Light']
             },
             {
-                label: 'Futuristic Fonts',
-                fonts: ['Exo', 'Rajdhani', 'Syncopate']
+                label: 'Display/Decorative Fonts (Bold and Eye-catching)',
+                fonts: ['Bangers', 'Black Ops One', 'Cabin Sketch', 'Fredericka the Great', 'Fugaz One', 'Lilita One', 'Limelight', 'Lobster', 'Press Start 2P', 'Sixtyfour', 'Special Elite', 'VT323']
             },
             {
-                label: 'Creative Fonts',
-                fonts: ['Bangers', 'Comic Sans MS', 'Dancing Script', 'Impact', 'Indie Flower', 'Lobster', 'Pacifico', 'Permanent Marker', 'Press Start 2P', 'Shadows Into Light', 'Special Elite']
+                label: 'Monospace Fonts (Technical and Uniform)',
+                fonts: ['Consolas', 'Courier New', 'Lucida Console', 'Monaco', 'Monospace', 'Share Tech Mono']
             },
             {
-                label: 'System Fonts',
-                fonts: ['System UI', 'Apple System']
-            },
-            {
-                label: 'Generic Families',
-                fonts: ['Sans-serif', 'Serif', 'Monospace', 'Cursive', 'Fantasy']
+                label: 'Generic Font Families (Versatile and Standard)',
+                fonts: ['Fantasy']
             }
         ].forEach(group => {
             // Add group header

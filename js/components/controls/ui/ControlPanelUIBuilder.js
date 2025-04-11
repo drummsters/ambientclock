@@ -49,17 +49,48 @@ export class ControlPanelUIBuilder {
 
         // 3. Settings Section with Reset Button
         this.elements.settingsSection = this._createSectionContainer('Settings', 'settings-section');
+
+        // Create buttons
+        const downloadButton = document.createElement('button');
+        downloadButton.textContent = 'Download Settings';
+        downloadButton.id = `${this.container.id}-download-button`;
+        downloadButton.className = 'settings-io-button download-button'; // Add specific classes
+
+        const uploadButton = document.createElement('button');
+        uploadButton.textContent = 'Upload Settings';
+        uploadButton.id = `${this.container.id}-upload-button`;
+        uploadButton.className = 'settings-io-button upload-button';
+
+        // Create a hidden file input associated with the upload button
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.json';
+        fileInput.id = `${this.container.id}-file-input`;
+        fileInput.style.display = 'none'; // Hide the actual file input
+
         const resetButton = document.createElement('button');
         resetButton.textContent = 'Reset All Settings';
-        resetButton.id = `${this.container.id}-reset-button`; // Use container ID for uniqueness
-        resetButton.className = 'reset-button';
-        const resetGroup = document.createElement('div');
-        resetGroup.className = 'control-group';
-        resetGroup.style.justifyContent = 'center';
-        resetGroup.appendChild(resetButton);
-        this.elements.settingsSection.appendChild(resetGroup);
+        resetButton.id = `${this.container.id}-reset-button`;
+        resetButton.className = 'reset-button'; // Keep existing class
+
+        // Group buttons
+        const settingsGroup = document.createElement('div');
+        settingsGroup.className = 'control-group settings-actions-group'; // Use a more specific class
+        settingsGroup.style.justifyContent = 'space-around'; // Adjust layout if needed
+        settingsGroup.style.flexWrap = 'wrap'; // Allow wrapping on smaller screens
+        settingsGroup.appendChild(downloadButton);
+        settingsGroup.appendChild(uploadButton);
+        settingsGroup.appendChild(fileInput); // Add hidden input to the DOM (but hidden)
+        settingsGroup.appendChild(resetButton);
+
+        this.elements.settingsSection.appendChild(settingsGroup);
         this.container.appendChild(this.elements.settingsSection);
-        this.elements.resetButton = resetButton; // Store reference to the button itself
+
+        // Store references
+        this.elements.downloadButton = downloadButton;
+        this.elements.uploadButton = uploadButton;
+        this.elements.fileInput = fileInput; // Store reference to hidden input
+        this.elements.resetButton = resetButton;
 
         console.log(`[ControlPanelUIBuilder] Built structure for #${this.container.id}`);
 
@@ -70,6 +101,9 @@ export class ControlPanelUIBuilder {
             backgroundSection: this.elements.backgroundSection,
             favoritesSection: this.elements.favoritesSection,
             settingsSection: this.elements.settingsSection,
+            downloadButton: this.elements.downloadButton,
+            uploadButton: this.elements.uploadButton,
+            fileInput: this.elements.fileInput, // Return reference to hidden input
             resetButton: this.elements.resetButton
         };
     }
