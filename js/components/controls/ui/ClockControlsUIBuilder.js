@@ -61,7 +61,7 @@ export class ClockControlsUIBuilder {
         const faceGroup = this._createControlGroup('Clock Face:');
         this.elements.faceSelect = document.createElement('select');
         this.elements.faceSelect.id = `${this.elementId}-face-select`;
-        ['led', 'clean', 'analog'].forEach(face => {
+        ['clean', 'analog'].forEach(face => { // Removed 'led' option
             const option = document.createElement('option');
             option.value = face;
             option.textContent = face.charAt(0).toUpperCase() + face.slice(1);

@@ -50,9 +50,10 @@ export class BackgroundUIBuilder {
 
     /** Creates the Type select control */
     _createTypeSelect() {
-        const group = this.createControlGroup('Type:');
+        const inputId = 'background-type-select'; // Define ID
+        const group = this.createControlGroup('Type:', inputId); // Pass ID to helper
         this.elements.typeSelect = document.createElement('select');
-        this.elements.typeSelect.id = 'background-type-select';
+        this.elements.typeSelect.id = inputId; // Use defined ID
         ['color', 'image'].forEach(type => {
             const option = document.createElement('option');
             option.value = type;
@@ -65,9 +66,10 @@ export class BackgroundUIBuilder {
 
     /** Creates the Image Source select control */
     _createSourceSelect() {
-        const group = this.createControlGroup('Image Source:');
+        const inputId = 'background-source-select'; // Define ID
+        const group = this.createControlGroup('Image Source:', inputId); // Pass ID to helper
         this.elements.sourceSelect = document.createElement('select');
-        this.elements.sourceSelect.id = 'background-source-select';
+        this.elements.sourceSelect.id = inputId; // Use defined ID
         this.elements.sourceSelect.innerHTML = ''; // Clear existing options
 
         if (this.availableProviders.size > 0) {
@@ -96,9 +98,10 @@ export class BackgroundUIBuilder {
 
     /** Creates the Peapix Country select control */
     _createPeapixSelect() {
-        this.elements.peapixCountryGroup = this.createControlGroup('Country:');
+        const inputId = 'background-peapix-country-select'; // Define ID
+        this.elements.peapixCountryGroup = this.createControlGroup('Country:', inputId); // Pass ID to helper
         this.elements.peapixCountrySelect = document.createElement('select');
-        this.elements.peapixCountrySelect.id = 'background-peapix-country-select';
+        this.elements.peapixCountrySelect.id = inputId; // Use defined ID
         Object.entries(this.peapixCountries).forEach(([code, name]) => {
             const option = document.createElement('option');
             option.value = code;
@@ -112,9 +115,10 @@ export class BackgroundUIBuilder {
 
     /** Creates the Category select and Custom Category input controls */
     _createCategorySelects() {
-        const categoryGroup = this.createControlGroup('Category:');
+        const categoryInputId = 'background-category-select'; // Define ID for select
+        const categoryGroup = this.createControlGroup('Category:', categoryInputId); // Pass ID
         this.elements.categorySelect = document.createElement('select');
-        this.elements.categorySelect.id = 'background-category-select';
+        this.elements.categorySelect.id = categoryInputId; // Use ID
         ['Nature', 'Technology', 'Architecture', 'People', 'Animals', 'Travel', 'Food', 'Abstract', 'Other']
         .forEach(cat => {
             const option = document.createElement('option');
@@ -126,10 +130,11 @@ export class BackgroundUIBuilder {
         categoryGroup.style.display = 'none'; // Hide initially
         this.elements.categorySelectGroup = categoryGroup; // Store reference
 
-        const customGroup = this.createControlGroup('Custom:');
+        const customInputId = 'background-custom-category-input'; // Define ID for input
+        const customGroup = this.createControlGroup('Custom:', customInputId); // Pass ID
         this.elements.customCategoryInput = document.createElement('input');
         this.elements.customCategoryInput.type = 'text';
-        this.elements.customCategoryInput.id = 'background-custom-category-input';
+        this.elements.customCategoryInput.id = customInputId; // Use ID
         this.elements.customCategoryInput.placeholder = 'Enter custom category';
         this.elements.customCategoryInput.maxLength = 30;
         this.elements.customCategoryInput.style.padding = '4px 8px';
@@ -213,10 +218,13 @@ export class BackgroundUIBuilder {
         this.elements.cycleIntervalGroup = cycleIntervalGroup; // Store reference
 
         // Background Color Picker
-        const colorGroup = this.createControlGroup('Color:');
+        const colorInputId = 'background-color-picker'; // Define ID
+        const colorGroup = this.createControlGroup('Color:', colorInputId); // Pass ID
         this.elements.colorPicker = document.createElement('input');
         this.elements.colorPicker.type = 'color';
-        this.elements.colorPicker.id = 'background-color-picker';
+        this.elements.colorPicker.id = colorInputId; // Use ID
+        // Add title for color picker as label might not be sufficient for all screen readers
+        this.elements.colorPicker.title = 'Background Color';
         colorGroup.appendChild(this.elements.colorPicker);
         controls.push(colorGroup);
         this.elements.colorGroup = colorGroup; // Store reference to the group for visibility toggling
@@ -229,13 +237,18 @@ export class BackgroundUIBuilder {
     /**
      * Helper to create a label and container for a control.
      * @param {string} labelText - The text for the label.
+     * @param {string} labelText - The text for the label.
+     * @param {string} [inputId] - Optional ID of the input element this label is for.
      * @returns {HTMLElement} The container div with the label.
      */
-    createControlGroup(labelText) {
+    createControlGroup(labelText, inputId) { // Added inputId parameter
         const group = document.createElement('div');
         group.className = 'control-group';
         const label = document.createElement('label');
         label.textContent = labelText;
+        if (inputId) { // Set the 'for' attribute if an ID is provided
+            label.htmlFor = inputId;
+        }
         group.appendChild(label);
         return group;
     }

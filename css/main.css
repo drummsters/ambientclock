@@ -27,6 +27,7 @@
 @import url('./components/toast.css');
 @import url('./components/fullscreen-toggle.css');
 @import url('./components/control-panel-toggle.css');
+@import url('./components/app-title.css'); /* Added App Title */
 
 /* Feature Styles */
 @import url('./features/effects.css');

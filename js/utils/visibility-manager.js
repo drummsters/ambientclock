@@ -62,45 +62,27 @@ export class VisibilityManager {
 
         // Configuration with defaults
         this.options = {
-            initialShowDelay: 2000,
+            initialShowDelay: 2000, // Kept for reference, but timer removed
             mouseIdleHideDelay: 3000,
             mouseMoveShowDelay: 200,
-            mouseLeaveHideDelay: 1000, // Added default for mouse leave
+            mouseLeaveHideDelay: 1000,
             visibleClass: 'visible',
-            showOnActivityWhenClosed: true, // Default to true
+            showOnActivityWhenClosed: true,
             ...options
         };
 
         // State properties
-        this.controlsOpen = false; // Track controls panel state
-        this.activityDetected = false; // Track if mouse activity happened recently
-        this.isVisible = false; // Overall visibility state for managed elements
-        this.isMouseOverManagedElement = false; // Track hover state over managed elements
+        this.controlsOpen = false;
+        this.activityDetected = false;
+        this.isVisible = false;
+        this.isMouseOverManagedElement = false;
 
         // Timers
-        // this.initialShowTimer = null; // Removed initial show timer
         this.mouseIdleTimer = null;
         this.mouseMoveTimer = null;
-        this.mouseLeaveHideTimer = null; // Added timer for mouse leave
+        this.mouseLeaveHideTimer = null;
 
         // Listeners - store bound versions for easy removal
-        this.boundHandleActivity = this.handleActivity.bind(this);
-        this.boundHandleControlsVisibilityChange = this.handleControlsVisibilityChange.bind(this);
-        this.boundHandleBlur = this.handleBlur.bind(this);
-        this.boundHandleMouseLeave = this.handleMouseLeave.bind(this); // Added mouse leave handler (window)
-        this.boundHandleMouseEnter = this.handleMouseEnter.bind(this); // Added mouse enter handler (window)
-        this.boundHandleManagedElementMouseEnter = this.handleManagedElementMouseEnter.bind(this); // Added mouse enter handler (element)
-        this.boundHandleManagedElementMouseLeave = this.handleManagedElementMouseLeave.bind(this); // Added mouse leave handler (element)
-
-        // State subscription
-        this.unsubscribeControlsVisibility = null;
-
-        // Bind methods once
-        this._bindMethods();
-    }
-
-    /** Binds class methods to the instance for consistent listener removal. */
-    _bindMethods() {
         this.boundHandleActivity = this.handleActivity.bind(this);
         this.boundHandleControlsVisibilityChange = this.handleControlsVisibilityChange.bind(this);
         this.boundHandleBlur = this.handleBlur.bind(this);
@@ -108,6 +90,18 @@ export class VisibilityManager {
         this.boundHandleMouseEnter = this.handleMouseEnter.bind(this);
         this.boundHandleManagedElementMouseEnter = this.handleManagedElementMouseEnter.bind(this);
         this.boundHandleManagedElementMouseLeave = this.handleManagedElementMouseLeave.bind(this);
+        this.boundHandleElementReady = this.handleElementReady.bind(this); // Added for new event
+
+        // State subscription
+        this.unsubscribeControlsVisibility = null;
+        this.unsubscribeElementReady = null; // Added for new event
+
+        // Bind methods once (already done in constructor)
+    }
+
+    /** Binds class methods to the instance for consistent listener removal. */
+    _bindMethods() {
+        // Already bound in constructor
     }
 
     // --- Initialization ---
@@ -116,32 +110,32 @@ export class VisibilityManager {
      * Initializes the manager: resolves elements, sets up listeners and timers.
      */
     init() {
-        logger.debug('[VisibilityManager] Initializing...'); // Keep as log
-        // Resolve element IDs to actual elements
+        logger.debug('[VisibilityManager] Initializing...');
+        // Resolve element IDs to actual elements immediately
         this.managedElements = this.elementIds
-            .map(id => document.getElementById(id))
-            .filter(el => el !== null); // Filter out elements not found
+            .map(id => {
+                const el = document.getElementById(id);
+                if (!el) {
+                    logger.warn(`[VisibilityManager] Element ID "${id}" not found during initial init.`);
+                }
+                return el;
+            })
+            .filter(el => el !== null); // Filter out elements not found initially
 
-        if (this.managedElements.length === 0) {
-            logger.warn('[VisibilityManager] No valid elements found to manage.'); // Keep as warn
-            return; // Nothing to manage
-        }
-        logger.debug('[VisibilityManager] Managing elements:', this.managedElements.map(el => el.id)); // Keep as log
+        const initialFoundIds = this.managedElements.map(el => el.id).join(', ') || 'none';
+        logger.debug(`[VisibilityManager] Initially found elements: ${initialFoundIds}`);
 
         // Get initial controls state
         this.controlsOpen = this.stateManager.getState().settings?.controls?.isOpen || false;
 
-        // Add all event listeners
+        // Add all event listeners (including the new element:ready listener)
         this._addEventListeners();
 
-        // Initial visibility check after a delay - REMOVED
-        // this.initialShowTimer = setTimeout(() => {
-        //     this.updateVisibility();
-        // }, this.options.initialShowDelay);
-
         // Ensure elements start hidden
-        this.hideManagedElements();
-        logger.debug('[VisibilityManager] Initialized and elements initially hidden.'); // Keep as log
+        this.hideManagedElements(); // Hide elements found initially
+        this.updateVisibility(); // Set initial visibility based on state
+
+        logger.debug('[VisibilityManager] Initialized.');
     }
 
     // --- Core Logic ---
@@ -150,42 +144,36 @@ export class VisibilityManager {
      * Updates the visibility of managed elements based on current state.
      */
     updateVisibility() {
+        // Check if *any* elements are managed (either found initially or added via event)
+        if (this.managedElements.length === 0 && this.elementIds.length > 0) {
+             // Don't log constantly if we are still waiting for elements via event
+             // logger.debug('[VisibilityManager] updateVisibility called, but no elements managed yet.');
+             return;
+        }
         const managedIds = this.managedElements.map(el => el.id).join(', ') || 'none';
-        // Read the current state directly from StateManager each time
         const currentControlsOpen = this.stateManager.getState().settings?.controls?.isOpen || false;
 
-        // --- DETAILED LOGGING COMMENTED OUT ---
-        // logger.debug(`[VisibilityManager Update - Instance: ${managedIds}] State Check: internalControlsOpen=${this.controlsOpen}, currentControlsOpen=${currentControlsOpen}, activityDetected=${this.activityDetected}, showOnActivityWhenClosed=${this.options.showOnActivityWhenClosed}`);
-        // --- END DETAILED LOGGING COMMENTED OUT ---
-        clearTimeout(this.mouseMoveTimer); // Clear pending show timer
+        clearTimeout(this.mouseMoveTimer);
 
-        // --- Revised Logic ---
         if (currentControlsOpen) {
-            // Controls state is OPEN: Always show
             logger.debug(`[VisibilityManager managing: ${managedIds}] Controls state is OPEN, showing elements.`);
             this.showManagedElements();
-            this.clearIdleTimer(); // No idle hide when controls are forced open
+            this.clearIdleTimer();
         } else {
-            // Controls state is CLOSED: Behavior depends on options
             if (this.options.showOnActivityWhenClosed) {
-                // Option allows showing on activity when closed
                 if (this.activityDetected) {
                     logger.debug(`[VisibilityManager managing: ${managedIds}] Controls state is CLOSED, but activity detected (showOnActivity=true). Showing temporarily.`);
                     this.showManagedElements();
-                    this.resetIdleTimer(); // Start timer to hide after inactivity
+                    this.resetIdleTimer();
                 } else {
                     logger.debug(`[VisibilityManager managing: ${managedIds}] Controls state is CLOSED, no activity detected (showOnActivity=true). Hiding elements.`);
                     this.hideManagedElements();
                 }
             } else {
-                // Option prevents showing on activity when closed (like the main panel)
-                // Simply hide if controls state is closed.
                 logger.debug(`[VisibilityManager managing: ${managedIds}] Controls state is CLOSED (showOnActivity=false). Hiding elements.`);
                 this.hideManagedElements();
             }
         }
-
-        // Reset activity flag *after* visibility decision is made for the current cycle
         this.activityDetected = false;
     }
 
@@ -193,47 +181,69 @@ export class VisibilityManager {
      * Applies the visible class to all managed elements.
      */
     showManagedElements() {
+        if (this.managedElements.length === 0) return;
         const managedIds = this.managedElements.map(el => el.id).join(', ') || 'none';
-        if (this.isVisible) {
-            // logger.debug(`[VisibilityManager managing: ${managedIds}] showManagedElements called, but already visible.`); // Keep commented
-            return; // Already visible
-        }
-        logger.debug(`[VisibilityManager managing: ${managedIds}] Applying class '${this.options.visibleClass}' to elements.`); // Changed to debug
+        if (this.isVisible) return;
+        logger.debug(`[VisibilityManager managing: ${managedIds}] Applying class '${this.options.visibleClass}' to elements.`);
         this.managedElements.forEach(el => {
-            logger.debug(`[VisibilityManager] Adding .visible to ${el.id}`); // Changed to debug
+            // logger.debug(`[VisibilityManager] Adding .visible to ${el.id}`); // Reduce noise
             addClass(el, this.options.visibleClass);
         });
         this.isVisible = true;
-        this.clearMouseLeaveTimer(); // Clear leave timer when explicitly shown
+        this.clearMouseLeaveTimer();
     }
 
     /**
      * Removes the visible class from all managed elements.
      */
     hideManagedElements() {
+        if (this.managedElements.length === 0) return;
         const managedIds = this.managedElements.map(el => el.id).join(', ') || 'none';
-        if (!this.isVisible) {
-            // logger.debug(`[VisibilityManager managing: ${managedIds}] hideManagedElements called, but already hidden.`); // Keep commented
-            return; // Already hidden
-        }
-        logger.debug(`[VisibilityManager managing: ${managedIds}] Removing class '${this.options.visibleClass}' from elements.`); // Changed to debug
+        if (!this.isVisible) return;
+        logger.debug(`[VisibilityManager managing: ${managedIds}] Removing class '${this.options.visibleClass}' from elements.`);
         this.managedElements.forEach(el => {
-            logger.debug(`[VisibilityManager] Removing .visible from ${el.id}`); // Changed to debug
+            // logger.debug(`[VisibilityManager] Removing .visible from ${el.id}`); // Reduce noise
             removeClass(el, this.options.visibleClass);
         });
         this.isVisible = false;
-        this.clearIdleTimer(); // Ensure idle timer is cleared when hiding
-        this.clearMouseLeaveTimer(); // Ensure leave timer is cleared when hiding
+        this.clearIdleTimer();
+        this.clearMouseLeaveTimer();
     }
 
     // --- Event Handlers ---
+
+     /**
+     * Handles the element:ready event from ElementManager.
+     * @param {object} eventData - Data containing { id, container }.
+     */
+    handleElementReady({ id, container }) {
+        // Is this an element we are supposed to manage?
+        if (this.elementIds.includes(id)) {
+            // Have we already found it?
+            const alreadyFound = this.managedElements.some(el => el.id === id);
+            if (!alreadyFound && container) {
+                logger.log(`[VisibilityManager] Received element:ready for missing element: ${id}. Adding to managed list.`);
+                this.managedElements.push(container);
+                // Add specific listeners for this newly added element
+                container.addEventListener('mouseenter', this.boundHandleManagedElementMouseEnter);
+                container.addEventListener('mouseleave', this.boundHandleManagedElementMouseLeave);
+                // Re-evaluate visibility now that the element is present
+                this.updateVisibility();
+            } else if (alreadyFound) {
+                 // logger.debug(`[VisibilityManager] Received element:ready for already managed element: ${id}. Ignoring.`); // Reduce noise
+            } else if (!container) {
+                 logger.warn(`[VisibilityManager] Received element:ready for ${id}, but container was missing in event data.`);
+            }
+        }
+    }
+
 
     /**
      * Handles global mouse activity.
      */
     handleActivity() {
+        if (this.managedElements.length === 0) return;
         this.activityDetected = true;
-        // Use a short timer to trigger visibility update after mouse moves
         clearTimeout(this.mouseMoveTimer);
         this.mouseMoveTimer = setTimeout(() => {
             this.updateVisibility();
@@ -245,15 +255,13 @@ export class VisibilityManager {
      * @param {boolean} isOpen - The new state of the controls panel.
      */
     handleControlsVisibilityChange(isOpen) {
-        // Log which elements this instance manages for context
         const managedIds = this.managedElements.map(el => el.id).join(', ') || 'none';
-        logger.debug(`[VisibilityManager managing: ${managedIds}] Received controls state change: ${isOpen}`); // Changed to debug
+        logger.debug(`[VisibilityManager managing: ${managedIds}] Received controls state change: ${isOpen}`);
         if (this.controlsOpen !== isOpen) {
             this.controlsOpen = isOpen;
-            logger.debug(`[VisibilityManager managing: ${managedIds}] State updated. Calling updateVisibility.`); // Changed to debug
             this.updateVisibility(); // Re-evaluate visibility based on new state
         } else {
-            logger.debug(`[VisibilityManager managing: ${managedIds}] State unchanged (${isOpen}), skipping update.`); // Changed to debug
+            logger.debug(`[VisibilityManager managing: ${managedIds}] State unchanged (${isOpen}), skipping update.`);
         }
     }
 
@@ -261,24 +269,24 @@ export class VisibilityManager {
      * Handles window blur event (e.g., user switches tabs).
      */
     handleBlur() {
-        logger.debug('[VisibilityManager] Window blurred, hiding elements.'); // Changed to debug
-        // Force hide immediately when window loses focus
+        if (this.managedElements.length === 0) return;
+        logger.debug('[VisibilityManager] Window blurred, hiding elements.');
         this.hideManagedElements();
         this.clearIdleTimer();
-        this.clearMouseLeaveTimer(); // Clear leave timer on blur
+        this.clearMouseLeaveTimer();
         clearTimeout(this.mouseMoveTimer);
-        // clearTimeout(this.initialShowTimer); // Timer removed
     }
 
     /**
      * Handles mouse leaving the document boundaries.
      */
     handleMouseLeave() {
+        if (this.managedElements.length === 0) return;
         const managedIds = this.managedElements.map(el => el.id).join(', ') || 'none';
-        logger.debug(`[VisibilityManager managing: ${managedIds}] Mouse left window. Starting hide timer (${this.options.mouseLeaveHideDelay}ms).`); // Changed to debug
-        this.clearMouseLeaveTimer(); // Clear any existing timer first
+        logger.debug(`[VisibilityManager managing: ${managedIds}] Mouse left window. Starting hide timer (${this.options.mouseLeaveHideDelay}ms).`);
+        this.clearMouseLeaveTimer();
         this.mouseLeaveHideTimer = setTimeout(() => {
-            logger.debug(`[VisibilityManager managing: ${managedIds}] Mouse leave timeout reached, hiding elements.`); // Changed to debug
+            logger.debug(`[VisibilityManager managing: ${managedIds}] Mouse leave timeout reached, hiding elements.`);
             this.hideManagedElements();
         }, this.options.mouseLeaveHideDelay);
     }
@@ -287,29 +295,31 @@ export class VisibilityManager {
      * Handles mouse entering the document boundaries.
      */
     handleMouseEnter() {
+        if (this.managedElements.length === 0) return;
         const managedIds = this.managedElements.map(el => el.id).join(', ') || 'none';
-        logger.debug(`[VisibilityManager managing: ${managedIds}] Mouse entered window. Clearing hide timer.`); // Changed to debug
-        this.clearMouseLeaveTimer(); // Cancel hiding if mouse re-enters window
+        logger.debug(`[VisibilityManager managing: ${managedIds}] Mouse entered window. Clearing hide timer.`);
+        this.clearMouseLeaveTimer();
     }
 
     /**
      * Handles mouse entering a managed element.
      */
     handleManagedElementMouseEnter() {
+        if (this.managedElements.length === 0) return;
         const managedIds = this.managedElements.map(el => el.id).join(', ') || 'none';
-        logger.debug(`[VisibilityManager managing: ${managedIds}] Mouse entered a managed element. Clearing idle timer.`); // Changed to debug
+        logger.debug(`[VisibilityManager managing: ${managedIds}] Mouse entered a managed element. Clearing idle timer.`);
         this.isMouseOverManagedElement = true;
-        this.clearIdleTimer(); // Prevent hiding while hovered
+        this.clearIdleTimer();
     }
 
     /**
      * Handles mouse leaving a managed element.
      */
     handleManagedElementMouseLeave() {
+        if (this.managedElements.length === 0) return;
         const managedIds = this.managedElements.map(el => el.id).join(', ') || 'none';
-        logger.debug(`[VisibilityManager managing: ${managedIds}] Mouse left a managed element. Resetting idle timer if applicable.`); // Changed to debug
+        logger.debug(`[VisibilityManager managing: ${managedIds}] Mouse left a managed element. Resetting idle timer if applicable.`);
         this.isMouseOverManagedElement = false;
-        // Restart idle timer only if elements are meant to be visible but auto-hiding (e.g., controls closed but activity occurred)
         this.resetIdleTimer();
     }
 
@@ -319,19 +329,19 @@ export class VisibilityManager {
      * Resets the idle timer to hide elements after inactivity, respecting hover state.
      */
     resetIdleTimer() {
+        if (this.managedElements.length === 0) return;
         const managedIds = this.managedElements.map(el => el.id).join(', ') || 'none';
         this.clearIdleTimer();
-        // Only start timer if elements are currently visible, controls are closed (read directly), AND mouse is not over a managed element
-        const currentControlsOpenForTimer = this.stateManager.getState().settings?.controls?.isOpen || false; // Read fresh state again for timer logic
+        const currentControlsOpenForTimer = this.stateManager.getState().settings?.controls?.isOpen || false;
         if (this.isVisible && !currentControlsOpenForTimer && !this.isMouseOverManagedElement) {
-            logger.debug(`[VisibilityManager managing: ${managedIds}] Resetting idle timer (${this.options.mouseIdleHideDelay}ms) - controls closed, not hovered.`); // Changed to debug
+            logger.debug(`[VisibilityManager managing: ${managedIds}] Resetting idle timer (${this.options.mouseIdleHideDelay}ms) - controls closed, not hovered.`);
             this.mouseIdleTimer = setTimeout(() => {
-                logger.debug(`[VisibilityManager managing: ${managedIds}] Idle timeout reached (controls closed, not hovered), hiding elements.`); // Changed to debug
-                this.activityDetected = false; // Ensure activity flag is false before hiding
+                logger.debug(`[VisibilityManager managing: ${managedIds}] Idle timeout reached (controls closed, not hovered), hiding elements.`);
+                this.activityDetected = false;
                 this.hideManagedElements();
             }, this.options.mouseIdleHideDelay);
         } else {
-             logger.debug(`[VisibilityManager managing: ${managedIds}] Idle timer not reset (isVisible=${this.isVisible}, currentControlsOpen=${currentControlsOpenForTimer}, isHovered=${this.isMouseOverManagedElement}).`); // Changed to debug
+             logger.debug(`[VisibilityManager managing: ${managedIds}] Idle timer not reset (isVisible=${this.isVisible}, currentControlsOpen=${currentControlsOpenForTimer}, isHovered=${this.isMouseOverManagedElement}).`);
         }
     }
 
@@ -345,31 +355,36 @@ export class VisibilityManager {
         }
     }
 
+    /**
+     * Clears the mouse leave hide timer.
+     */
+    clearMouseLeaveTimer() {
+        if (this.mouseLeaveHideTimer) {
+            clearTimeout(this.mouseLeaveHideTimer);
+            this.mouseLeaveHideTimer = null;
+        }
+    }
+
     // --- Cleanup ---
 
     /**
      * Cleans up listeners, timers, and subscriptions.
      */
     destroy() {
-        logger.debug('[VisibilityManager] Destroying...'); // Keep as log
-        // Clear timers
-        // clearTimeout(this.initialShowTimer); // Timer removed
+        logger.debug('[VisibilityManager] Destroying...');
         clearTimeout(this.mouseIdleTimer);
         clearTimeout(this.mouseMoveTimer);
-        this.clearMouseLeaveTimer(); // Clear leave timer on destroy
-        // this.initialShowTimer = null; // Timer removed
+        this.clearMouseLeaveTimer();
         this.mouseIdleTimer = null;
         this.mouseMoveTimer = null;
         this.mouseLeaveHideTimer = null;
 
-        // Remove all event listeners
-        this._removeEventListeners();
+        this._removeEventListeners(); // Removes all listeners including the new one
 
-        // Clear element references
         this.managedElements = [];
         this.elementIds = [];
 
-        logger.debug('[VisibilityManager] Destroyed.'); // Keep as log
+        logger.debug('[VisibilityManager] Destroyed.');
     }
 
     /** Sets up all necessary event listeners. */
@@ -380,18 +395,26 @@ export class VisibilityManager {
         document.documentElement.addEventListener('mouseleave', this.boundHandleMouseLeave);
         document.documentElement.addEventListener('mouseenter', this.boundHandleMouseEnter);
 
-        // Listeners on managed elements
+        // Listeners on managed elements (found initially)
         this.managedElements.forEach(el => {
             el.addEventListener('mouseenter', this.boundHandleManagedElementMouseEnter);
             el.addEventListener('mouseleave', this.boundHandleManagedElementMouseLeave);
         });
 
-        // EventBus subscription
-        const eventName = 'state:settings.controls.isOpen:changed';
-        logger.debug(`[VisibilityManager] Subscribing to EventBus event: ${eventName}`); // Changed to debug
+        // EventBus subscription for controls state
+        const controlsEventName = 'state:settings.controls.isOpen:changed';
+        logger.debug(`[VisibilityManager] Subscribing to EventBus event: ${controlsEventName}`);
         this.unsubscribeControlsVisibility = EventBus.subscribe(
-            eventName,
+            controlsEventName,
             this.boundHandleControlsVisibilityChange
+        );
+
+        // EventBus subscription for newly ready elements
+        const elementReadyEventName = 'element:ready';
+        logger.debug(`[VisibilityManager] Subscribing to EventBus event: ${elementReadyEventName}`);
+        this.unsubscribeElementReady = EventBus.subscribe(
+            elementReadyEventName,
+            this.boundHandleElementReady
         );
     }
 
@@ -411,21 +434,14 @@ export class VisibilityManager {
              }
         });
 
-        // EventBus unsubscription
+        // EventBus unsubscriptions
         if (typeof this.unsubscribeControlsVisibility === 'function') {
-            logger.debug('[VisibilityManager] Unsubscribing from EventBus state changes.'); // Changed to debug
             this.unsubscribeControlsVisibility();
         }
-        this.unsubscribeControlsVisibility = null;
-    }
-
-    /**
-     * Clears the mouse leave hide timer.
-     */
-    clearMouseLeaveTimer() {
-        if (this.mouseLeaveHideTimer) {
-            clearTimeout(this.mouseLeaveHideTimer);
-            this.mouseLeaveHideTimer = null;
+        if (typeof this.unsubscribeElementReady === 'function') { // Unsubscribe from new event
+            this.unsubscribeElementReady();
         }
+        this.unsubscribeControlsVisibility = null;
+        this.unsubscribeElementReady = null;
     }
 }

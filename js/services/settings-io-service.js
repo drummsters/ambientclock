@@ -4,7 +4,7 @@ import { FavoritesStorage } from './storage/FavoritesStorage.js';
 import { EventBus } from '../core/event-bus.js'; // Import EventBus
 
 const favoritesStorage = new FavoritesStorage();
-const SETTINGS_FILE_NAME = 'clock_page_settings.json';
+// Removed SETTINGS_FILE_NAME constant
 
 /**
  * @class SettingsIOService
@@ -40,7 +40,13 @@ export class SettingsIOService {
 
             const a = document.createElement('a');
             a.href = url;
-            a.download = SETTINGS_FILE_NAME;
+            // Generate filename with current date
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+            const day = String(today.getDate()).padStart(2, '0');
+            const dateString = `${year}${month}${day}`;
+            a.download = `ambient_clock_settings_${dateString}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -65,11 +71,8 @@ export class SettingsIOService {
             return;
         }
 
-        if (file.name !== SETTINGS_FILE_NAME) {
-            // Basic check, could be more robust
-            logger.warn(`[SettingsIOService] Imported file name "${file.name}" does not match expected "${SETTINGS_FILE_NAME}". Proceeding cautiously.`);
-            // Optionally ask user for confirmation
-        }
+        // Removed the strict filename check as it now includes the date
+        // if (file.name !== SETTINGS_FILE_NAME) { ... }
 
         const reader = new FileReader();
 

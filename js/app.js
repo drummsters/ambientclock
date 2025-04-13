@@ -83,6 +83,9 @@ async function initApp() {
     );
     await elementManager.init();
 
+    // Setup wheel resize listener immediately after element manager init
+    setupWheelResizeListener();
+
     // 7. Initialize Control Panel
     logger.debug('[app.js] Initializing ControlPanel...');
     controlPanel = new ControlPanel( // Assign to higher-scoped variable
@@ -100,19 +103,20 @@ async function initApp() {
     // Visibility manager for elements that should show on mouse movement
     const alwaysShowVisibilityManager = new VisibilityManager(
         StateManager,
-        ['controls-hint-default', 'donate-default', 'next-background-button-default'], // Added next-background-button
+        // Added favorite-toggle-default here
+        ['controls-hint-default', 'donate-default', 'next-background-button-default', 'favorite-toggle-default', 'app-title'], // Added app-title
         {
-            showOnActivityWhenClosed: true
+            showOnActivityWhenClosed: true // Show on activity even if controls are closed
         }
     );
     alwaysShowVisibilityManager.init();
 
-    // Visibility manager for elements that should only show when controls are open
+    // Visibility manager for elements that should only show when controls are open (Now empty, could be removed or kept for future use)
     const controlsVisibilityManager = new VisibilityManager(
         StateManager,
-        ['favorite-toggle-default'], // Removed next-background-button
+        [], // Removed favorite-toggle-default
         {
-            showOnActivityWhenClosed: false
+            showOnActivityWhenClosed: false // Original setting, doesn't matter now as list is empty
         }
     );
     controlsVisibilityManager.init();

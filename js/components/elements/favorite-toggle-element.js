@@ -66,8 +66,10 @@ export class FavoriteToggleElement extends BaseUIElement {
     async createElements() {
         if (!this.container) return;
 
+        // Set initial aria-label and title
+        const initialLabel = "Add to Favorites";
         this.container.innerHTML = `
-            <button id="${this.id}-button" class="favorite-toggle" aria-label="Add to Favorites">
+            <button id="${this.id}-button" class="favorite-toggle" aria-label="${initialLabel}" title="${initialLabel}">
                 <span id="${this.id}-icon" class="heart-icon"></span>
             </button>
         `;
@@ -138,13 +140,14 @@ export class FavoriteToggleElement extends BaseUIElement {
         const isFavorite = this.favoritesService.isCurrentImageFavorite();
         // console.log(`[FavoriteToggleElement ${this.id}] Current favorite status: ${isFavorite}`);
 
+        const newLabel = isFavorite ? 'Remove from Favorites' : 'Add to Favorites';
         if (isFavorite) {
             this.toggleButton.classList.add('favorited');
-            this.toggleButton.setAttribute('aria-label', 'Remove from Favorites');
         } else {
             this.toggleButton.classList.remove('favorited');
-            this.toggleButton.setAttribute('aria-label', 'Add to Favorites');
         }
+        this.toggleButton.setAttribute('aria-label', newLabel);
+        this.toggleButton.setAttribute('title', newLabel); // Also update title attribute
     }
 
     /**

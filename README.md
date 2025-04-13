@@ -22,7 +22,7 @@ Transform your screen into a beautiful, dynamic timepiece with Ambient Clock! Mo
     *   Precise positioning system:
         *   Click to select element (invisible selection state) to drag
         *   Double Click to show white dashed outline
-        *   Use Ctrl + Arrow keys to nudge by 0.1%
+        *   Arrow keys to nudge by 0.1%
         *   Release Ctrl to hide outline
     *   Quick centering option for Clock and Date elements.
     *   Font selection and bold toggle for Clock and Date.
@@ -129,7 +129,6 @@ The application follows a modular, component-based architecture:
 
 ## Keyboard Shortcuts
 
-*   `Space` or `C`: Show/hide controls panel
 *   `Double Click`: Select element for nudging
 *   `Ctrl + Arrow keys`: Nudge selected element by 0.1%
 

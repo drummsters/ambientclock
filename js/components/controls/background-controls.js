@@ -258,15 +258,24 @@ export class BackgroundControls {
     if (!this.elements) return;
 
     // Use Favorites Only Change
-    if (this.elements.favoritesOnlyCheckbox) {
-        this.elements.favoritesOnlyCheckbox.addEventListener('change', (event) => {
-            const isEnabled = event.target.checked;
-            this.dispatchStateUpdate({ useFavoritesOnly: isEnabled });
-            // Immediately update UI visibility
-            const currentState = StateManager.getNestedValue(StateManager.getState(), this.statePath) || {};
-            this.updateUIFromState({ ...currentState, useFavoritesOnly: isEnabled });
-        });
-    }
+        if (this.elements.favoritesOnlyCheckbox) {
+            this.elements.favoritesOnlyCheckbox.addEventListener('change', (event) => {
+                const isEnabled = event.target.checked;
+                this.dispatchStateUpdate({ useFavoritesOnly: isEnabled });
+
+                 // If the checkbox is checked (enabled), trigger an immediate background update
+                 if (isEnabled) {
+                     console.log('[BackgroundControls] "Use Favorites Only" checked. Triggering loadNextImage.');
+                     // State is already updated by dispatchStateUpdate above.
+                     // Call loadNextImage() on the service to fetch a new background based on the updated state.
+                     this.backgroundService.loadNextImage();
+                 }
+
+                 // Immediately update UI visibility
+                const currentState = StateManager.getNestedValue(StateManager.getState(), this.statePath) || {};
+                this.updateUIFromState({ ...currentState, useFavoritesOnly: isEnabled });
+            });
+        }
 
     // Background Type Change
     if (this.elements.typeSelect) {

@@ -121,18 +121,23 @@ export class ElementManager {
 
     if (elementInstance) {
       // Initialize the element (which creates its DOM, binds state, etc.)
-      const initSuccess = await elementInstance.init();
+       const initSuccess = await elementInstance.init();
 
-      if (initSuccess && elementInstance.container) {
-        // Add the element's container to the fragment instead of the main container
-        fragment.appendChild(elementInstance.container);
-        logger.debug(`[ElementManager] Appended element ${id} container to fragment.`); // Changed to debug
-        this.elementInstances.set(id, elementInstance);
-        logger.log(`Element ${id} successfully created and prepared for DOM insertion.`); // Keep as log
-        EventBus.publish('element:created', { id, type });
-        // Note: DOM insertion happens after Promise.all in syncElements
-      } else {
-        logger.error(`Failed to initialize element ${id} or its container is missing.`); // Use logger.error
+       if (initSuccess && elementInstance.container) {
+         // Publish event indicating this specific element is ready *before* adding to fragment
+         EventBus.publish('element:ready', { id, container: elementInstance.container });
+         logger.debug(`[ElementManager] Published element:ready for ${id}.`);
+
+         // Add the element's container to the fragment instead of the main container
+         fragment.appendChild(elementInstance.container);
+         logger.debug(`[ElementManager] Appended element ${id} container to fragment.`);
+         this.elementInstances.set(id, elementInstance);
+         logger.log(`Element ${id} successfully created and prepared for DOM insertion.`);
+         // Keep element:created for potential other uses, though element:ready might be more useful now
+         EventBus.publish('element:created', { id, type });
+         // Note: DOM insertion happens after Promise.all in syncElements
+       } else {
+         logger.error(`Failed to initialize element ${id} or its container is missing.`);
         // Cleanup if init failed but instance was created
         elementInstance.destroy?.();
       }

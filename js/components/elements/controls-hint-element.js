@@ -25,8 +25,8 @@ export class ControlsHintElement extends BaseUIElement {
          }
 
          this.container.classList.add('controls-hint-element');
-         // Use text from options provided by StateManager/BaseUIElement
-         this.container.innerHTML = `<p>${this.options.text}</p>`;
+         // Set the text directly, removing dependency on state/options
+         this.container.innerHTML = `<p>Tap background to toggle controls</p>`;
 
         // REMOVED: Click listener and handler
 

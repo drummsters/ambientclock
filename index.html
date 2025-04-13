@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- Removed maximum-scale=1.0, user-scalable=no for accessibility -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Clock Page: A customizable browser clock featuring dynamic backgrounds, date display, and personalization options. Choose your style and save favorite images.">
     <meta name="apple-mobile-web-app-capable" content="yes"> <!-- For older iOS -->
     <meta name="mobile-web-app-capable" content="yes"> <!-- Standard -->
@@ -37,6 +38,9 @@
             </div>
         </div>
     </font-panel>
+
+    <!-- App Title -->
+    <div id="app-title">Ambient Clock</div>
 
     <!-- Entry point -->
     <script type="module" src="js/app.js"></script>

@@ -223,11 +223,32 @@ export class ControlPanel extends BaseUIElement {
 
   /**
    * Binds the control panel to relevant state changes.
-   * (No longer needed for visibility, keep for potential future state bindings)
+   * Binds the control panel to relevant state changes (e.g., its own visibility).
    */
   bindToState() {
-    // No state bindings needed for visibility
-    logger.debug(`[ControlPanel ${this.id}] No state binding needed for visibility.`);
+    // Subscribe to changes in the panel's open state
+    const statePath = 'settings.controls.isOpen';
+    const eventName = `state:${statePath}:changed`;
+    logger.debug(`[ControlPanel ${this.id}] Subscribing to ${eventName}`);
+
+    const visibilitySub = EventBus.subscribe(eventName, (isOpen) => {
+      logger.debug(`[ControlPanel ${this.id}] Received ${eventName} event with value: ${isOpen}`);
+      if (isOpen) {
+        this.show();
+      } else {
+        this.hide();
+      }
+    });
+    this.subscriptions.push(visibilitySub); // Add to subscriptions for cleanup
+
+    // Apply initial state
+    const initialState = StateManager.getNestedValue(StateManager.getState(), statePath);
+    logger.debug(`[ControlPanel ${this.id}] Applying initial state for ${statePath}: ${initialState}`);
+    if (initialState) {
+        this.show();
+    } else {
+        this.hide(); // Ensure it's hidden if initial state is false/undefined
+    }
   }
 
   /**
@@ -252,10 +273,11 @@ export class ControlPanel extends BaseUIElement {
    */
   addEventListeners() {
     // Listen for show requests (e.g., from hint click or element click)
+    // This might be redundant now if state is the primary driver, but keep for now
     const showRequestSub = EventBus.subscribe('controls:showRequest', this.show.bind(this));
     this.subscriptions.push(showRequestSub);
 
-    // REMOVED: controls:toggle and controls:toggleFontPanel subscriptions
+    // REMOVED: Incorrect call to bindToState() here. BaseUIElement.init() calls it.
 
     // Reset button listener
     this.elements.resetButton?.addEventListener('click', this.handleResetClick.bind(this));

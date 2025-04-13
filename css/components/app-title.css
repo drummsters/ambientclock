@@ -1,0 +1,25 @@
+/**
+ * Styles for the App Title element
+ */
+
+#app-title {
+    position: fixed;
+    bottom: 20px; /* Align vertically with hint/donate */
+    left: 20px;   /* Position in bottom left */
+    color: white;
+    font-size: 18px; /* Match hint/donate text size */
+    font-family: 'Oswald'; /* Use a clean font */
+    font-weight: 500;
+    z-index: var(--z-index-controls); /* Same level as hint/donate */
+    user-select: none; /* Prevent text selection */
+    pointer-events: none; /* Don't interfere with clicks when hidden */
+    opacity: 0; /* Start hidden */
+    visibility: hidden; /* Start hidden */
+    transition: var(--visibility-transition); /* Use variable for smooth transition */
+}
+
+#app-title.visible {
+    opacity: 0.65; /* Target opacity when visible */
+    visibility: visible;
+    /* pointer-events: auto; /* Not needed as it's just text */
+}

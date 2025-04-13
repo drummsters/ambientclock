@@ -36,8 +36,9 @@ export class FavoritesControls {
         this.boundHandleGridClick = this.handleGridClick.bind(this);
         this.boundHandleClearClick = this.handleClearClick.bind(this);
 
-        // EventBus subscription
+        // EventBus subscriptions
         this.unsubscribeFavoritesChanged = null;
+        this.unsubscribeSettingsImported = null; // Added for settings import refresh
 
         console.log('[FavoritesControls] Initialized');
     }
@@ -102,8 +103,15 @@ export class FavoritesControls {
         // Listen for changes triggered by the service (e.g., adding/removing via toggle element)
         this.unsubscribeFavoritesChanged = EventBus.subscribe(
             'favorites:changed',
-            this.boundRenderGrid // Re-render the grid when favorites change
+            this.boundRenderGrid // Re-render the grid when favorites change (add/remove)
         );
+
+        // Listen for settings import event to refresh the grid
+        this.unsubscribeSettingsImported = EventBus.subscribe(
+            'settings:imported',
+            this.boundRenderGrid // Re-render the grid after import
+        );
+
         console.log('[FavoritesControls] Event listeners set up.');
     }
 
@@ -239,7 +247,11 @@ export class FavoritesControls {
         if (typeof this.unsubscribeFavoritesChanged === 'function') {
             this.unsubscribeFavoritesChanged();
         }
+        if (typeof this.unsubscribeSettingsImported === 'function') { // Added cleanup
+            this.unsubscribeSettingsImported();
+        }
         this.unsubscribeFavoritesChanged = null;
+        this.unsubscribeSettingsImported = null; // Added cleanup
 
         // Clear DOM references
         this.container.innerHTML = ''; // Clear container content

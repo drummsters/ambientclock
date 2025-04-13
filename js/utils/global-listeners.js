@@ -157,24 +157,23 @@ function handleKeyDown(event) {
                      document.activeElement?.tagName === 'TEXTAREA';
 
     // Show outline when Ctrl is pressed if an element is selected
-    if (event.ctrlKey && !isInInput) {
+    if (event.ctrlKey && !isInInput) { 
         const selectedElement = document.querySelector('.base-element.selected');
-        if (selectedElement) {
+        if (selectedElement) { 
             selectedElement.classList.add('nudging');
         }
-    } // This closing brace belongs to the 'if (event.ctrlKey && !isInInput)' block above
+    } // End of separate Ctrl key check
 
-    // REMOVED: Toggle Control Panel with Space or 'c'
-
+    // --- Start of mutually exclusive shortcut checks ---
     // Toggle Debug Mode with Ctrl+Shift+Z
     if (event.ctrlKey && event.shiftKey && event.key === 'Z') {
         event.preventDefault();
         logger.toggleDebugMode();
     }
-    // Handle nudge controls (Ctrl + Arrow keys)
-    else if (event.ctrlKey && !isInInput) {
+    // Handle nudge controls (Arrow keys)
+    else if (!isInInput) { // This now correctly only runs if previous shortcuts didn't match
         const selectedElement = document.querySelector('.base-element.selected');
-        if (!selectedElement) return;
+        if (!selectedElement) return; // Exit if no element selected for nudging
 
         // Get the element's current position from state
         const elementId = selectedElement.id;

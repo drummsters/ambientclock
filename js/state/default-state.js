@@ -10,12 +10,12 @@ export function getDefaultState() {
                 type: 'image', // 'image' or 'color' (future)
                 query: 'nature',
                 useFavoritesOnly: false, // Whether to use only favorites as background source
-                provider: 'unsplash', // 'unsplash', 'pexels', 'peapix'
+                provider: 'peapix', // Default provider set to peapix
                 color: '#000000', // Default background/overlay color
                 overlayOpacity: 0.3,
                 zoomEnabled: true,
                 showInfo: true, // Added default for showing background info
-                peapixCountry: 'us',
+                peapixCountry: 'us', // Default country set to US
                 cycleEnabled: true, // Whether to automatically cycle backgrounds
                 cycleInterval: 300000, // Interval in milliseconds (e.g., 300000 = 5 minutes)
             },
@@ -32,46 +32,51 @@ export function getDefaultState() {
             'clock-default': {
                 type: 'clock',
                 id: 'clock-default',
-                position: { x: 50, y: 50 },
-                scale: 1.4, // Moved scale outside options
-                opacity: 1.0,
-                effectStyle: 'raised', // Added element-level effect
+                position: {
+                  x: 50,
+                  y: 50
+                },
+                scale: 1.4,
+                opacity: 0.75,
+                effectStyle: 'reflected',
                 options: {
-                    face: 'led', // Changed from 'digital'
-                    timeFormat: '12',
-                    showSeconds: true,
-                    fontFamily: 'Segoe UI',
-                    fontWeight: 'normal', // Added default
-                    color: '#FFFFFF',
-                    showSeparator: false, // Added default
-                    charSpacing: 0.65, // Default character spacing in ch units
-                    colonAdjustX: 0, // Renamed from colonAdjust
-                    colonAdjustY: 0, // Default colon vertical adjustment (%) - Reverted to 0
+                  face: 'clean',
+                  timeFormat: '12',
+                  showSeconds: true,
+                  fontFamily: 'Libre Baskerville',
+                  fontWeight: 'normal',
+                  color: '#ffffff',
+                  showSeparator: true,
+                  charSpacing: 0.89,
+                  colonAdjustX: 0,
+                  colonAdjustY: 0
                 }
             },
             'date-default': {
                 type: 'date',
                 id: 'date-default',
-                position: { x: 50, y: 80 },
-                scale: 1.0, // Moved scale outside options
-                opacity: 1.0,
-                effectStyle: 'raised', // Added element-level effect
+                position: {
+                  x: 50,
+                  y: 40.39999999999999 // Note: Preserving the exact float from input
+                },
+                scale: 0.30000000000000016, // Note: Preserving the exact float from input
+                opacity: 0.75,
+                effectStyle: 'flat',
                 options: {
-                    format: 'Day, Month DD',
-                    fontFamily: 'Segoe UI',
-                    fontWeight: 'normal', // Added default
-                    color: '#FFFFFF',
-                    visible: true,
-                    showSeparator: false, // Added separator option
+                  format: 'Day, Month DD',
+                  fontFamily: 'Libre Baskerville',
+                  fontWeight: 'normal',
+                  color: '#FFFFFF',
+                  visible: true,
+                  showSeparator: false
                 }
             },
             'controls-hint-default': {
                 type: 'controls-hint',
                 id: 'controls-hint-default',
                 // No position, scale, opacity, or effectStyle needed for this element
-                options: {
-                    text: "Tap background for controls"
-                }
+                // Text is now hardcoded in the element itself
+                options: {} // Options object kept for consistency, but text removed
             },
             'background-info-default': {
                 type: 'background-info',

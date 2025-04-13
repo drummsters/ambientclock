@@ -76,15 +76,6 @@
     width: calc(var(--time-char-width, 0.65ch) / 4);
 }
 
-/* Specific styles for LED face (can override container styles) */
-.clock-face[data-face-type="led"] .digital-clean-container {
-    font-family: var(--font-family-technical, 'Share Tech Mono', monospace); /* Updated LED font */
-    color: var(--led-color); /* Use LED color variable */
-    text-shadow: 0 0 5px var(--led-glow), 0 0 10px var(--led-glow); /* LED glow effect */
-    font-weight: normal; /* Orbitron might not need bold */
-    letter-spacing: 0.1em; /* Adjust spacing for LED */
-}
-
 /* --- Analog Clock Specific Styles (SVG) --- */
 
 /* Set explicit size on the container when analog is active */

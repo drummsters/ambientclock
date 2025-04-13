@@ -6,6 +6,7 @@ import { determineImageQueryKey } from './utils/background-helpers.js';
 
 const PROACTIVE_FETCH_THRESHOLD = 2; // Fetch next batch when cache size is <= this value
 const BATCH_SIZE = 10; // Default number of images to fetch in a batch
+const CACHE_STORAGE_KEY_PREFIX = 'ambientClock_imageCache_'; // Prefix for localStorage keys
 
 /**
  * Handles loading and displaying image backgrounds with cross-fade,
@@ -36,6 +37,7 @@ export class ImageBackgroundHandler {
     this.currentBatchQuery = null; // Query used for the current cache
     this.currentBatchCountry = null; // Country code used for the current cache (Peapix)
     this.isFetchingBatch = false;
+    this.storageKey = this._getStorageKey(initialConfig); // Generate initial storage key
 
     logger.debug('[ImageBackgroundHandler] Created with config:', initialConfig);
   }
@@ -51,6 +53,10 @@ export class ImageBackgroundHandler {
     this.containerB.style.opacity = '0';
     this.containerA.style.backgroundColor = '#000';
     this.containerB.style.backgroundColor = '#000';
+
+    // Attempt to load cache from localStorage
+    this._loadCacheFromStorage();
+
     // Load the first image into the initially active container (A)
     await this.loadImage(true);
   }
@@ -63,47 +69,59 @@ export class ImageBackgroundHandler {
    */
   async update(newConfig) {
     const oldConfig = { ...this.config };
+    const oldUseFavoritesOnly = oldConfig.useFavoritesOnly ?? false; // Get previous value
     this.config = { ...this.config, ...newConfig };
+    const newUseFavoritesOnly = this.config.useFavoritesOnly ?? false; // Get new value
+    const newStorageKey = this._getStorageKey(this.config); // Get new storage key
     logger.debug('[ImageBackgroundHandler] Updating config. Old:', oldConfig, 'New:', this.config);
 
     let needsReload = false;
     let needsCacheClear = false; // Flag to clear cache
 
-    // Determine the current query/country key based on the new config
-    // Determine the current query/country key based on the new config
+    // Check if storage key changed (means provider or query/country changed)
+    if (newStorageKey !== this.storageKey) {
+        logger.debug(`[ImageBackgroundHandler] Storage key changed from "${this.storageKey}" to "${newStorageKey}". Clearing cache and reloading.`);
+        this.storageKey = newStorageKey; // Update the key
+        needsCacheClear = true;
+        // Determine if reload is needed based on new key validity
+        const newQueryKey = determineImageQueryKey(this.config);
+        if (this.config.source !== 'peapix' && this.config.category === 'Other' && !newQueryKey) {
+            needsReload = false; // Don't reload if 'Other' category is empty
+        } else {
+            needsReload = true;
+        }
+        // Load cache for the *new* key if it exists
+        this._loadCacheFromStorage();
+    }
+
+    // Check if 'Use Favorites Only' was just enabled
+    if (!oldUseFavoritesOnly && newUseFavoritesOnly) {
+        logger.debug('[ImageBackgroundHandler] "Use Favorites Only" was enabled.');
+        needsReload = true;
+        // No need to clear cache just for enabling favorites only mode
+    }
+
+    // Determine the current query/country key based on the new config (needed below)
     const newQueryKey = determineImageQueryKey(this.config);
 
-    // Determine the previous query/country key based on the old config
-    const oldQueryKey = determineImageQueryKey(oldConfig);
-
-    // 1. Source changed? Always reload and clear cache.
-    if (oldConfig.source !== this.config.source) {
-        logger.debug('[ImageBackgroundHandler] Source changed.');
-        needsReload = true;
-        needsCacheClear = true;
-    }
-    // 2. Query/Country key changed? Reload and clear cache.
-    // Also handles Peapix country change, category change, custom category change.
-    else if (newQueryKey !== oldQueryKey) {
-         logger.debug(`[ImageBackgroundHandler] Query/Country key changed from "${oldQueryKey}" to "${newQueryKey}".`);
-         // Don't reload immediately if the new key is empty (e.g., switched to 'Other' category with no custom input yet)
-         if (this.config.source !== 'peapix' && this.config.category === 'Other' && !newQueryKey) {
-             logger.debug('[ImageBackgroundHandler] Category changed to "Other" with empty custom input. Clearing cache, waiting for input.');
-             needsReload = false;
-             needsCacheClear = true; // Clear cache even if not reloading yet
-         } else {
-             needsReload = true;
-             needsCacheClear = true;
-         }
+    // Check if 'Use Favorites Only' was just enabled (this logic remains)
+    if (!oldUseFavoritesOnly && newUseFavoritesOnly) {
+        logger.debug('[ImageBackgroundHandler] "Use Favorites Only" was enabled.');
+        // No need to clear cache, but might need reload if cache is empty for current key
+        if (this.imageCache.length === 0) {
+            needsReload = true;
+        }
     }
 
-    // Clear cache if needed
+    // Clear in-memory cache if flagged (e.g., storage key changed)
+    // Note: We don't clear localStorage here, just the in-memory representation.
+    // The next fetch for the new key will overwrite the corresponding localStorage entry.
     if (needsCacheClear) {
-        logger.debug('[ImageBackgroundHandler] Clearing image cache due to config change.');
+        logger.debug('[ImageBackgroundHandler] Clearing in-memory image cache due to config change.');
         this.imageCache = [];
+        // Reset batch keys as well, they are tied to the in-memory cache
         this.currentBatchQuery = null;
         this.currentBatchCountry = null;
-        // If a background fetch was happening for the old query, it will complete but the result will be ignored.
     }
 
     if (needsReload) {
@@ -198,36 +216,30 @@ export class ImageBackgroundHandler {
         return { error: 'custom_category_empty', message: 'Enter Custom Category' };
     }
 
-    // --- Batch Cache Logic ---
-    const cacheKeyMatches = (providerName === 'peapix')
-        ? (this.currentBatchCountry === currentQueryKey)
-        : (this.currentBatchQuery === currentQueryKey);
-    // Now log, after cacheKeyMatches is defined
-    logger.debug(`[ImageBackgroundHandler] _fetchImageData: Checking cache. Current size: ${this.imageCache.length}, Key matches needed key (${currentQueryKey})? ${cacheKeyMatches}`);
+    // --- Persistent Cache Logic ---
+    logger.debug(`[ImageBackgroundHandler] _fetchImageData: Checking in-memory cache. Current size: ${this.imageCache.length}`);
 
-    // 1. Check Cache & Fetch Batch if Needed
-    if (this.imageCache.length === 0 || !cacheKeyMatches) {
-        const reason = this.imageCache.length === 0 ? 'Cache empty' : 'Key mismatch';
-        logger.debug(`[ImageBackgroundHandler] ${reason}. Fetching new batch for key: ${currentQueryKey}.`);
+    // 1. Check In-Memory Cache & Fetch Batch if Needed
+    if (this.imageCache.length === 0) {
+        logger.debug(`[ImageBackgroundHandler] In-memory cache empty. Fetching new batch for key: ${currentQueryKey}.`);
         try {
             // Await the initial fetch because we need an image *now*.
-            await this._fetchImageBatch();
+            await this._fetchImageBatch(); // This now saves to localStorage too
             if (this.imageCache.length === 0) {
-                // If fetch succeeded but returned no images (rare, but possible)
+                // If fetch succeeded but returned no images
                 logger.error('[ImageBackgroundHandler] Batch fetch returned no images.');
                 return { error: 'batch_fetch_empty', message: 'No images found' };
             }
         } catch (error) {
             logger.error('[ImageBackgroundHandler] Error awaiting initial batch fetch:', error);
-            // Return specific error based on type
-            if (error instanceof RateLimitError) {
+            if (error instanceof RateLimitError || error.name === 'RateLimitError') {
                 logger.warn(`[ImageBackgroundHandler] Rate limit hit during initial fetch for ${providerName}.`);
                 return { error: 'rate_limit', message: `API limit reached for ${providerName}. Try again later.` };
             }
             return { error: 'batch_fetch_error', message: `Error loading from ${providerName}` };
         }
     } else {
-         logger.debug(`[ImageBackgroundHandler] Cache hit! Using existing cache for key: ${currentQueryKey}`);
+         logger.debug(`[ImageBackgroundHandler] In-memory cache hit! Using existing cache.`);
     }
 
     // 2. Select Image from Cache
@@ -239,25 +251,21 @@ export class ImageBackgroundHandler {
     const cacheSizeBefore = this.imageCache.length;
     const randomIndex = Math.floor(Math.random() * this.imageCache.length);
     const selectedImageData = this.imageCache[randomIndex];
-    this.imageCache.splice(randomIndex, 1); // Remove selected image
-    logger.debug(`[ImageBackgroundHandler] Selected image from cache (Index: ${randomIndex}, URL: ${selectedImageData?.url?.substring(0, 50)}...). Cache size: ${cacheSizeBefore} -> ${this.imageCache.length}.`);
+    this.imageCache.splice(randomIndex, 1); // Remove selected image from in-memory cache
+    this._saveCacheToStorage(); // Save updated cache to localStorage
+    logger.debug(`[ImageBackgroundHandler] Selected image from cache (Index: ${randomIndex}, URL: ${selectedImageData?.url?.substring(0, 50)}...). Cache size: ${cacheSizeBefore} -> ${this.imageCache.length}. Saved to storage.`);
 
-    // 3. Trigger Proactive Fetch if Needed
+    // 3. Trigger Proactive Fetch if Needed (logic remains the same)
     if (this.imageCache.length <= PROACTIVE_FETCH_THRESHOLD && !this.isFetchingBatch) {
         logger.debug(`[ImageBackgroundHandler] Cache size (${this.imageCache.length}) <= threshold (${PROACTIVE_FETCH_THRESHOLD}). Triggering proactive background fetch for key: ${currentQueryKey}.`);
-        // No await - run in background, catch errors locally
-        this._fetchImageBatch().catch(error => {
-            // Log proactively fetched errors, but don't disrupt the current image display
+        this._fetchImageBatch().catch(error => { // Fetch also saves to storage on success
             logger.warn('[ImageBackgroundHandler] Error during proactive background batch fetch:', error);
         });
     } else if (this.isFetchingBatch) {
          logger.debug(`[ImageBackgroundHandler] Proactive fetch skipped: Already fetching batch.`);
-    } else {
-         // logger.debug(`[ImageBackgroundHandler] Proactive fetch skipped: Cache size (${this.imageCache.length}) > threshold (${PROACTIVE_FETCH_THRESHOLD}).`); // Suppressed as requested
     }
 
-
-    return selectedImageData; // Return the single selected image data
+    return selectedImageData;
   }
 
 
@@ -311,18 +319,20 @@ export class ImageBackgroundHandler {
                  throw new Error('Cannot fetch for Peapix without a country code.');
             }
             logger.debug(`[ImageBackgroundHandler] Fetching batch for Peapix, country: ${newCacheKey}`);
-            // Pass null for query, BATCH_SIZE, and the determined country code (newCacheKey)
-            this.imageCache = await provider.getImageBatch(null, BATCH_SIZE, newCacheKey);
-            this.currentBatchCountry = newCacheKey; // Store the country code used
-            this.currentBatchQuery = null; // Clear query cache key
-            logger.debug(`[ImageBackgroundHandler] Peapix batch fetch successful. Added ${this.imageCache.length} images to cache.`);
+            const fetchedBatch = await provider.getImageBatch(null, BATCH_SIZE, newCacheKey);
+            this.imageCache = fetchedBatch; // Update in-memory cache
+            this.currentBatchCountry = newCacheKey;
+            this.currentBatchQuery = null;
+            this._saveCacheToStorage(); // Save to localStorage
+            logger.debug(`[ImageBackgroundHandler] Peapix batch fetch successful. Added ${this.imageCache.length} images to cache and storage.`);
             this.isFetchingBatch = false;
             return;
         } catch (error) {
             logger.error('[ImageBackgroundHandler] Error during Peapix batch fetch:', error);
-            this.imageCache = [];
+            this.imageCache = []; // Clear in-memory cache on error
+            this._saveCacheToStorage(); // Persist the empty cache
             this.isFetchingBatch = false;
-            throw error;
+            throw error; // Re-throw to be handled by caller
         }
     }
 
@@ -346,14 +356,15 @@ export class ImageBackgroundHandler {
             }
 
             logger.debug(`[ImageBackgroundHandler] Trying batch fetch from ${providerName}, query: "${newCacheKey}"`);
-            // Pass the determined query key (newCacheKey) and BATCH_SIZE
-            this.imageCache = await provider.getImageBatch(newCacheKey, BATCH_SIZE);
+            const fetchedBatch = await provider.getImageBatch(newCacheKey, BATCH_SIZE);
+            this.imageCache = fetchedBatch; // Update in-memory cache
 
-            // If successful, update state and cache keys
-            this.currentBatchQuery = newCacheKey; // Store the query used
-            this.currentBatchCountry = null; // Clear country cache key
-            
-            // If this wasn't the original provider, update the config
+            // If successful, update cache keys and save
+            this.currentBatchQuery = newCacheKey;
+            this.currentBatchCountry = null;
+            this._saveCacheToStorage(); // Save to localStorage
+
+            // If this wasn't the original provider, update the config (logic remains)
             if (providerName !== currentProviderName) {
                 logger.log(`[ImageBackgroundHandler] Switched to provider ${providerName} due to rate limit on ${currentProviderName}`);
                 // Update both source and provider in config
@@ -378,9 +389,9 @@ export class ImageBackgroundHandler {
                 });
             }
 
-            logger.debug(`[ImageBackgroundHandler] Batch fetch successful from ${providerName}. Added ${this.imageCache.length} images to cache.`);
+            logger.debug(`[ImageBackgroundHandler] Batch fetch successful from ${providerName}. Added ${this.imageCache.length} images to cache and storage.`);
             this.isFetchingBatch = false;
-            return;
+            return; // Success, exit loop
 
         } catch (error) {
             lastError = error;
@@ -395,12 +406,12 @@ export class ImageBackgroundHandler {
         }
     }
 
-    // If we get here, all providers failed or we hit a non-rate-limit error
-    this.imageCache = [];
+    // If loop finishes, all providers failed or we hit a non-rate-limit error
+    this.imageCache = []; // Clear in-memory cache
+    this._saveCacheToStorage(); // Persist the empty cache
     this.isFetchingBatch = false;
-    throw lastError || new Error('All providers failed or were invalid');
+    throw lastError || new Error('All providers failed or were invalid'); // Re-throw the last error
   }
-
 
   /**
    * Handles displaying a fetched image: preloading, applying styles, cross-fading, and updating state.
@@ -497,7 +508,6 @@ export class ImageBackgroundHandler {
     // Update StateManager regardless of success/failure
     this._updateStateMetadata(metadataForState);
   }
-
 
   /**
    * Loads a specific image URL, typically from a favorite. Bypasses batching.
@@ -631,4 +641,97 @@ export class ImageBackgroundHandler {
     this.isFetchingBatch = false;
     // Cancel any ongoing fetches if implemented (e.g., using AbortController)
   }
-}
+
+  // --- localStorage Cache Helpers ---
+
+  /**
+   * Generates the localStorage key for the current configuration.
+   * @param {object} config - The background configuration object.
+   * @returns {string} The localStorage key.
+   * @private
+   */
+  _getStorageKey(config) {
+      const provider = config?.source || 'default';
+      const queryKey = determineImageQueryKey(config) || 'nokey';
+      // Sanitize key parts to be safe for localStorage keys
+      const safeProvider = provider.replace(/[^a-zA-Z0-9_-]/g, '');
+      const safeQueryKey = queryKey.replace(/[^a-zA-Z0-9_-]/g, '');
+      return `${CACHE_STORAGE_KEY_PREFIX}${safeProvider}_${safeQueryKey}`;
+  }
+
+  /**
+   * Saves the current in-memory imageCache to localStorage.
+   * @private
+   */
+  _saveCacheToStorage() {
+      if (!this.storageKey) {
+          logger.warn('[ImageBackgroundHandler] Cannot save cache: storageKey is not set.');
+          return;
+      }
+      try {
+          const cacheString = JSON.stringify(this.imageCache);
+          localStorage.setItem(this.storageKey, cacheString);
+          logger.debug(`[ImageBackgroundHandler] Saved cache (${this.imageCache.length} items) to localStorage key: ${this.storageKey}`);
+      } catch (error) {
+          logger.error(`[ImageBackgroundHandler] Error saving cache to localStorage (key: ${this.storageKey}):`, error);
+          // Handle potential quota errors or other issues
+          if (error.name === 'QuotaExceededError') {
+              logger.warn('[ImageBackgroundHandler] localStorage quota exceeded. Consider clearing old caches or reducing batch size.');
+              // Optionally, try to clear *this* cache entry to prevent blocking other storage
+              localStorage.removeItem(this.storageKey);
+          }
+      }
+  }
+
+  /**
+   * Loads the image cache from localStorage if it matches the current config.
+   * Updates this.imageCache if a valid cache is found.
+   * @private
+   */
+  _loadCacheFromStorage() {
+      if (!this.storageKey) {
+          logger.warn('[ImageBackgroundHandler] Cannot load cache: storageKey is not set.');
+          return;
+      }
+      try {
+          const storedCacheString = localStorage.getItem(this.storageKey);
+          if (storedCacheString) {
+              const storedCache = JSON.parse(storedCacheString);
+              // Basic validation: check if it's an array
+              if (Array.isArray(storedCache)) {
+                  this.imageCache = storedCache;
+                  // Update current batch keys based on the loaded cache's key
+                  const keyParts = this.storageKey.replace(CACHE_STORAGE_KEY_PREFIX, '').split('_');
+                  const provider = keyParts[0];
+                  const queryOrCountry = keyParts.slice(1).join('_'); // Rejoin if key had underscores
+                  if (provider === 'peapix') {
+                      this.currentBatchCountry = queryOrCountry;
+                      this.currentBatchQuery = null;
+                  } else {
+                      this.currentBatchQuery = queryOrCountry;
+                      this.currentBatchCountry = null;
+                  }
+                  logger.log(`[ImageBackgroundHandler] Loaded cache (${this.imageCache.length} items) from localStorage key: ${this.storageKey}`);
+              } else {
+                  logger.warn(`[ImageBackgroundHandler] Invalid cache data found in localStorage for key ${this.storageKey}. Discarding.`);
+                  localStorage.removeItem(this.storageKey); // Remove invalid data
+                  this.imageCache = []; // Reset in-memory cache
+              }
+          } else {
+              logger.debug(`[ImageBackgroundHandler] No cache found in localStorage for key: ${this.storageKey}`);
+              this.imageCache = []; // Ensure in-memory cache is empty
+          }
+      } catch (error) {
+          logger.error(`[ImageBackgroundHandler] Error loading or parsing cache from localStorage (key: ${this.storageKey}):`, error);
+          this.imageCache = []; // Reset in-memory cache on error
+          // Attempt to remove potentially corrupted data
+          try {
+              localStorage.removeItem(this.storageKey);
+          } catch (removeError) {
+              logger.error(`[ImageBackgroundHandler] Failed to remove corrupted cache item (key: ${this.storageKey}):`, removeError);
+          }
+      }
+  }
+
+  // --- End localStorage Cache Helpers ---
+} // <-- Added missing closing brace for the ImageBackgroundHandler class

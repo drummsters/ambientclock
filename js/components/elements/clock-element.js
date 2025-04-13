@@ -14,7 +14,7 @@ export class ClockElement extends BaseUIElement {
     // Ensure default options are set if not provided
     const defaultConfig = {
       options: {
-        face: 'led', // Default face type
+        face: 'clean', // Default face type changed from 'led'
         timeFormat: '12',
         showSeconds: true,
         fontFamily: 'Segoe UI', // Still needed for LedClean renderer
@@ -134,10 +134,9 @@ export class ClockElement extends BaseUIElement {
     // Render the appropriate face
     if (this.options.face === 'analog') {
         this.analogRenderer.render(timeData, this.options);
-        // No applyStyles needed for analog as CSS handles it
-    } else { // 'led' or 'clean'
-        this.ledCleanRenderer.applyStyles(this.options); // Apply led/clean styles
-        this.ledCleanRenderer.render(timeData, this.options);
+    } else { // Treat any non-analog as 'clean'
+        this.ledCleanRenderer.applyStyles(this.options); // Apply clean styles
+        this.ledCleanRenderer.render(timeData, this.options); // Render using LedClean renderer
     }
 
     // Manage visibility of the digital and analog root elements
@@ -150,13 +149,10 @@ export class ClockElement extends BaseUIElement {
     if (this.options.face === 'analog') {
         if (analogRoot) analogRoot.style.display = ''; // Show SVG
         if (digitalRoot) digitalRoot.style.display = 'none'; // Hide digital container
-        // Size is now handled by CSS using --element-scale
-        // Remove potentially conflicting class if it was used before
-        this.elements.face.classList.remove('analog-face-active');
-    } else { // 'led' or 'clean'
+        this.elements.face.classList.remove('analog-face-active'); // Ensure class is removed
+    } else { // 'clean' face
         if (analogRoot) analogRoot.style.display = 'none'; // Hide SVG
         if (digitalRoot) digitalRoot.style.display = ''; // Show digital container
-        // Remove explicit size when not analog
         this.container.style.width = '';
         this.container.style.height = '';
         // Remove potentially conflicting class if it was used before
