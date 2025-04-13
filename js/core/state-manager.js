@@ -181,7 +181,17 @@ export const StateManager = {
 
     // Notify subscribers about the changes (treat the entire state as changed)
     // We can simulate this by passing the new state as 'changes'
-    this.notifySubscribers(this.state, oldState);
+    this.notifySubscribers(this.state, oldState); // Notify general changes
+
+    // Explicitly notify background controls about the reset state for its slice
+    const defaultBackgroundState = this.getNestedValue(this.defaultState, 'settings.background');
+    if (defaultBackgroundState) {
+        EventBus.publish('state:settings.background:changed', defaultBackgroundState);
+        logger.debug('Explicitly published state:settings.background:changed after reset.');
+    } else {
+        logger.warn('Could not find default background state to publish after reset.');
+    }
+
 
     // Schedule saving the reset state
     this.scheduleSave();
