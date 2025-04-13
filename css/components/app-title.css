@@ -15,11 +15,46 @@
     pointer-events: none; /* Don't interfere with clicks when hidden */
     opacity: 0; /* Start hidden */
     visibility: hidden; /* Start hidden */
+    display: flex; /* Use flexbox for alignment */
+    align-items: center; /* Vertically align items */
+    gap: 8px; /* Add space between text and icon */
     transition: var(--visibility-transition); /* Use variable for smooth transition */
 }
 
 #app-title.visible {
     opacity: 0.65; /* Target opacity when visible */
     visibility: visible;
-    /* pointer-events: auto; /* Not needed as it's just text */
+    pointer-events: auto; /* Allow clicking the link */
+}
+
+/* Style the GitHub link */
+#app-title .github-link {
+    display: inline-flex; /* Align icon and text vertically */
+    align-items: center;
+    font-weight: 300;
+    gap: 5px; /* Add space between icon and URL text */
+    text-decoration: none; /* Remove underline from link */
+    color: inherit; /* Inherit color from #app-title */
+    pointer-events: auto; /* Ensure link is clickable */
+}
+
+/* Style the GitHub icon */
+#app-title .github-icon {
+    width: 16px; /* Adjust size as needed */
+    height: 16px;
+    display: block; /* Prevent extra space below image */
+    opacity: 0.8; /* Slightly dim the icon */
+    transition: opacity 0.2s ease-in-out;
+}
+
+/* Style the URL text within the link */
+#app-title .github-link span {
+    font-size: 0.9em; /* Slightly smaller text for the URL */
+    opacity: 0.8; /* Match icon opacity */
+    transition: opacity 0.2s ease-in-out;
+}
+
+#app-title .github-link:hover .github-icon,
+#app-title .github-link:hover span {
+    opacity: 1; /* Full opacity on hover for both icon and text */
 }
