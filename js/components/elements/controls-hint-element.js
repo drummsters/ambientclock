@@ -25,11 +25,10 @@ export class ControlsHintElement extends BaseUIElement {
          }
 
          this.container.classList.add('controls-hint-element');
-         this.container.innerHTML = `<p>${this.options.text || "Press 'Space' or 'c' to toggle controls"}</p>`;
+         // Use text from options provided by StateManager/BaseUIElement
+         this.container.innerHTML = `<p>${this.options.text}</p>`;
 
-        // Add click listener to toggle controls
-        this.hintClickHandler = this.handleHintClick.bind(this);
-        this.container.addEventListener('click', this.hintClickHandler);
+        // REMOVED: Click listener and handler
 
         // Removed all visibility logic, timers, state subscriptions, and mouse listeners
 
@@ -44,19 +43,10 @@ export class ControlsHintElement extends BaseUIElement {
         // No dynamic elements needed, content set in init
     }
 
-    // --- Event Handlers ---
-
-    handleHintClick() {
-        EventBus.publish('controls:toggle'); // Still use EventBus to request toggle
-        // No need to hide hint here, visibility is managed externally
-    }
+    // REMOVED: handleHintClick() method
 
     destroy() {
-        // Remove the click listener
-        if (this.container && this.hintClickHandler) {
-            this.container.removeEventListener('click', this.hintClickHandler);
-        }
-        this.hintClickHandler = null;
+        // REMOVED: Click listener removal
 
         // Call base destroy
         super.destroy();

@@ -4,12 +4,17 @@
 
 /* Controls Panel Container */
 #controls-panel {
-    position: fixed; 
-    bottom: 20px;
+    position: fixed;
+    top: 20px; /* Changed from bottom */
     left: 20px;
+    display: flex; /* Ensure flex is explicitly set */
+    flex-direction: column; /* Stack sections vertically */
+    width: 450px; /* Set fixed width for vertical panel */
+    height: auto; /* Allow height to adjust to content */
+    max-height: 90vh; /* Limit height to 90% of viewport */
     background-color: var(--control-bg-color);
-    backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
     padding: var(--control-padding);
     border-radius: var(--control-border-radius);
     z-index: var(--z-index-controls);
@@ -19,8 +24,7 @@
     visibility: hidden; /* Start hidden */
     transition: var(--visibility-transition); /* Use variable */
     pointer-events: none; /* Don't capture mouse events when hidden */
-    min-width: 350px;
-    max-height: 95vh; /* Increased to 95% of viewport height */
+    /* min-width: 350px; REMOVED - width is now fixed */
     overflow-y: auto; /* Add scrollbar if needed */
     box-shadow: var(--control-panel-shadow);
     border: 1px solid var(--control-section-border);
@@ -360,6 +364,57 @@
     background-color: var(--link-active-bg);
 }
 
+/* --- Styles for Font Display and Change Link --- */
+
+/* Style the row containing the font label, name display, and change link */
+.font-display-row {
+    /* Inherits .control-group styles (flex, align-items) */
+    gap: 5px; /* Reduce gap slightly for this specific row */
+}
+/* Style the span holding the font name */
+.font-display-row .current-font-display {
+    font-weight: 600;
+    color: var(--control-text-color);
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-grow: 1; /* Allow it to grow */
+    flex-shrink: 1; /* Allow it to shrink if needed */
+    min-width: 50px; /* Give it some minimum space */
+    margin-right: 5px; /* Add space before the link */
+}
+
+/* Remove styles for the deleted .change-font-group */
+/*
+.change-font-group { ... }
+.change-font-group label { ... }
+*/
+
+/* Style the change font link (now within .font-display-row) */
+.change-font-link {
+    color: var(--link-color);
+    text-decoration: none;
+    cursor: pointer;
+    transition: var(--button-transition);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    display: inline-block;
+    margin-left: auto; /* Push link to the right */
+    flex-shrink: 0; /* Prevent link from shrinking */
+}
+
+.change-font-link:hover {
+    color: var(--link-hover-color);
+    background-color: var(--link-hover-bg);
+}
+
+.change-font-link:active {
+    background-color: var(--link-active-bg);
+}
+
+
 /* Center link styling */
 #controls-panel .center-link {
     color: var(--link-color);
@@ -427,4 +482,54 @@
 #controls-panel .reset-button {
     flex-grow: 1; /* Allow reset to grow too */
     min-width: 120px;
+}
+
+/* --- Styles for Bold Checkbox and Show Fonts Link Row --- */
+.bold-font-link-row {
+    display: flex;
+    justify-content: space-between; /* Pushes items to ends */
+    align-items: center;
+    width: 100%; /* Ensure it takes full width */
+    margin-bottom: 8px; /* Match control-group margin */
+}
+
+/* Adjust the bold checkbox group */
+.bold-checkbox-group {
+    margin-bottom: 0; /* Remove default margin */
+    flex-grow: 1; /* Allow it to take space */
+}
+
+/* Adjust the show fonts link group */
+.show-fonts-link-group {
+    margin-bottom: 0; /* Remove default margin */
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+/* Remove the label space for the link group as it has no text */
+.show-fonts-link-group label {
+    width: 0;
+    margin-right: 0;
+    display: none; /* Hide the empty label */
+}
+
+/* Style the link itself */
+.show-fonts-link {
+    color: var(--link-color);
+    text-decoration: none;
+    cursor: pointer;
+    transition: var(--button-transition);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    display: inline-block;
+    /* margin-left: auto; /* Not needed with flex justify-content */
+}
+
+.show-fonts-link:hover {
+    color: var(--link-hover-color);
+    background-color: var(--link-hover-bg);
+}
+
+.show-fonts-link:active {
+    background-color: var(--link-active-bg);
 }

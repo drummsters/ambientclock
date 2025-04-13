@@ -1,6 +1,7 @@
 import { BaseUIElement } from '../base/base-ui-element.js';
 import { LedCleanFaceRenderer } from './renderers/LedCleanFaceRenderer.js';
 import { AnalogFaceRenderer } from './renderers/AnalogFaceRenderer.js';
+import { EventBus } from '../../core/event-bus.js'; // Import EventBus
 
 // Utility functions (padZero, calculateHandDegrees) moved to renderers
 
@@ -196,6 +197,10 @@ export class ClockElement extends BaseUIElement {
   addEventListeners() {
     // Start the interval timer to update the clock
     this.startTimer();
+
+    // Add click listener to show controls
+    this.boundHandleClick = this.handleClick.bind(this);
+    this.container.addEventListener('click', this.boundHandleClick);
   }
 
   /**
@@ -204,6 +209,11 @@ export class ClockElement extends BaseUIElement {
   removeEventListeners() {
     // Stop the interval timer
     this.stopTimer();
+
+    // Remove click listener
+    if (this.container && this.boundHandleClick) {
+        this.container.removeEventListener('click', this.boundHandleClick);
+    }
   }
 
   /**
@@ -225,6 +235,14 @@ export class ClockElement extends BaseUIElement {
       clearInterval(this.intervalId);
       this.intervalId = null;
     }
+  }
+
+  /**
+   * Handles clicks on the clock element to show the control panel.
+   */
+  handleClick() {
+      console.log(`[ClockElement ${this.id}] Clicked. Publishing controls:showRequest.`);
+      EventBus.publish('controls:showRequest');
   }
 
   /**

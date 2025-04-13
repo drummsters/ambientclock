@@ -100,7 +100,7 @@ async function initApp() {
     // Visibility manager for elements that should show on mouse movement
     const alwaysShowVisibilityManager = new VisibilityManager(
         StateManager,
-        ['controls-hint-default', 'donate-default'],
+        ['controls-hint-default', 'donate-default', 'next-background-button-default'], // Added next-background-button
         {
             showOnActivityWhenClosed: true
         }
@@ -110,7 +110,7 @@ async function initApp() {
     // Visibility manager for elements that should only show when controls are open
     const controlsVisibilityManager = new VisibilityManager(
         StateManager,
-        ['favorite-toggle-default', 'next-background-button-default'],
+        ['favorite-toggle-default'], // Removed next-background-button
         {
             showOnActivityWhenClosed: false
         }

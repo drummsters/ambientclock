@@ -19,7 +19,7 @@ const DOUBLE_TAP_DELAY = 300; // milliseconds
 function handleTouchStart(event) {
     const currentTime = new Date().getTime();
     const tapLength = currentTime - lastTapTime;
-    
+
     if (tapLength < DOUBLE_TAP_DELAY && tapLength > 0) {
         // Double tap detected
         event.preventDefault();
@@ -31,30 +31,30 @@ function handleTouchStart(event) {
             document.exitFullscreen();
         }
     }
-    
+
     lastTapTime = currentTime;
 }
 
 export function setupGlobalKeyListeners(panelInstance) {
     controlPanelInstance = panelInstance; // Store the instance
     logger.debug('Setting up global key listeners...');
-    
+
     // Remove previous listeners if any
     window.removeEventListener('keydown', handleKeyDown);
     window.removeEventListener('keyup', handleKeyUp);
     document.body.removeEventListener('click', handleBodyClick);
     document.body.removeEventListener('touchstart', handleTouchStart);
-    
+
     // Add listeners
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     document.body.addEventListener('click', handleBodyClick);
-    
+
     // Add double tap listener for mobile fullscreen
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
         document.body.addEventListener('touchstart', handleTouchStart);
     }
-    
+
     // Add click listeners to all draggable elements
     setupElementSelection();
 }
@@ -85,20 +85,14 @@ function handleElementDoubleClick(event) {
         clearTimeout(selectionVisibilityTimer);
         selectionVisibilityTimer = null;
     }
-    
+
     // Deselect any *other* previously selected elements
     document.querySelectorAll('.base-element.selected').forEach(el => {
         if (el !== clickedElement) {
             el.classList.remove('selected', 'nudging');
         }
-    });
-    
-    // Clear any existing nudge hide timer (related to Ctrl key)
-    if (window.nudgeHideTimer) {
-        clearTimeout(window.nudgeHideTimer);
-        window.nudgeHideTimer = null;
-    }
-    
+    }); // Added missing closing brace here
+
     // Toggle selection on the clicked element
     clickedElement.classList.toggle('selected');
     clickedElement.classList.remove('nudging'); // Ensure nudging class is off initially
@@ -135,23 +129,21 @@ function handleBodyClick(event) {
     }
 
     // If we get here, click was on background
-    
+
     // Clear auto-deselect timer if clicking outside
     if (selectionVisibilityTimer) {
         clearTimeout(selectionVisibilityTimer);
         selectionVisibilityTimer = null;
     }
-    
+
     // Deselect any selected elements
     document.querySelectorAll('.base-element.selected').forEach(el => {
         el.classList.remove('selected', 'nudging'); // Also remove nudging class
     });
 
-    // Only hide control panel if it's visible
-    const panel = document.querySelector('.control-panel');
-    if (panel?.style.display !== 'none') {
-        controlPanelInstance?.toggleVisibility();
-    }
+    // The logic to hide the control panel on background click is now handled
+    // directly within the ControlPanel class's handleBackgroundClick method,
+    // which is attached to the document. No need to call toggleVisibility here.
 }
 
 /**
@@ -160,8 +152,8 @@ function handleBodyClick(event) {
  */
 function handleKeyDown(event) {
     // Check if we're in an input field
-    const isInInput = document.activeElement?.tagName === 'INPUT' || 
-                     document.activeElement?.tagName === 'SELECT' || 
+    const isInInput = document.activeElement?.tagName === 'INPUT' ||
+                     document.activeElement?.tagName === 'SELECT' ||
                      document.activeElement?.tagName === 'TEXTAREA';
 
     // Show outline when Ctrl is pressed if an element is selected
@@ -170,17 +162,12 @@ function handleKeyDown(event) {
         if (selectedElement) {
             selectedElement.classList.add('nudging');
         }
-    }
+    } // This closing brace belongs to the 'if (event.ctrlKey && !isInInput)' block above
 
-    // Toggle Control Panel with Space or 'c'
-    if (!isInInput && (event.code === 'Space' || event.key === 'c')) {
-        if (event.code === 'Space') {
-            event.preventDefault();
-        }
-        controlPanelInstance?.toggleVisibility();
-    }
+    // REMOVED: Toggle Control Panel with Space or 'c'
+
     // Toggle Debug Mode with Ctrl+Shift+Z
-    else if (event.ctrlKey && event.shiftKey && event.key === 'Z') {
+    if (event.ctrlKey && event.shiftKey && event.key === 'Z') {
         event.preventDefault();
         logger.toggleDebugMode();
     }

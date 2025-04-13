@@ -1,7 +1,8 @@
 import { StateManager } from '../../core/state-manager.js';
 import { EventBus } from '../../core/event-bus.js';
 import { StyleHandler } from '../base/mixins/StyleHandler.js';
-import { DateControlsUIBuilder } from './ui/DateControlsUIBuilder.js'; // Import the new UI Builder
+import { DateControlsUIBuilder } from './ui/DateControlsUIBuilder.js';
+import { AVAILABLE_FONTS } from '../../utils/font-list.js'; // Import the consolidated font list
 
 /**
  * Manages the UI controls for a specific Date element within the control panel.
@@ -50,6 +51,9 @@ export class DateControls {
 
       // 4. Add event listeners for user interactions
       this.addEventListeners();
+
+      // Populate the font panel after elements are created - REMOVED (will be called by ControlPanel)
+      // this._populateFontPanel();
 
       console.log(`DateControls for ${this.elementId} initialized successfully.`);
       return true;
@@ -110,7 +114,7 @@ export class DateControls {
 
      if (this.elements.visibleCheckbox) this.elements.visibleCheckbox.checked = optionsState.visible ?? true;
      if (this.elements.formatSelect) this.elements.formatSelect.value = optionsState.format || 'Day, Month DD';
-     if (this.elements.fontSelect) this.elements.fontSelect.value = optionsState.fontFamily || 'Segoe UI'; // Added
+     if (this.elements.currentFontDisplay) this.elements.currentFontDisplay.textContent = optionsState.fontFamily || 'Default'; // Update font display span
      if (this.elements.boldCheckbox) this.elements.boldCheckbox.checked = (optionsState.fontWeight === 'bold'); // Added
      if (this.elements.colorPicker) this.elements.colorPicker.value = optionsState.color || '#FFFFFF';
      if (this.elements.separatorCheckbox) this.elements.separatorCheckbox.checked = optionsState.showSeparator ?? false;
@@ -164,10 +168,11 @@ export class DateControls {
   _addOptionsListeners() {
     this.elements.visibleCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ visible: e.target.checked }));
     this.elements.formatSelect?.addEventListener('change', (e) => this.dispatchStateUpdate({ format: e.target.value }));
-    this.elements.fontSelect?.addEventListener('change', (e) => {
-      this.dispatchStateUpdate({ fontFamily: e.target.value });
-      this._updateFontCSSVariable(e.target.value);
-    }); // Added
+    // Removed fontSelect listener
+    // this.elements.fontSelect?.addEventListener('change', (e) => {
+    //   this.dispatchStateUpdate({ fontFamily: e.target.value });
+    //   this._updateFontCSSVariable(e.target.value);
+    // }); // Added
     this.elements.boldCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ fontWeight: e.target.checked ? 'bold' : 'normal' })); // Added
     this.elements.colorPicker?.addEventListener('input', (e) => this.dispatchStateUpdate({ color: e.target.value }));
     this.elements.separatorCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ showSeparator: e.target.checked }));
@@ -203,6 +208,19 @@ export class DateControls {
         e.preventDefault();
         this.dispatchElementStateUpdate({ position: { x: 50, y: 50 } });
     });
+
+    // Change Font Link Click (was Show Fonts)
+    this.elements.changeFontLink?.addEventListener('click', (e) => { // Use changeFontLink reference
+        e.preventDefault();
+        console.log(`[DateControls ${this.elementId}] Change Font link clicked.`);
+        // Find the font panel and call its toggle method with the target element ID
+        const fontPanel = document.querySelector('font-panel');
+        if (fontPanel && typeof fontPanel.toggle === 'function') {
+            fontPanel.toggle(this.elementId); // Pass the element ID
+        } else {
+            console.error('FontPanel not found or toggle method missing.');
+        }
+    });
   }
 
   /** Dispatches an update to the StateManager for options. */
@@ -234,10 +252,43 @@ export class DateControls {
    * @param {string} fontFamily - The selected font family.
    */
   _updateFontCSSVariable(fontFamily) {
+    // The primary font application should happen via state update
+    // and the element's own updateOptions/render logic.
+    // Apply directly to the element for general cases.
     const dateElement = document.querySelector(`#${this.elementId}`);
     if (dateElement) {
-      dateElement.style.setProperty('font-family', fontFamily);
+      dateElement.style.fontFamily = fontFamily;
+    } else {
+        console.warn(`[DateControls ${this.elementId}] Element not found for applying font CSS variable.`);
     }
+  }
+
+  /**
+   * Populates the font panel with the consolidated list of fonts.
+   * NOTE: This method is kept but should ideally only be called once externally (e.g., by ControlPanel).
+   */
+  _populateFontPanel() {
+      const fontPanel = document.querySelector('font-panel');
+      if (!fontPanel) {
+          console.warn(`[DateControls ${this.elementId}] FontPanel element not found, cannot populate.`);
+          return;
+      }
+
+      // Check if already populated (using the panel's internal state)
+      if (fontPanel.fonts && fontPanel.fonts.length > 0) {
+          // console.log(`[DateControls ${this.elementId}] FontPanel already populated, skipping.`);
+          return;
+      }
+
+      // Use the imported consolidated list (already sorted)
+      const fonts = AVAILABLE_FONTS;
+
+      if (typeof fontPanel.populateFonts === 'function') {
+          console.log(`[DateControls ${this.elementId}] Populating FontPanel with ${fonts.length} fonts.`);
+          fontPanel.populateFonts(fonts);
+      } else {
+          console.error(`[DateControls ${this.elementId}] FontPanel instance does not have a populateFonts method.`);
+      }
   }
 
   /** Cleans up resources. */

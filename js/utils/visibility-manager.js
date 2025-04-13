@@ -159,28 +159,33 @@ export class VisibilityManager {
         // --- END DETAILED LOGGING COMMENTED OUT ---
         clearTimeout(this.mouseMoveTimer); // Clear pending show timer
 
-        // Use the freshly read state for the decision logic
+        // --- Revised Logic ---
         if (currentControlsOpen) {
-            // If controls are open, always show managed elements
-            logger.debug(`[VisibilityManager managing: ${managedIds}] Controls are open, showing elements.`); // Changed to debug
+            // Controls state is OPEN: Always show
+            logger.debug(`[VisibilityManager managing: ${managedIds}] Controls state is OPEN, showing elements.`);
             this.showManagedElements();
-            this.clearIdleTimer(); // No auto-hide when controls are open
+            this.clearIdleTimer(); // No idle hide when controls are forced open
         } else {
-            // If controls are closed (using currentControlsOpen)...
-            // Check if we should show on activity based on the option
-            if (this.options.showOnActivityWhenClosed && this.activityDetected) {
-                // Show based on activity, then auto-hide
-                logger.debug(`[VisibilityManager managing: ${managedIds}] Controls closed, activity detected (showOnActivityWhenClosed=true), showing elements and resetting idle timer.`); // Changed to debug
-                this.showManagedElements();
-                this.resetIdleTimer(); // Start timer to hide after inactivity
+            // Controls state is CLOSED: Behavior depends on options
+            if (this.options.showOnActivityWhenClosed) {
+                // Option allows showing on activity when closed
+                if (this.activityDetected) {
+                    logger.debug(`[VisibilityManager managing: ${managedIds}] Controls state is CLOSED, but activity detected (showOnActivity=true). Showing temporarily.`);
+                    this.showManagedElements();
+                    this.resetIdleTimer(); // Start timer to hide after inactivity
+                } else {
+                    logger.debug(`[VisibilityManager managing: ${managedIds}] Controls state is CLOSED, no activity detected (showOnActivity=true). Hiding elements.`);
+                    this.hideManagedElements();
+                }
             } else {
-                // Hide if controls are closed AND (either showOnActivityWhenClosed is false OR no activity was detected)
-        logger.debug(`[VisibilityManager managing: ${managedIds}] Controls closed, hiding elements (showOnActivityWhenClosed=${this.options.showOnActivityWhenClosed}, activityDetected=${this.activityDetected}).`); // Changed to debug
-        // logger.debug(`[VisibilityManager managing: ${managedIds}] Controls closed, no activity, hiding elements.`); // Redundant log
-        this.hideManagedElements();
+                // Option prevents showing on activity when closed (like the main panel)
+                // Simply hide if controls state is closed.
+                logger.debug(`[VisibilityManager managing: ${managedIds}] Controls state is CLOSED (showOnActivity=false). Hiding elements.`);
+                this.hideManagedElements();
             }
         }
-        // Reset activity flag after check
+
+        // Reset activity flag *after* visibility decision is made for the current cycle
         this.activityDetected = false;
     }
 

@@ -38,33 +38,25 @@ export class ControlPanelToggleElement extends BaseUIElement {
             this.container.style.display = 'block';
         }
 
-        // Subscribe to control panel state changes
-        StateManager.subscribe(state => state.settings.controls.isOpen, this._updateButtonState.bind(this));
+        // REMOVED: StateManager.subscribe for isOpen state
         
         return true; // Signal successful initialization
     }
 
-    _handleClick() {
-        const currentState = StateManager.getState();
-        const isOpen = currentState.settings.controls.isOpen;
-        
-        // Toggle control panel state
-        StateManager.update({
-            settings: {
-                controls: {
-                    isOpen: !isOpen
-                }
-            }
-        });
+    /**
+     * @override
+     * Satisfies BaseUIElement requirement. Content is set in init.
+     */
+    async createElements() {
+        // No dynamic elements needed
     }
 
-    _updateButtonState(isOpen) {
-        if (isOpen) {
-            this.container.classList.add('is-active');
-        } else {
-            this.container.classList.remove('is-active');
-        }
+    _handleClick() {
+        // Publish the show request event instead of toggling state
+        EventBus.publish('controls:showRequest');
     }
+
+    // REMOVED: _updateButtonState method as it's no longer needed
 
     _isMobileDevice() {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);

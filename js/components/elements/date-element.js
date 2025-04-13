@@ -1,6 +1,6 @@
 import { BaseUIElement } from '../base/base-ui-element.js';
 import { StateManager } from '../../core/state-manager.js';
-import { EventBus } from '../../core/event-bus.js';
+import { EventBus } from '../../core/event-bus.js'; // Ensure EventBus is imported
 
 // --- Utility Functions ---
 /** Pads a number with leading zeros (e.g., 9 -> "09") */
@@ -136,11 +136,24 @@ export class DateElement extends BaseUIElement {
 
   // No interval needed for date, it updates when options change or potentially on a longer timer if needed
   addEventListeners() {
-    // No specific listeners needed for date element itself, relies on state updates
+    // Add click listener to show controls
+    this.boundHandleClick = this.handleClick.bind(this);
+    this.container.addEventListener('click', this.boundHandleClick);
   }
 
   removeEventListeners() {
-    // No specific listeners to remove
+    // Remove click listener
+    if (this.container && this.boundHandleClick) {
+        this.container.removeEventListener('click', this.boundHandleClick);
+    }
+  }
+
+  /**
+   * Handles clicks on the date element to show the control panel.
+   */
+  handleClick() {
+      console.log(`[DateElement ${this.id}] Clicked. Publishing controls:showRequest.`);
+      EventBus.publish('controls:showRequest');
   }
 
   destroy() {

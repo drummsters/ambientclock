@@ -1,7 +1,8 @@
 import { StateManager } from '../../core/state-manager.js';
 import { EventBus } from '../../core/event-bus.js';
 import { StyleHandler } from '../base/mixins/StyleHandler.js';
-import { ClockControlsUIBuilder } from './ui/ClockControlsUIBuilder.js'; // Import the new UI Builder
+import { ClockControlsUIBuilder } from './ui/ClockControlsUIBuilder.js';
+import { AVAILABLE_FONTS } from '../../utils/font-list.js'; // Import the consolidated font list
 
 /**
  * Manages the UI controls for a specific Clock element within the control panel.
@@ -52,6 +53,9 @@ export class ClockControls {
 
       // 4. Add event listeners for user interactions
       this.addEventListeners();
+
+      // Populate the font panel after elements are created - REMOVED (will be called by ControlPanel)
+      // this._populateFontPanel();
 
       console.log(`ClockControls for ${this.elementId} initialized successfully.`);
       return true;
@@ -120,7 +124,7 @@ export class ClockControls {
      if (this.elements.faceSelect) this.elements.faceSelect.value = optionsState.face || 'led';
      if (this.elements.formatSelect) this.elements.formatSelect.value = optionsState.timeFormat || '12';
      if (this.elements.secondsCheckbox) this.elements.secondsCheckbox.checked = optionsState.showSeconds ?? true;
-     if (this.elements.fontSelect) this.elements.fontSelect.value = optionsState.fontFamily || 'Segoe UI';
+     if (this.elements.currentFontDisplay) this.elements.currentFontDisplay.textContent = optionsState.fontFamily || 'Default'; // Update font display span
      if (this.elements.boldCheckbox) this.elements.boldCheckbox.checked = (optionsState.fontWeight === 'bold');
      if (this.elements.colorPicker) this.elements.colorPicker.value = optionsState.color || '#FFFFFF';
      if (this.elements.separatorCheckbox) this.elements.separatorCheckbox.checked = optionsState.showSeparator ?? false;
@@ -206,10 +210,11 @@ export class ClockControls {
     this.elements.faceSelect?.addEventListener('change', (e) => this.dispatchStateUpdate({ face: e.target.value }));
     this.elements.formatSelect?.addEventListener('change', (e) => this.dispatchStateUpdate({ timeFormat: e.target.value }));
     this.elements.secondsCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ showSeconds: e.target.checked }));
-    this.elements.fontSelect?.addEventListener('change', (e) => {
-      this.dispatchStateUpdate({ fontFamily: e.target.value });
-      this._updateFontCSSVariable(e.target.value);
-    });
+    // Removed fontSelect listener
+    // this.elements.fontSelect?.addEventListener('change', (e) => {
+    //   this.dispatchStateUpdate({ fontFamily: e.target.value });
+    //   this._updateFontCSSVariable(e.target.value);
+    // });
     this.elements.boldCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ fontWeight: e.target.checked ? 'bold' : 'normal' }));
     this.elements.colorPicker?.addEventListener('input', (e) => this.dispatchStateUpdate({ color: e.target.value }));
     this.elements.separatorCheckbox?.addEventListener('change', (e) => this.dispatchStateUpdate({ showSeparator: e.target.checked }));
@@ -272,6 +277,19 @@ export class ClockControls {
         e.preventDefault();
         this.dispatchElementStateUpdate({ position: { x: 50, y: 50 } });
     });
+
+    // Change Font Link Click (was Show Fonts)
+    this.elements.changeFontLink?.addEventListener('click', (e) => { // Use changeFontLink reference
+        e.preventDefault();
+        console.log(`[ClockControls ${this.elementId}] Change Font link clicked.`);
+        // Find the font panel and call its toggle method with the target element ID
+        const fontPanel = document.querySelector('font-panel');
+        if (fontPanel && typeof fontPanel.toggle === 'function') {
+            fontPanel.toggle(this.elementId); // Pass the element ID
+        } else {
+            console.error('FontPanel not found or toggle method missing.');
+        }
+    });
   }
 
   /**
@@ -310,12 +328,57 @@ export class ClockControls {
    * @param {string} fontFamily - The selected font family.
    */
   _updateFontCSSVariable(fontFamily) {
-    const clockFace = document.querySelector(`#${this.elementId} .clock-face`);
-    if (clockFace) {
-      clockFace.style.setProperty('--font-family-futuristic', fontFamily);
-      clockFace.style.setProperty('--font-family-technical', fontFamily);
+    // This method might still be useful if the font needs to be applied
+    // via CSS variables for specific clock faces (like LED).
+    // However, the primary font application should happen via state update
+    // and the element's own updateOptions/render logic.
+    // Let's keep it for now but ensure the element itself handles the main font style.
+    const clockElement = document.querySelector(`#${this.elementId}`);
+    if (clockElement) {
+        // Apply directly to the element for general cases
+        clockElement.style.fontFamily = fontFamily;
+
+        // Apply to specific sub-elements if needed (e.g., for LED face)
+        const clockFace = clockElement.querySelector('.clock-face');
+        if (clockFace) {
+            // Example: If LED face uses specific variables
+            clockFace.style.setProperty('--font-family-futuristic', fontFamily);
+            clockFace.style.setProperty('--font-family-technical', fontFamily);
+        }
+    } else {
+        console.warn(`[ClockControls ${this.elementId}] Element not found for applying font CSS variable.`);
     }
   }
+
+  /**
+   * Populates the font panel with the consolidated list of fonts.
+   * NOTE: This method is kept but should ideally only be called once externally (e.g., by ControlPanel).
+   */
+  _populateFontPanel() {
+      const fontPanel = document.querySelector('font-panel');
+      if (!fontPanel) {
+          console.warn(`[ClockControls ${this.elementId}] FontPanel element not found, cannot populate.`);
+          return;
+      }
+
+      // Check if already populated (using the panel's internal state)
+      if (fontPanel.fonts && fontPanel.fonts.length > 0) {
+          // console.log(`[ClockControls ${this.elementId}] FontPanel already populated, skipping.`);
+          return;
+      }
+
+      // Use the imported consolidated list (already sorted)
+      const fonts = AVAILABLE_FONTS;
+
+      // Call the populateFonts method on the font panel instance
+      if (typeof fontPanel.populateFonts === 'function') {
+          console.log(`[ClockControls ${this.elementId}] Populating FontPanel with ${fonts.length} fonts.`);
+          fontPanel.populateFonts(fonts);
+      } else {
+          console.error(`[ClockControls ${this.elementId}] FontPanel instance does not have a populateFonts method.`);
+      }
+  }
+
 
   /**
    * Cleans up resources used by the clock controls.

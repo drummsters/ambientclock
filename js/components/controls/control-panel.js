@@ -1,16 +1,18 @@
 import { BaseUIElement } from '../base/base-ui-element.js';
 import { StateManager } from '../../core/state-manager.js';
 import { EventBus } from '../../core/event-bus.js';
-import { VisibilityManager } from '../../utils/visibility-manager.js';
+// import { VisibilityManager } from '../../utils/visibility-manager.js'; // REMOVED
 import { BackgroundService } from '../../services/background-service.js';
 import * as logger from '../../utils/logger.js'; // Import the logger
 import { BackgroundControls } from './background-controls.js';
 import { ClockControls } from './clock-controls.js';
-import { DateControls } from './date-controls.js'; // Keep for potential direct use or type checking if needed elsewhere
+import { DateControls } from './date-controls.js';
 import { FavoritesControls } from './favorites-controls.js';
+import { FontPanel } from './font-panel.js'; // Import the new FontPanel
 import { ControlPanelUIBuilder } from './ui/ControlPanelUIBuilder.js';
 import { DynamicControlManager } from '../../managers/DynamicControlManager.js';
-import { SettingsIOService } from '../../services/settings-io-service.js'; // Import the new service
+import { SettingsIOService } from '../../services/settings-io-service.js';
+import { AVAILABLE_FONTS } from '../../utils/font-list.js'; // Corrected import path
 
 /**
  * Manages the main control panel UI.
@@ -46,15 +48,16 @@ export class ControlPanel extends BaseUIElement {
     this.configManager = configManager; // Store reference
     this.backgroundService = backgroundService; // Store reference
     this.favoritesService = favoritesService; // Store reference
-    // this.elementControls = new Map(); // Removed - Handled by DynamicControlManager
-    this.visibilityManager = null;
     this.dynamicControlManager = null;
-    this.settingsIOService = new SettingsIOService(); // Instantiate the service
-    this.CONTROLS_HIDE_DELAY = 3000;
+    this.fontPanel = null; // Add property for FontPanel instance
+    this.settingsIOService = new SettingsIOService();
     this.subscriptions = [];
+    // REMOVED: visibilityManager, CONTROLS_HIDE_DELAY, visibilityObserver, hover states, timers
+    this.boundHandleBackgroundClick = this.handleBackgroundClick.bind(this); // Keep background click handler
     logger.debug(`ControlPanel constructor called with ID: ${this.id}`);
     this.container = document.getElementById(this.id);
     this.uiBuilder = null;
+    this.isVisible = false; // Track visibility state internally
   }
 
   /**
@@ -70,26 +73,9 @@ export class ControlPanel extends BaseUIElement {
       return false; // Stop if base initialization failed or container missing
     }
 
-    // Removed finding the trigger element
-
-    // Instantiate VisibilityManager for the panel, passing StateManager and its own ID
-    // Note: ControlPanel manages its own visibility separately from the hint/donate elements
-    this.visibilityManager = new VisibilityManager(
-        StateManager, // Pass the global StateManager
-        [this.id],     // Manage only the panel's container element
-        {
-            mouseIdleHideDelay: this.CONTROLS_HIDE_DELAY, // Pass existing delay
-            showOnActivityWhenClosed: false // <<< Set to false for the panel
-        }
-    );
-    // The VisibilityManager's init method will handle listeners and initial state check
-    this.visibilityManager.init(); // Initialize the manager for the panel
-    logger.debug(`[ControlPanel ${this.id}] VisibilityManager initialized for the panel itself.`); // Keep as log
-
-    // Removed old initial show/hide logic, now handled by VisibilityManager.init()
+    // REMOVED: VisibilityManager instantiation and initial visibility logic
 
     // Instantiate and initialize DynamicControlManager AFTER UI is built
-    // Ensure placeholders are available from the builder result stored in createElements
     if (this.elements.clockSectionPlaceholder && this.elements.dateSectionPlaceholder) {
         this.dynamicControlManager = new DynamicControlManager(
             {
@@ -108,6 +94,22 @@ export class ControlPanel extends BaseUIElement {
 
 
     // Removed _initializeControlsForExistingElements(); - Handled by DynamicControlManager.init()
+
+    // Find and potentially initialize the FontPanel instance
+    this.fontPanel = document.querySelector('font-panel');
+    if (!this.fontPanel) {
+        logger.error(`[ControlPanel ${this.id}] FontPanel element not found in the DOM.`);
+    } else {
+        // TODO: Populate fonts later when available
+        logger.debug(`[ControlPanel ${this.id}] FontPanel instance found.`);
+    }
+    // REMOVED: _observeVisibilityChanges(); call
+
+    // Ensure panel starts hidden
+    if (this.container) {
+        this.container.style.display = 'none';
+        this.isVisible = false;
+    }
 
     return true; // Return true assuming the check itself doesn't fail critically
   }
@@ -155,6 +157,9 @@ export class ControlPanel extends BaseUIElement {
     // Now create and append the actual controls into the built structure
     await this._createStaticControls();
 
+    // Populate the font panel once after all controls are potentially initialized
+    this._populateFontPanelOnce();
+
     logger.debug(`ControlPanel (${this.id}): Child elements created.`); // Keep as log
   }
 
@@ -185,19 +190,45 @@ export class ControlPanel extends BaseUIElement {
     // Settings Section Reset Button is already created by the builder, reference stored in createElements
   }
 
-  // Removed _initializeControlsForExistingElements - Handled by DynamicControlManager
-  // Removed _initializeElementControls - Handled by DynamicControlManager
+    // Removed _initializeControlsForExistingElements - Handled by DynamicControlManager
+    // Removed _initializeElementControls - Handled by DynamicControlManager
+
+  /**
+   * Populates the font panel with the consolidated list, ensuring it only happens once.
+   * @private
+   */
+  _populateFontPanelOnce() {
+      const fontPanel = document.querySelector('font-panel');
+      if (!fontPanel) {
+          logger.warn(`[ControlPanel ${this.id}] FontPanel element not found, cannot populate.`);
+          return;
+      }
+
+      // Check if already populated (using the panel's internal state)
+      if (fontPanel.fonts && fontPanel.fonts.length > 0) {
+          // console.log(`[ControlPanel ${this.id}] FontPanel already populated, skipping.`);
+          return;
+      }
+
+      // Use the imported consolidated list (already sorted)
+      const fonts = AVAILABLE_FONTS;
+
+      if (typeof fontPanel.populateFonts === 'function') {
+          logger.log(`[ControlPanel ${this.id}] Populating FontPanel with ${fonts.length} fonts.`);
+          fontPanel.populateFonts(fonts);
+      } else {
+          logger.error(`[ControlPanel ${this.id}] FontPanel instance does not have a populateFonts method.`);
+      }
+  }
 
   /**
    * Binds the control panel to relevant state changes.
    * (No longer needed for visibility, keep for potential future state bindings)
    */
   bindToState() {
-    // No state bindings needed for visibility anymore
-    logger.debug(`[ControlPanel ${this.id}] Skipping state binding for visibility.`); // Changed to debug
+    // No state bindings needed for visibility
+    logger.debug(`[ControlPanel ${this.id}] No state binding needed for visibility.`);
   }
-
-  // updateVisibility method removed as VisibilityManager handles it now
 
   /**
    * Renders the control panel (potentially updating child controls).
@@ -220,13 +251,11 @@ export class ControlPanel extends BaseUIElement {
    * Adds event listeners for the control panel (e.g., toggle button).
    */
   addEventListeners() {
-    // Removed element:created and element:destroyed listeners - Handled by DynamicControlManager
+    // Listen for show requests (e.g., from hint click or element click)
+    const showRequestSub = EventBus.subscribe('controls:showRequest', this.show.bind(this));
+    this.subscriptions.push(showRequestSub);
 
-    // Listen for the toggle event from the hint element
-    const toggleSub = EventBus.subscribe('controls:toggle', this.toggleVisibility.bind(this));
-
-    // Store unsubscribe functions
-    this.subscriptions.push(toggleSub); // Only store the toggle subscription now
+    // REMOVED: controls:toggle and controls:toggleFontPanel subscriptions
 
     // Reset button listener
     this.elements.resetButton?.addEventListener('click', this.handleResetClick.bind(this));
@@ -240,8 +269,11 @@ export class ControlPanel extends BaseUIElement {
     // Hidden file input listener (handles the actual file selection)
     this.elements.fileInput?.addEventListener('change', this.handleFileImport.bind(this));
 
+    // Add listener to hide panel on background click using the stored bound reference
+    // Note: The logic inside handleBackgroundClick will be simplified
+    document.addEventListener('click', this.boundHandleBackgroundClick);
 
-    // Removed hover listener setup for the trigger element
+    // REMOVED: mousemove, mouseenter, mouseleave listeners
   }
 
   // Removed addElementControls - Handled by DynamicControlManager
@@ -254,9 +286,42 @@ export class ControlPanel extends BaseUIElement {
         // Publish an event that the StateManager can listen for
         EventBus.publish('state:reset');
         // Optionally, close the panel after reset?
-        // StateManager.update({ settings: { controls: { isOpen: false } } });
-    }
+    // StateManager.update({ settings: { controls: { isOpen: false } } }); // Don't update state
+      }
   }
+
+   /**
+    * Handles clicks outside the control panel, font panel, clock, and date elements to hide panels.
+    * This listener is attached to the document in addEventListeners.
+    * @param {Event} event - The click event.
+    */
+   handleBackgroundClick(event) {
+       // REMOVED: if (!this.isVisible) return;
+
+       const clickedControlPanel = this.container?.contains(event.target);
+       const clickedFontPanel = this.fontPanel?.contains(event.target);
+       const clickedClock = event.target.closest('.clock-element');
+       const clickedDate = event.target.closest('.date-element');
+       const clickedHint = event.target.closest('.controls-hint-element'); // Also ignore hint clicks
+
+       // If the click was outside all these elements, toggle the panels' visibility
+       if (!clickedControlPanel && !clickedFontPanel && !clickedClock && !clickedDate && !clickedHint) {
+           if (this.isVisible) {
+               logger.debug(`[ControlPanel ${this.id}] Background click detected outside relevant elements. Hiding panels.`);
+               this.hide();
+           } else {
+               // If hidden, a background click should show it (unless this behavior is unwanted)
+               // For now, let's assume background click toggles show/hide
+               logger.debug(`[ControlPanel ${this.id}] Background click detected outside relevant elements. Showing panels.`);
+               this.show();
+           }
+       } else {
+           // Click was inside relevant elements, do nothing (keep panels visible if they were)
+           logger.debug(`[ControlPanel ${this.id}] Click detected inside relevant elements. Panels visibility unchanged.`);
+       }
+   }
+
+  // REMOVED: _observeVisibilityChanges()
 
   /**
    * Handles the file selection event from the hidden input.
@@ -277,28 +342,42 @@ export class ControlPanel extends BaseUIElement {
     event.target.value = null;
   }
 
-  /**
-   * Toggles the visibility state of the control panel in the StateManager.
-   * The VisibilityManager instance will react to the state change.
-   */
-  toggleVisibility() {
-    logger.debug(`[ControlPanel ${this.id}] toggleVisibility called.`); // Changed to debug
-    const currentState = StateManager.getState().settings?.controls?.isOpen || false;
-    const newState = !currentState;
-    logger.debug(`[ControlPanel ${this.id}] Current state: ${currentState}, New state: ${newState}`); // Changed to debug
-    logger.debug(`[ControlPanel ${this.id}] Updating StateManager...`); // Changed to debug
-    StateManager.update({
-        settings: {
-            controls: {
-                isOpen: newState // Use newState variable
-            }
-        }
-    });
-    logger.debug(`[ControlPanel ${this.id}] StateManager update called.`); // Changed to debug
-    // No need to call visibilityManager.toggle() directly anymore.
+  // REMOVED: toggleVisibility() method entirely
+
+  // --- New Simple Show/Hide Methods ---
+
+  /** Shows the control panel by adding the .visible class */
+  show() {
+      if (this.isVisible || !this.container) return;
+      logger.debug(`[ControlPanel ${this.id}] Showing panel by adding .visible class.`);
+      this.container.classList.add('visible');
+      // We might not even need style.display if .visible handles it, but let's ensure it's not 'none'
+      if (this.container.style.display === 'none') {
+          this.container.style.display = 'flex'; // Ensure display is set if previously 'none'
+      }
+      this.isVisible = true;
+      // Note: Font panel visibility is handled separately by its own triggers now
   }
 
-  /** // Keep the comment block for the correct destroy
+  /** Hides the control panel and the font panel by removing the .visible class */
+  hide() {
+      if (!this.isVisible || !this.container) return;
+      logger.debug(`[ControlPanel ${this.id}] Hiding panel by removing .visible class.`);
+      this.container.classList.remove('visible');
+      // Optionally set display to none as well, though CSS might handle it via .visible removal
+      // this.container.style.display = 'none';
+      this.isVisible = false;
+
+      // Also hide the font panel when the main panel hides
+      if (this.fontPanel?.isVisible) {
+          logger.debug(`[ControlPanel ${this.id}] Hiding font panel as well.`);
+          this.fontPanel.hide();
+      }
+  }
+
+  // --- End New Simple Show/Hide Methods ---
+
+  /**
    * Cleans up the control panel.
    */
   destroy() {
@@ -320,10 +399,18 @@ export class ControlPanel extends BaseUIElement {
     // Destroy dynamically added element controls via the manager
     this.dynamicControlManager?.destroy();
 
-    // Clear visibility manager timer
-    this.visibilityManager?.clearHideTimer(); // Keep this for the panel's own visibility
+    // Destroy FontPanel (if it has a destroy method) - FontPanel is HTMLElement, no destroy needed unless added
+    // if (this.fontPanel && typeof this.fontPanel.destroy === 'function') {
+    //     this.fontPanel.destroy();
+    // }
+
+    // REMOVED: visibilityManager cleanup
+    // REMOVED: visibilityObserver disconnect
 
     // Call base destroy to handle subscriptions etc.
     super.destroy();
+
+    // Remove background click listener using the stored bound reference
+    document.removeEventListener('click', this.boundHandleBackgroundClick);
   }
 }

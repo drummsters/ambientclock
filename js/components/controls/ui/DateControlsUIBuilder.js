@@ -1,4 +1,5 @@
 import { StyleHandler } from '../../base/mixins/StyleHandler.js';
+import { EventBus } from '../../../core/event-bus.js'; // Import EventBus
 
 /**
  * Creates the DOM elements for the DateControls component.
@@ -84,61 +85,35 @@ export class DateControlsUIBuilder {
     /** Creates controls for Font Family and Bold */
     _createFontControls() {
         const controls = [];
-        // Font Family
-        const fontGroup = this._createControlGroup('Date Font:');
-        this.elements.fontSelect = document.createElement('select');
-        this.elements.fontSelect.id = `${this.elementId}-font-select`;
-        // Group fonts by category
-        [
-            {
-                label: 'Serif Fonts (Classic and Elegant)',
-                fonts: ['Abril Fatface', 'Corben', 'Garamond', 'Georgia', 'Libre Baskerville', 'Lora', 'Merriweather', 'Noto Serif', 'Playfair Display', 'Roboto Slab', 'Rye', 'Serif', 'Times New Roman', 'Zilla Slab Highlight']
-            },
-            {
-                label: 'Sans-serif Fonts (Modern and Clean)',
-                fonts: ['Anton', 'Apple System', 'Arial', 'Bebas Neue', 'Darker Grotesque', 'Exo', 'Helvetica', 'Impact', 'Michroma', 'Montserrat', 'Nunito', 'Open Sans', 'Oswald', 'Prosto One', 'Quicksand', 'Rajdhani', 'Raleway', 'Roboto', 'Sans-serif', 'Segoe UI', 'System UI', 'Syncopate', 'Tahoma', 'Verdana', 'Wallpoet']
-            },
-            {
-                label: 'Script/Handwriting Fonts (Personal and Artistic)',
-                fonts: ['Caveat', 'Comic Sans MS', 'Cursive', 'Damion', 'Dancing Script', 'Indie Flower', 'Pacifico', 'Permanent Marker', 'Satisfy', 'Schoolbell', 'Shadows Into Light']
-            },
-            {
-                label: 'Display/Decorative Fonts (Bold and Eye-catching)',
-                fonts: ['Bangers', 'Black Ops One', 'Cabin Sketch', 'Fredericka the Great', 'Fugaz One', 'Lilita One', 'Limelight', 'Lobster', 'Press Start 2P', 'Sixtyfour', 'Special Elite', 'VT323']
-            },
-            {
-                label: 'Monospace Fonts (Technical and Uniform)',
-                fonts: ['Consolas', 'Courier New', 'Lucida Console', 'Monaco', 'Monospace', 'Share Tech Mono']
-            },
-            {
-                label: 'Generic Font Families (Versatile and Standard)',
-                fonts: ['Fantasy']
-            }
-        ].forEach(group => {
-            // Add group header
-            const groupHeader = document.createElement('optgroup');
-            groupHeader.label = group.label;
-            this.elements.fontSelect.appendChild(groupHeader);
-            
-            // Add sorted fonts in this group
-            group.fonts.sort().forEach(font => {
-                const option = document.createElement('option');
-                option.value = font;
-                option.textContent = font;
-                groupHeader.appendChild(option);
-            });
-        });
-        fontGroup.appendChild(this.elements.fontSelect);
-        controls.push(fontGroup);
+        // --- Row for Font Display and Change Link ---
+        const fontDisplayRow = this._createControlGroup('Date Font:'); // Use control group for label
+        fontDisplayRow.classList.add('font-display-row'); // Add class for specific styling
 
-        // Bold
+        // Span to display the current font name
+        this.elements.currentFontDisplay = document.createElement('span');
+        this.elements.currentFontDisplay.className = 'current-font-display';
+        this.elements.currentFontDisplay.textContent = 'Default'; // Placeholder
+        // Add label, font display span, and change link to the same group
+        fontDisplayRow.querySelector('label').textContent = 'Date Font:';
+        fontDisplayRow.appendChild(this.elements.currentFontDisplay);
+
+        // "Change Font" Link
+        this.elements.changeFontLink = document.createElement('a');
+        this.elements.changeFontLink.textContent = 'Change Font';
+        this.elements.changeFontLink.href = '#';
+        this.elements.changeFontLink.className = 'control-link change-font-link'; // Ensure class is set
+        fontDisplayRow.appendChild(this.elements.changeFontLink); // Append to the same row
+
+        controls.push(fontDisplayRow); // Add the combined row
+
+        // --- Row for Bold Checkbox ---
         const boldGroup = this._createControlGroup('Bold:');
         this.elements.boldCheckbox = document.createElement('input');
         this.elements.boldCheckbox.type = 'checkbox';
         this.elements.boldCheckbox.id = `${this.elementId}-bold-checkbox`;
         boldGroup.appendChild(this.elements.boldCheckbox);
         boldGroup.querySelector('label').htmlFor = this.elements.boldCheckbox.id;
-        controls.push(boldGroup);
+        controls.push(boldGroup); // Add bold group separately
 
         return controls;
     }

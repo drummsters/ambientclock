@@ -111,6 +111,18 @@ export class BaseUIElement {
   /**
    * Creates the main container DOM element for this UI element.
    * Subclasses can override this to provide a different container structure.
+   *
+   * TODO: Refactor BaseUIElement to better align with standard Web Component practices.
+   * Currently, createContainer always creates a new div. This conflicts with custom elements
+   * defined directly in HTML (e.g., `<my-element>`), where the class should enhance the
+   * existing element. For HTML-defined elements, subclasses *must* override createContainer
+   * to find and return the existing element (like ControlPanel does). Consider modifying
+   * the base constructor or init logic to detect if the element already exists in the DOM
+   * based on its ID and use that instead of creating a new one, or provide separate base
+   * classes for dynamically created vs. HTML-defined elements.
+   * (See FontPanel component for an example where inheriting from HTMLElement directly
+   * was necessary to avoid constructor errors).
+   *
    * @returns {HTMLElement} The created container element.
    */
   createContainer() {

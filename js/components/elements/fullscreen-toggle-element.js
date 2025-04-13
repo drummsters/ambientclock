@@ -45,6 +45,14 @@ export class FullscreenToggleElement extends BaseUIElement {
         return true; // Signal successful initialization
     }
 
+    /**
+     * @override
+     * Satisfies BaseUIElement requirement. Content is set in init.
+     */
+    async createElements() {
+        // No dynamic elements needed
+    }
+
     _handleClick() {
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().catch(err => {

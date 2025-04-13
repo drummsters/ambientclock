@@ -1,0 +1,177 @@
+/* Font Panel Styles - Match Control Panel */
+#font-panel-main { /* Target the ID */
+  position: fixed; /* Changed from absolute for JS positioning */
+  /* top: 0;  Removed - Set by JS */
+  /* left: 100%; Removed - Set by JS */
+  width: calc(var(--control-panel-width, 500px) * 0.90); /* Changed min-width to width */
+  max-height: calc(var(--control-panel-height, 800px) * 1); /* 80% of control panel height (adjust default if needed) */
+  background-color: var(--control-bg-color); /* Use variable */
+  backdrop-filter: blur(10px); /* Match blur */
+  -webkit-backdrop-filter: blur(10px); /* Match blur */
+  color: var(--control-text-color); /* Use variable */
+  border: 1px solid var(--control-section-border); /* Use variable */
+  border-radius: var(--control-border-radius); /* Use variable */
+  padding: var(--control-padding); /* Restore original padding */
+  box-shadow: var(--control-panel-shadow); /* Use variable */
+  z-index: calc(var(--z-index-controls) - 1); /* Slightly below main panel if needed, or same */
+  /* overflow-y: auto; Removed from main panel, handled by scroll container */
+  display: none; /* Hidden by default */
+  /* Make panel a flex container */
+  display: flex;
+  flex-direction: column;
+  font-size: 14px; /* Match base font size */
+  /* Add transition to match control panel */
+  transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out; /* Match visibility transition */
+}
+
+/* Ensure title styles from controls-panel.css apply (no longer sticky) */
+#font-panel-main .section-title {
+    /* Remove sticky positioning and related styles */
+    /* position: sticky; */
+    /* top: 0; */
+    /* z-index: 1; */
+    /* background-color: var(--control-bg-color); */
+    /* padding-top: var(--control-padding); */
+    /* margin-top: calc(-1 * var(--control-padding)); */
+
+    /* Inherited/Existing styles */
+    margin-bottom: 10px; /* Keep margin below title */
+    display: inline-block; /* Ensure correct underline width */
+    flex-shrink: 0; /* Prevent title from shrinking */
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--control-text-color);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding-bottom: 8px;
+    position: relative; /* Keep relative for ::after */
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    /* Ensure no width/margin adjustments */
+    /* width: calc(100% + 2 * var(--control-padding)); */
+    /* margin-left: calc(-1 * var(--control-padding)); */
+    /* margin-right: calc(-1 * var(--control-padding)); */
+    /* padding-left: var(--control-padding); */
+    /* padding-right: var(--control-padding); */
+    /* box-sizing: border-box; */
+}
+#font-panel-main .section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; /* Restore original bottom position */
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--button-color); /* Use general button color */
+    border-radius: 1.5px;
+}
+
+/* Style the new scroll container */
+.font-panel-scroll-container {
+  overflow-y: auto; /* Changed back to auto */
+  max-height: calc(var(--control-panel-height, 800px) * .85); /* Make container fill available vertical space in flex parent */
+  /* Add some padding below the content inside the scroll area */
+  padding-bottom: 10px;
+  /* margin-bottom: 10px; Removed, parent padding handles spacing */
+}
+
+/* Styles for the content grid inside the scroll container */
+.font-panel-content {
+  display: grid;
+  grid-template-columns: 2fr 3fr; /* Name column (1/4), Example column (3/4) */
+  gap: 16px; /* Increased gap for more space */
+  align-items: center;
+}
+
+.font-panel-content div {
+  padding: 4px 0; /* Slightly reduce padding */
+}
+
+/* Match label styling */
+.font-panel-content .font-name {
+  font-weight: 600; /* Match label weight */
+  white-space: nowrap;
+  text-align: right; /* Align like labels */
+  padding-right: 5px; /* Add some padding */
+  color: rgba(255, 255, 255, 0.85); /* Match label color */
+  font-size: 1em; /* Match label font size */
+}
+
+.font-panel-content .font-example {
+  font-size: calc(14px * 1.5); /* Reduced size multiplier */
+  /* Removed white-space, overflow, text-overflow to prevent truncation */
+  /* Ensure text color matches main panel text */
+  color: var(--control-text-color);
+}
+
+/* New styles for clickable font items */
+.font-item {
+  /* display: contents; Removed */
+  grid-column: 1 / -1; /* Make the item span both columns */
+  display: grid; /* Make the item itself a grid to contain name and example */
+  grid-template-columns: subgrid; /* Inherit column tracks from parent */
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-radius: 4px; /* Add slight rounding */
+  padding: 0 8px; /* Add horizontal padding to the item itself */
+  /* margin: 0 -8px; Removed negative margin */
+}
+
+/* Apply hover effect directly to the font-item row */
+.font-item:hover {
+  background-color: rgba(255, 255, 255, 0.08); /* Very subtle highlight */
+}
+
+/* Adjust padding for name/example within the item */
+.font-item .font-name,
+.font-item .font-example {
+    padding: 6px 0; /* Adjust vertical padding, horizontal padding is on .font-item */
+    /* border-radius: 3px; Removed */
+    background-color: transparent !important; /* Ensure no background on children */
+}
+.font-item .font-name {
+    padding-right: 10px; /* Keep right padding for alignment */
+    grid-column: 1; /* Explicitly place in first column */
+}
+.font-item .font-example {
+     grid-column: 2; /* Explicitly place in second column */
+}
+
+
+/* Style for the currently selected font item */
+.font-item.selected {
+  background-color: rgba(255, 255, 255, 0.15); /* Subtle selection background */
+}
+/* Ensure text within selected item is clearly visible */
+.font-item.selected .font-name,
+.font-item.selected .font-example {
+  color: #fff; /* Brighter text color for selected */
+  font-weight: bold; /* Make selected font bold */
+}
+
+
+/* Scrollbar styling for the font panel's scroll container - match controls panel */
+.font-panel-scroll-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px; /* Style horizontal scrollbar height too */
+}
+
+.font-panel-scroll-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+.font-panel-scroll-container::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    border: 2px solid transparent; /* Add padding around thumb */
+    background-clip: content-box;
+}
+
+.font-panel-scroll-container::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Style scrollbar corner if both scrollbars are visible */
+.font-panel-scroll-container::-webkit-scrollbar-corner {
+  background: rgba(0, 0, 0, 0.1);
+}

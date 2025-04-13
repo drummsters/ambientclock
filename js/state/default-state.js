@@ -70,7 +70,7 @@ export function getDefaultState() {
                 id: 'controls-hint-default',
                 // No position, scale, opacity, or effectStyle needed for this element
                 options: {
-                    text: "Press 'Space' or 'c' to toggle controls"
+                    text: "Tap background for controls"
                 }
             },
             'background-info-default': {

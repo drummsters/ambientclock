@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="description" content="Clock Page: A customizable browser clock featuring dynamic backgrounds, date display, and personalization options. Choose your style and save favorite images.">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes"> <!-- For older iOS -->
+    <meta name="mobile-web-app-capable" content="yes"> <!-- Standard -->
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Ambient Clock - New Architecture</title>
     <!-- Google Fonts Import -->
@@ -13,6 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Anton&family=Bangers&family=Bebas+Neue&family=Black+Ops+One&family=Cabin+Sketch:wght@700&family=Caveat&family=Corben&family=Damion&family=Dancing+Script&family=Darker+Grotesque&family=Exo:wght@400;700&family=Fredericka+the+Great&family=Fugaz+One&family=Indie+Flower&family=Libre+Baskerville&family=Lilita+One&family=Limelight&family=Lobster&family=Lora&family=Merriweather&family=Michroma&family=Montserrat&family=Noto+Serif&family=Nunito&family=Open+Sans:wght@400;700&family=Oswald&family=Pacifico&family=Permanent+Marker&family=Playfair+Display&family=Press+Start+2P&family=Prosto+One&family=Quicksand&family=Raleway&family=Roboto+Slab&family=Roboto:wght@400;700&family=Rye&family=Satisfy&family=Schoolbell&family=Shadows+Into+Light&family=Share+Tech+Mono&family=Sixtyfour&family=Special+Elite&family=Wallpoet&family=Zilla+Slab+Highlight&display=swap" rel="stylesheet">
     <!-- Local Stylesheet -->
     <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components/font-panel.css"> <!-- Added Font Panel CSS -->
 </head>
 <body>
     <!-- Background Layers (for cross-fade) -->
@@ -26,6 +28,15 @@
 
     <!-- Controls panel -->
     <div id="controls-panel"></div>
+    <!-- Font Panel -->
+    <font-panel id="font-panel-main" class="font-panel">
+        <h4 class="section-title">Select Font</h4>
+        <div class="font-panel-scroll-container"> <!-- Added scroll container -->
+            <div class="font-panel-content">
+                <!-- Font examples will be populated here -->
+            </div>
+        </div>
+    </font-panel>
 
     <!-- Entry point -->
     <script type="module" src="js/app.js"></script>
