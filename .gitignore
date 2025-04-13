@@ -15,3 +15,5 @@ node_modules/
 .env.local
 *.log
 .vercel
+.env.development.local
+
