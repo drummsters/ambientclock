@@ -6,10 +6,11 @@ Transform your screen into a beautiful, dynamic timepiece with Ambient Clock! Mo
 
 *   **Modern Architecture:** Refactored using ES Modules, component-based structure, centralized state management (`StateManager`), and event bus (`EventBus`).
 *   **Multiple Clock Faces:**
-    *   Clean 
+    *   Clean
     *   Analog (Rendered with SVG for crisp scaling)
 *   **Customizable Backgrounds:**
     *   Image providers: Unsplash, Pexels, Pixabay, Peapix (via backend proxy - no client API keys needed!)
+    *   Persistent `localStorage` caching of image batches to reduce API calls across sessions.
     *   Solid Color overlay option with color picker.
     *   Automatic background cycling with configurable interval.
     *   Background zoom effect to prevent screen burn-in.
@@ -35,12 +36,13 @@ Transform your screen into a beautiful, dynamic timepiece with Ambient Clock! Mo
     *   UI Builder pattern used for complex controls, separating concerns.
     *   Live preview for color picker.
     *   Clickable hint message for easy access.
+    *   GitHub repository link in the app title.
 *   **Keyboard Shortcuts:**
-    *   Space/C: Show/hide controls panel
-    *   Ctrl + Arrow keys: Nudge selected element in small increments (double click to select element first)
+    *   `Double Click`: Select element for nudging
+    *   `Ctrl + Arrow keys`: Nudge selected element by 0.1%
 *   **Settings Persistence:** User customizations are saved using `localStorage`.
 *   **Backend Proxy for APIs:** Simplifies setup by handling API keys server-side (using Vercel Serverless Functions defined in `/api`).
-*   **Settings Import/Export:** Download your current settings (including element configurations and favorites) to a JSON file, and upload it later to restore your preferences.
+*   **Settings Import/Export:** Download your current settings (including element configurations and favorites) to a JSON file (named `ambient_clock_settings_YYYYMMDD.json`), and upload it later to restore your preferences.
 
 ## Live Demo
 
@@ -112,7 +114,6 @@ The application follows a modular, component-based architecture:
 ├── package-lock.json
 ├── README.md               # This file
 ├── vitest.config.js        # Vitest configuration
-├── eslint.config.mjs       # JS linting config
 └── vercel.json             # Vercel deployment/proxy configuration
 ```
 
