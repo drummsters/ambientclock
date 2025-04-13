@@ -106,12 +106,14 @@ export class BackgroundControls {
    */
   updateUIFromState(state = {}) {
     console.log('[BackgroundControls] Updating UI from state:', state);
-    const currentType = state.type || 'color'; // Default to color
-    const currentSource = state.source || 'unsplash'; // Default source
+    // Get defaults directly from StateManager if needed
+    const defaultBgState = StateManager.defaultState?.settings?.background || {};
+    const currentType = state.type || defaultBgState.type || 'image'; // Ensure type default
+    const currentSource = state.provider || state.source || defaultBgState.provider || 'peapix'; // Use default provider
 
     this._updateTypeControls(currentType);
     this._updateSourceControls(currentSource);
-    this._updatePeapixControls(state, currentType, currentSource);
+    this._updatePeapixControls(state, currentType, currentSource); // Passes state which includes peapixCountry
     this._updateCategoryControls(state, currentType, currentSource);
     this._updateCommonControls(state);
     this._updateCycleControls(state); // Added call
@@ -145,7 +147,9 @@ export class BackgroundControls {
       this.elements.peapixCountryGroup.style.display = showPeapixControls ? 'flex' : 'none';
     }
     if (this.elements.peapixCountrySelect && showPeapixControls) {
-      this.elements.peapixCountrySelect.value = state.peapixCountry || 'us'; // Default 'us'
+      // Use default from StateManager if state is missing the property
+      const defaultBgState = StateManager.defaultState?.settings?.background || {};
+      this.elements.peapixCountrySelect.value = state.peapixCountry || defaultBgState.peapixCountry || 'us';
     }
   }
 
