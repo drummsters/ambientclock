@@ -276,7 +276,7 @@ export class ImageBackgroundHandler {
    */
   async _fetchImageBatch() {
     // --- Vercel DB Logic ---
-    const useDb = import.meta.env.VITE_USE_IMAGE_DB === 'true';
+    const useDb = import.meta.env.USE_IMAGE_DB === 'true';
     const currentProviderNameForDb = this.config.source || 'unsplash'; // Provider name needed for DB query/fallback
 
     if (useDb && Math.random() < 0.9) {

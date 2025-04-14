@@ -10,10 +10,10 @@ import * as logger from '../utils/logger.js'; // Import the logger
 export class ConfigManager {
   constructor() {
     // Add debug log for environment variables
-    logger.debug('[ConfigManager] Raw env check:', { // Changed to debug
-      importMetaEnv: typeof import.meta !== 'undefined' ? 'exists' : 'undefined',
-      vitePaypal: typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_DONATE_PAYPAL : 'not found'
-    });
+        logger.debug('[ConfigManager] Raw env check:', { // Changed to debug
+          importMetaEnv: typeof import.meta !== 'undefined' ? 'exists' : 'undefined',
+          vitePaypal: typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.DONATE_PAYPAL : 'not found'
+        });
 
     this.config = {
       deployment: {
@@ -49,10 +49,10 @@ export class ConfigManager {
     // Check existence before accessing to avoid warnings in non-Vite environments
     if (typeof import.meta !== 'undefined' && import.meta.env) {
         // Read variables if they exist, otherwise keep the default null/empty value
-        this.config.donationLinks.paypal = import.meta.env.VITE_DONATE_PAYPAL || 'drummster'; // Keep fallback for testing
-        this.config.donationLinks.venmo = import.meta.env.VITE_DONATE_VENMO || this.config.donationLinks.venmo;
-        this.config.donationLinks.cashapp = import.meta.env.VITE_DONATE_CASHAPP || this.config.donationLinks.cashapp;
-        this.config.donationLinks.googlepay = import.meta.env.VITE_DONATE_GOOGLEPAY || this.config.donationLinks.googlepay;
+        this.config.donationLinks.paypal = import.meta.env.DONATE_PAYPAL || 'drummster'; // Keep fallback for testing
+        this.config.donationLinks.venmo = import.meta.env.DONATE_VENMO || this.config.donationLinks.venmo;
+        this.config.donationLinks.cashapp = import.meta.env.DONATE_CASHAPP || this.config.donationLinks.cashapp;
+        this.config.donationLinks.googlepay = import.meta.env.DONATE_GOOGLEPAY || this.config.donationLinks.googlepay;
         logger.debug('[ConfigManager] Donation links after attempting env var read:', JSON.stringify(this.config.donationLinks)); // Changed to debug
     } else {
         // Log that env vars weren't found (optional, less noisy than the warning)

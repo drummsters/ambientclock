@@ -41,7 +41,7 @@ export async function registerElementTypes() { // Make async for dynamic import
     });
 
     // Conditionally register Donate element (Vercel Only)
-    if (import.meta.env.VITE_INCLUDE_DONATE === 'true') {
+    if (import.meta.env.INCLUDE_DONATE === 'true') {
         try {
             const { DonateElement } = await import('../components/elements/donate-element.js');
             ComponentRegistry.registerElementType('donate', DonateElement, {
@@ -53,7 +53,7 @@ export async function registerElementTypes() { // Make async for dynamic import
             logger.error('Failed to dynamically import or register DonateElement:', error);
         }
     } else {
-        logger.debug('Skipping Donate element registration (VITE_INCLUDE_DONATE is not true).');
+        logger.debug('Skipping Donate element registration (INCLUDE_DONATE is not true).');
     }
 
 

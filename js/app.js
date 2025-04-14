@@ -102,7 +102,7 @@ async function initApp() {
 
     // Define elements for alwaysShow manager based on environment
     let alwaysShowElements = ['controls-hint-default', 'next-background-button-default', 'favorite-toggle-default', 'app-title'];
-    if (import.meta.env.VITE_INCLUDE_DONATE === 'true') {
+    if (import.meta.env.INCLUDE_DONATE === 'true') {
         alwaysShowElements.push('donate-default');
         logger.debug('[app.js] Including donate-default in alwaysShowVisibilityManager.');
     }
