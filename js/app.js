@@ -49,7 +49,7 @@ async function initApp() {
     // and update the StateManager for the current session.
 
     // 3. Register Element Types
-    registerElementTypes(); // Use imported function
+    await registerElementTypes(); // Use imported function (now async)
 
     // 4. Initialize Device Service (Optional, for responsive/touch features)
     // const deviceService = new DeviceService();
@@ -99,12 +99,18 @@ async function initApp() {
 
     // 8. Initialize Visibility Managers
     logger.debug('[app.js] Initializing VisibilityManagers...');
+
+    // Define elements for alwaysShow manager based on environment
+    let alwaysShowElements = ['controls-hint-default', 'next-background-button-default', 'favorite-toggle-default', 'app-title'];
+    if (import.meta.env.VITE_INCLUDE_DONATE === 'true') {
+        alwaysShowElements.push('donate-default');
+        logger.debug('[app.js] Including donate-default in alwaysShowVisibilityManager.');
+    }
     
     // Visibility manager for elements that should show on mouse movement
     const alwaysShowVisibilityManager = new VisibilityManager(
         StateManager,
-        // Added favorite-toggle-default here
-        ['controls-hint-default', 'donate-default', 'next-background-button-default', 'favorite-toggle-default', 'app-title'], // Added app-title
+        alwaysShowElements, // Use dynamically defined array
         {
             showOnActivityWhenClosed: true // Show on activity even if controls are closed
         }

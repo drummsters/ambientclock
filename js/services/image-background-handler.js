@@ -275,6 +275,40 @@ export class ImageBackgroundHandler {
    * @private
    */
   async _fetchImageBatch() {
+    // --- Vercel DB Logic ---
+    const useDb = import.meta.env.VITE_USE_IMAGE_DB === 'true';
+    const currentProviderNameForDb = this.config.source || 'unsplash'; // Provider name needed for DB query/fallback
+
+    if (useDb && Math.random() < 0.9) {
+        // 90% chance: Try fetching from DB API
+        logger.debug(`[ImageBackgroundHandler] Attempting fetch from DB API for provider: ${currentProviderNameForDb}`);
+        try {
+            const apiUrl = `/api/images?provider=${encodeURIComponent(currentProviderNameForDb)}&count=${BATCH_SIZE}`;
+            const response = await fetch(apiUrl);
+            if (!response.ok) {
+                throw new Error(`DB API request failed with status ${response.status}`);
+            }
+            const data = await response.json();
+            if (data.urls && data.urls.length > 0) {
+                this.imageCache = data.urls;
+                this.currentBatchQuery = determineImageQueryKey(this.config); // Keep track of query for consistency
+                this.currentBatchCountry = (currentProviderNameForDb === 'peapix') ? this.currentBatchQuery : null;
+                this._saveCacheToStorage(); // Save DB results to local cache too
+                logger.debug(`[ImageBackgroundHandler] Successfully fetched ${this.imageCache.length} images from DB API for ${currentProviderNameForDb}.`);
+                // No need to set isFetchingBatch = false here, as we are returning early
+                return; // Successfully fetched from DB, skip provider fetch
+            } else {
+                logger.warn(`[ImageBackgroundHandler] DB API returned no URLs for ${currentProviderNameForDb}. Falling back to provider API.`);
+                // Fall through to provider fetch logic below
+            }
+        } catch (error) {
+            logger.error('[ImageBackgroundHandler] Error fetching from DB API. Falling back to provider API.', error);
+            // Fall through to provider fetch logic below
+        }
+    }
+    // --- End Vercel DB Logic ---
+
+    // --- Original Provider Fetch Logic (or fallback from DB) ---
     if (this.isFetchingBatch) {
         logger.debug('[ImageBackgroundHandler] _fetchImageBatch called while already fetching.');
         return; // Prevent concurrent fetches
@@ -390,6 +424,42 @@ export class ImageBackgroundHandler {
             }
 
             logger.debug(`[ImageBackgroundHandler] Batch fetch successful from ${providerName}. Added ${this.imageCache.length} images to cache and storage.`);
+
+            // --- Vercel DB Logic: Add fetched URLs to DB (async, non-blocking) ---
+            if (useDb) {
+                const urlsToAddToDb = this.imageCache.map(img => ({
+                    provider: providerName, // Use the provider we actually fetched from
+                    url: img.url,
+                    metadata: { // Include relevant metadata
+                        author: img.author,
+                        authorUrl: img.authorUrl,
+                        description: img.description,
+                        sourceUrl: img.sourceUrl, // Link back to original image page if available
+                        // Add other relevant fields from imageData if needed
+                    }
+                }));
+                if (urlsToAddToDb.length > 0) {
+                    logger.debug(`[ImageBackgroundHandler] Asynchronously adding ${urlsToAddToDb.length} fetched URLs to DB via POST /api/images`);
+                    fetch('/api/images', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ urls: urlsToAddToDb }),
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            logger.debug(`[ImageBackgroundHandler] DB Add Result: Added ${result.added}, Skipped ${result.skipped}`);
+                        } else {
+                            logger.warn('[ImageBackgroundHandler] Failed to add URLs to DB via API:', result.error || 'Unknown error');
+                        }
+                    })
+                    .catch(apiError => {
+                        logger.error('[ImageBackgroundHandler] Error calling POST /api/images:', apiError);
+                    });
+                }
+            }
+            // --- End Vercel DB Logic ---
+
             this.isFetchingBatch = false;
             return; // Success, exit loop
 

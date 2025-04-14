@@ -3,7 +3,7 @@ import { ClockElement } from '../components/elements/clock-element.js';
 import { DateElement } from '../components/elements/date-element.js';
 import { ControlsHintElement } from '../components/elements/controls-hint-element.js';
 import { BackgroundInfoElement } from '../components/elements/background-info-element.js';
-import { DonateElement } from '../components/elements/donate-element.js';
+// DonateElement is imported conditionally below
 import { FavoriteToggleElement } from '../components/elements/favorite-toggle-element.js';
 import { NextBackgroundButtonElement } from '../components/elements/next-background-button.js';
 import { FullscreenToggleElement } from '../components/elements/fullscreen-toggle-element.js';
@@ -13,7 +13,7 @@ import * as logger from '../utils/logger.js'; // Import the logger
 /**
  * Registers all known UI element types with the ComponentRegistry.
  */
-export function registerElementTypes() {
+export async function registerElementTypes() { // Make async for dynamic import
     logger.debug('Registering element types...'); // Changed to debug
 
     // Register Clock element
@@ -40,11 +40,22 @@ export function registerElementTypes() {
         capabilities: []
     });
 
-    // Register Donate element
-    ComponentRegistry.registerElementType('donate', DonateElement, {
-        controlPanelConfig: [],
-        capabilities: []
-    });
+    // Conditionally register Donate element (Vercel Only)
+    if (import.meta.env.VITE_INCLUDE_DONATE === 'true') {
+        try {
+            const { DonateElement } = await import('../components/elements/donate-element.js');
+            ComponentRegistry.registerElementType('donate', DonateElement, {
+                controlPanelConfig: [],
+                capabilities: []
+            });
+            logger.debug('Donate element type registered.');
+        } catch (error) {
+            logger.error('Failed to dynamically import or register DonateElement:', error);
+        }
+    } else {
+        logger.debug('Skipping Donate element registration (VITE_INCLUDE_DONATE is not true).');
+    }
+
 
     // Register Favorite Toggle element
     ComponentRegistry.registerElementType('FavoriteToggleElement', FavoriteToggleElement, {
