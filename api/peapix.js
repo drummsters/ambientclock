@@ -2,6 +2,7 @@
 // Serverless function to fetch the latest Bing image from Peapix API.
 
 import fetch from 'node-fetch'; // Use node-fetch for making HTTP requests in Node.js environment
+import axios from 'axios'; // Import axios for internal POST request
 
 export default async function handler(request, response) {
   const peapixUrl = 'https://peapix.com/bing/feed'; // Base URL for the Peapix Bing feed
@@ -67,7 +68,32 @@ export default async function handler(request, response) {
       response.setHeader('Access-Control-Allow-Methods', 'GET');
       response.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate'); // Cache for 1 hour
 
-      return response.status(200).json(results); // Return the array of results
+      // --- Start: Add URLs to DB ---
+      const urlsToDb = results.map(item => ({
+        provider: 'peapix',
+        url: item.url,
+        metadata: {
+          title: item.authorName, // Peapix uses 'title'
+          source_url: item.authorUrl, // Link back to the Peapix page
+          // Add other available fields if needed
+        }
+      }));
+
+      // Make internal POST request to our own /api/images endpoint
+      const internalApiUrl = `${request.headers['x-forwarded-proto'] || 'http'}://${request.headers.host}/api/images`;
+      console.log(`[API/Peapix] Posting ${urlsToDb.length} URLs to internal endpoint: ${internalApiUrl}`);
+
+      // Fire-and-forget the POST request
+      axios.post(internalApiUrl, { urls: urlsToDb })
+        .then(dbResponse => {
+          console.log(`[API/Peapix -> DB] Success: Added ${dbResponse.data.added}, Skipped ${dbResponse.data.skipped}`);
+        })
+        .catch(dbError => {
+          console.error('[API/Peapix -> DB] Error posting to /api/images:', dbError.response?.data || dbError.message);
+        });
+      // --- End: Add URLs to DB ---
+
+      return response.status(200).json(results); // Return the original mapped results array
     } else {
       console.error('[Peapix API] Received empty array or invalid data:', data);
       return response.status(500).json({ error: 'Received empty array or invalid data from Peapix API' });

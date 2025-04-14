@@ -45,6 +45,45 @@ export default async (req, res) => {
 
     console.log('[API/Pexels] Successfully fetched data from Pexels.');
     // Return the data received from Pexels (usually nested under 'photos')
+    console.log('[API/Pexels] Successfully fetched data from Pexels.');
+
+    // --- Start: Add URLs to DB ---
+    if (response.data && Array.isArray(response.data.photos) && response.data.photos.length > 0) {
+      const urlsToDb = response.data.photos.map(photo => ({
+        provider: 'pexels',
+        url: photo.src.original, // Assuming 'original' is the desired URL
+        metadata: {
+          photographer: photo.photographer,
+          photographer_url: photo.photographer_url,
+          avg_color: photo.avg_color,
+          alt: photo.alt,
+          source_url: photo.url, // Link back to the Pexels page for the image
+          width: photo.width,
+          height: photo.height,
+          // Include different sizes if needed, e.g., photo.src.large2x, photo.src.medium etc.
+          src_medium: photo.src.medium,
+          src_large: photo.src.large,
+          src_tiny: photo.src.tiny,
+        }
+      }));
+
+      // Make internal POST request to our own /api/images endpoint
+      // Use the full URL based on the request headers for reliability in serverless env
+      const internalApiUrl = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}/api/images`;
+      console.log(`[API/Pexels] Posting ${urlsToDb.length} URLs to internal endpoint: ${internalApiUrl}`);
+
+      // Fire-and-forget the POST request - don't wait for it to respond to the client
+      axios.post(internalApiUrl, { urls: urlsToDb })
+        .then(dbResponse => {
+          console.log(`[API/Pexels -> DB] Success: Added ${dbResponse.data.added}, Skipped ${dbResponse.data.skipped}`);
+        })
+        .catch(dbError => {
+          console.error('[API/Pexels -> DB] Error posting to /api/images:', dbError.response?.data || dbError.message);
+        });
+    }
+    // --- End: Add URLs to DB ---
+
+    // Return the data received from Pexels (usually nested under 'photos')
     res.status(200).json(response.data);
 
   } catch (error) {
