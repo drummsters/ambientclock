@@ -67,18 +67,19 @@ export default async (req, res) => {
         }
       }));
 
-      // Make internal POST request to our own /api/images endpoint
-      // Use the full URL based on the request headers for reliability in serverless env
-      const internalApiUrl = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}/api/images`;
-      console.log(`[API/Pexels] Posting ${urlsToDb.length} URLs to internal endpoint: ${internalApiUrl}`);
+      // Make internal POST request to our own /api/images endpoint using relative path
+      const relativeApiPath = '/api/images';
+      console.log(`[API/Pexels] Posting ${urlsToDb.length} URLs to internal endpoint: ${relativeApiPath}`);
 
-      // Fire-and-forget the POST request - don't wait for it to respond to the client
-      axios.post(internalApiUrl, { urls: urlsToDb })
+      // Fire-and-forget the POST request using the relative path
+      axios.post(relativeApiPath, { urls: urlsToDb })
         .then(dbResponse => {
           console.log(`[API/Pexels -> DB] Success: Added ${dbResponse.data.added}, Skipped ${dbResponse.data.skipped}`);
         })
         .catch(dbError => {
-          console.error('[API/Pexels -> DB] Error posting to /api/images:', dbError.response?.data || dbError.message);
+          // Log detailed error if possible
+          const errorDetails = dbError.response ? JSON.stringify(dbError.response.data) : dbError.message;
+          console.error(`[API/Pexels -> DB] Error posting to ${relativeApiPath}: ${errorDetails}`);
         });
     }
     // --- End: Add URLs to DB ---

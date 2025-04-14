@@ -1,5 +1,7 @@
 // api/images.js
-import { Pool } from 'pg';
+// Use default import for CommonJS module 'pg'
+import pkg from 'pg';
+const { Pool } = pkg;
 
 // Initialize the connection pool using the environment variable
 // Vercel automatically injects environment variables defined in the project settings

@@ -79,17 +79,19 @@ export default async function handler(request, response) {
         }
       }));
 
-      // Make internal POST request to our own /api/images endpoint
-      const internalApiUrl = `${request.headers['x-forwarded-proto'] || 'http'}://${request.headers.host}/api/images`;
-      console.log(`[API/Peapix] Posting ${urlsToDb.length} URLs to internal endpoint: ${internalApiUrl}`);
+      // Make internal POST request to our own /api/images endpoint using relative path
+      const relativeApiPath = '/api/images';
+      console.log(`[API/Peapix] Posting ${urlsToDb.length} URLs to internal endpoint: ${relativeApiPath}`);
 
-      // Fire-and-forget the POST request
-      axios.post(internalApiUrl, { urls: urlsToDb })
+      // Fire-and-forget the POST request using the relative path
+      axios.post(relativeApiPath, { urls: urlsToDb })
         .then(dbResponse => {
           console.log(`[API/Peapix -> DB] Success: Added ${dbResponse.data.added}, Skipped ${dbResponse.data.skipped}`);
         })
         .catch(dbError => {
-          console.error('[API/Peapix -> DB] Error posting to /api/images:', dbError.response?.data || dbError.message);
+          // Log detailed error if possible
+          const errorDetails = dbError.response ? JSON.stringify(dbError.response.data) : dbError.message;
+          console.error(`[API/Peapix -> DB] Error posting to ${relativeApiPath}: ${errorDetails}`);
         });
       // --- End: Add URLs to DB ---
 
