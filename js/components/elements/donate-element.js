@@ -34,10 +34,9 @@ export class DonateElement extends BaseUIElement {
      * Initializes the element, creates the DOM structure, sets up visibility.
      */
     async init() {
-        // Vercel Only: Check environment variable before initializing
-        // Vercel automatically exposes env vars prefixed with VITE_
-        if (import.meta.env.INCLUDE_DONATE !== 'true') {
-            console.log(`[DonateElement ${this.id}] INCLUDE_DONATE is not 'true'. Skipping initialization.`);
+        // Check if the donate feature is enabled via ConfigManager
+        if (!this.configManager.isFeatureEnabled('includeDonate')) {
+            console.log(`[DonateElement ${this.id}] 'includeDonate' feature is not enabled. Skipping initialization.`);
             // Optionally remove the container if it shouldn't exist at all
             // if (this.container && this.container.parentNode) {
             //     this.container.parentNode.removeChild(this.container);

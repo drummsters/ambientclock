@@ -12,8 +12,12 @@ import * as logger from '../utils/logger.js'; // Import the logger
 
 /**
  * Registers all known UI element types with the ComponentRegistry.
+ * @param {ConfigManager} configManager - The application's configuration manager instance.
  */
-export async function registerElementTypes() { // Make async for dynamic import
+export async function registerElementTypes(configManager) { // Make async for dynamic import
+    if (!configManager) {
+        throw new Error('registerElementTypes requires a ConfigManager instance.');
+    }
     logger.debug('Registering element types...'); // Changed to debug
 
     // Register Clock element
@@ -40,8 +44,8 @@ export async function registerElementTypes() { // Make async for dynamic import
         capabilities: []
     });
 
-    // Conditionally register Donate element (Vercel Only)
-    if (import.meta.env.INCLUDE_DONATE === 'true') {
+    // Conditionally register Donate element based on config
+    if (configManager.isFeatureEnabled('includeDonate')) {
         try {
             const { DonateElement } = await import('../components/elements/donate-element.js');
             ComponentRegistry.registerElementType('donate', DonateElement, {
@@ -53,7 +57,7 @@ export async function registerElementTypes() { // Make async for dynamic import
             logger.error('Failed to dynamically import or register DonateElement:', error);
         }
     } else {
-        logger.debug('Skipping Donate element registration (INCLUDE_DONATE is not true).');
+        logger.debug('Skipping Donate element registration (includeDonate feature is not enabled).');
     }
 
 

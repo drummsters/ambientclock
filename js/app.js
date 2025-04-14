@@ -49,7 +49,7 @@ async function initApp() {
     // and update the StateManager for the current session.
 
     // 3. Register Element Types
-    await registerElementTypes(); // Use imported function (now async)
+    await registerElementTypes(configManager); // Pass configManager instance
 
     // 4. Initialize Device Service (Optional, for responsive/touch features)
     // const deviceService = new DeviceService();
@@ -102,9 +102,10 @@ async function initApp() {
 
     // Define elements for alwaysShow manager based on environment
     let alwaysShowElements = ['controls-hint-default', 'next-background-button-default', 'favorite-toggle-default', 'app-title'];
-    if (import.meta.env.INCLUDE_DONATE === 'true') {
+    // Use the configManager instance created earlier
+    if (configManager.isFeatureEnabled('includeDonate')) {
         alwaysShowElements.push('donate-default');
-        logger.debug('[app.js] Including donate-default in alwaysShowVisibilityManager.');
+        logger.debug('[app.js] Including donate-default in alwaysShowVisibilityManager because includeDonate feature is enabled.');
     }
     
     // Visibility manager for elements that should show on mouse movement

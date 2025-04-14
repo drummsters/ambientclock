@@ -30,6 +30,8 @@ export class ConfigManager {
         videoBackground: false, // Example feature flag
         customElements: true,
         favorites: true,
+        includeDonate: false, // Default value
+        useImageDb: false,    // Default value
       },
       performance: {
         reducedQuality: false,
@@ -53,7 +55,12 @@ export class ConfigManager {
         this.config.donationLinks.venmo = import.meta.env.DONATE_VENMO || this.config.donationLinks.venmo;
         this.config.donationLinks.cashapp = import.meta.env.DONATE_CASHAPP || this.config.donationLinks.cashapp;
         this.config.donationLinks.googlepay = import.meta.env.DONATE_GOOGLEPAY || this.config.donationLinks.googlepay;
-        logger.debug('[ConfigManager] Donation links after attempting env var read:', JSON.stringify(this.config.donationLinks)); // Changed to debug
+
+        // Read feature flags from env vars (convert string 'true' to boolean)
+        this.config.features.includeDonate = (import.meta.env.INCLUDE_DONATE === 'true');
+        this.config.features.useImageDb = (import.meta.env.USE_IMAGE_DB === 'true');
+
+        logger.debug('[ConfigManager] Config after attempting env var read:', JSON.stringify(this.config)); // Log entire config
     } else {
         // Log that env vars weren't found (optional, less noisy than the warning)
         // logger.debug('[ConfigManager] Build-time environment variables (import.meta.env) not found.'); // Keep commented or use debug
