@@ -10,16 +10,20 @@ import { ConfigManager } from '../../core/config-manager.js';
  * @extends BaseUIElement
  */
 export class DonateElement extends BaseUIElement {
-    constructor({ id, type, options, configManager }) { // Removed stateManager
-        super({ id, type, options });
+    constructor(config) {
+        super(config);
+
+        // console.log(`[DonateElement] Constructor called with config:`, config); // Removed log
 
         // Following the architectural principle: Services must be dependency-injected
-        if (!configManager) {
+        // Access configManager directly from the config object
+        if (!config.configManager) { 
+            // console.error("DonateElement constructor config:", config); // Keep error log if needed
             throw new Error('DonateElement requires a ConfigManager instance');
         }
         
-        // Store dependencies
-        this.configManager = configManager;
+        // Store configManager directly from config
+        this.configManager = config.configManager;
         
         // Element state properties
         this.dropdown = null;
@@ -34,19 +38,31 @@ export class DonateElement extends BaseUIElement {
      * Initializes the element, creates the DOM structure, sets up visibility.
      */
     async init() {
+        // console.log(`[DonateElement ${this.id}] Starting initialization...`); // Removed log
+        // console.log(`[DonateElement ${this.id}] ConfigManager instance:`, this.configManager); // Removed log
+        
         // Check if the donate feature is enabled via ConfigManager
-        if (!this.configManager.isFeatureEnabled('includeDonate')) {
-            console.log(`[DonateElement ${this.id}] 'includeDonate' feature is not enabled. Skipping initialization.`);
+        // console.log(`[DonateElement ${this.id}] ConfigManager instance before feature check:`, { ... }); // Removed log
+        const isEnabled = this.configManager.isFeatureEnabled('includeDonate'); // isFeatureEnabled still logs internally
+        // console.log(`[DonateElement ${this.id}] isFeatureEnabled('includeDonate') result:`, isEnabled); // Removed log
+        
+        if (!isEnabled) {
+            logger.warn(`[DonateElement ${this.id}] 'includeDonate' feature is not enabled. Skipping initialization.`); // Use logger
             // Optionally remove the container if it shouldn't exist at all
-            // if (this.container && this.container.parentNode) {
-            //     this.container.parentNode.removeChild(this.container);
-            // }
-            // this.container = null; 
+            if (this.container && this.container.parentNode) {
+                this.container.parentNode.removeChild(this.container);
+                // console.log(`[DonateElement ${this.id}] Removed container from DOM.`); // Removed log
+            }
+            this.container = null;
             return false; // Indicate initialization skipped/failed
         }
         
-        // Conditionally import CSS only when element is included
-        await import('../../../css/components/donate.css');
+        // Conditionally load CSS only when element is included
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = '/css/components/donate.css';
+        document.head.appendChild(link);
 
         // Create and add container to DOM
         this.container = document.createElement('div');
@@ -58,17 +74,17 @@ export class DonateElement extends BaseUIElement {
 
         // Get donation links before building the DOM
         const donationLinks = this.configManager.getFullConfig().donationLinks || {};
-        console.log(`[DonateElement ${this.id}] Donation links from configManager:`, donationLinks);
+        // console.log(`[DonateElement ${this.id}] Donation links from configManager:`, donationLinks); // Removed log
         
         // Build the donation element DOM structure
         this.buildDOM();
 
         // Check if the DOM was built successfully
         if (!this.mainButton) {
-            console.error(`[DonateElement ${this.id}] No valid donation links configured. Element will be inactive.`);
+            logger.error(`[DonateElement ${this.id}] No valid donation links configured. Element will be inactive.`); // Use logger
             // For debugging - add visual indicator even if no links
-            this.container.innerHTML = `<div style="color: red; background: rgba(0,0,0,0.5); padding: 8px; border-radius: 4px;">[Debug] Donate Element: No valid links</div>`;
-            this.container.style.opacity = '1';
+            // this.container.innerHTML = `<div style="color: red; background: rgba(0,0,0,0.5); padding: 8px; border-radius: 4px;">[Debug] Donate Element: No valid links</div>`; // Keep commented
+            // this.container.style.opacity = '1'; // Keep commented
             this.container.style.pointerEvents = 'auto';
             return true; // Return success but element will be inactive
         }
@@ -87,14 +103,14 @@ export class DonateElement extends BaseUIElement {
         
         // Ensure we have at least PayPal as a fallback
         if (!links.paypal) {
-            console.log('[DonateElement] No PayPal link in config, using direct fallback');
+            // console.log('[DonateElement] No PayPal link in config, using direct fallback'); // Removed log
             links = {
                 ...links,
                 paypal: 'drummster' // Direct fallback for development
             };
         }
         
-        console.log('[DonateElement] Links after fallback:', links);
+        // console.log('[DonateElement] Links after fallback:', links); // Removed log
         
         const availablePlatforms = [
             { key: 'paypal', name: 'PayPal', icon: 'paypal.svg', urlPrefix: 'https://www.paypal.com/paypalme/' },
@@ -193,7 +209,7 @@ export class DonateElement extends BaseUIElement {
     // Removed _onStateUpdate
 
     destroy() {
-        console.log(`[DonateElement ${this.id}] Destroying...`);
+        // console.log(`[DonateElement ${this.id}] Destroying...`); // Removed log
         
         // Remove only the listeners we added
         this.activityListeners.forEach(({ target, type, handler }) => {
@@ -210,6 +226,6 @@ export class DonateElement extends BaseUIElement {
         this.dropdown = null;
         this.mainButton = null;
 
-        console.log(`[DonateElement ${this.id}] Destroyed.`);
+        // console.log(`[DonateElement ${this.id}] Destroyed.`); // Removed log
     }
 }

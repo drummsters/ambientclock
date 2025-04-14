@@ -1,6 +1,6 @@
-// Core dependencies (keep if needed by base or subclasses)
-// import { EventBus } from '../../core/event-bus.js';
-// import { StateManager } from '../../core/state-manager.js';
+// Core dependencies
+import { EventBus } from '../../core/event-bus.js';
+import { StateManager } from '../../core/state-manager.js';
 
 // Import Mixins/Handlers
 import { StateBindingMixin } from './mixins/StateBindingMixin.js';
@@ -25,6 +25,8 @@ export class BaseUIElement {
    * @param {object} [config.responsive] - Responsive configuration.
    */
   constructor(config) {
+    // console.log(`[BaseUIElement] Constructor called for ${config.type} with config:`, config); // Removed log
+    
     if (!config || !config.id || !config.type) {
       throw new Error('BaseUIElement requires id and type in config');
     }
@@ -37,6 +39,10 @@ export class BaseUIElement {
     this.eventHandlers = {}; // Managed event listeners (plugins might add here)
     this.statePath = `elements.${this.id}`; // Path in the global state
     this.capabilities = config.capabilities || []; // Store capabilities
+    // Remove the separate dependencies storage, dependencies are direct properties of config now
+    // this.dependencies = config.dependencies || {}; 
+    
+    // console.log(`[BaseUIElement] ${this.type} dependencies set to:`, this.dependencies); // Remove log
     this.responsiveConfig = config.responsive || { // Keep responsive config here for handler
         scalingMethod: 'viewport',
         minScale: 0.5,

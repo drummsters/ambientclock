@@ -115,9 +115,17 @@ export class ElementManager {
       return;
     }
 
+    // Check if the component type is registered before attempting creation
+    if (!ComponentRegistry.isRegistered(type)) {
+        logger.error(`[ElementManager] Attempted to create element ID "${id}" but type "${type}" is not registered. Check configuration and registration logic.`);
+        // Potentially publish an event or handle this case more gracefully
+        return; // Skip creation
+    }
+
     // Use ComponentRegistry to get the constructor and create instance
-    // Pass dependencies along
-    const elementInstance = ComponentRegistry.createElement(type, id, options, this.dependencies);
+    // Pass the dependencies object directly
+    // console.log(`[ElementManager] Creating element ${id} of type ${type} with dependencies:`, this.dependencies); // Removed log
+    const elementInstance = ComponentRegistry.createElement(type, id, options, this.dependencies); // Pass this.dependencies directly
 
     if (elementInstance) {
       // Initialize the element (which creates its DOM, binds state, etc.)

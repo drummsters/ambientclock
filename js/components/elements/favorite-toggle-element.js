@@ -14,15 +14,18 @@ export class FavoriteToggleElement extends BaseUIElement {
      * @param {string} params.id - The unique ID for this element.
      * @param {string} params.type - The type of the element ('FavoriteToggleElement').
      * @param {object} params.options - Configuration options (currently none specific).
-     * @param {FavoritesService} params.favoritesService - Instance of the FavoritesService.
+     * @param {object} config - The configuration object passed from ComponentRegistry.
+     * @param {FavoritesService} config.favoritesService - Instance of the FavoritesService (now a direct property).
      */
-    constructor({ id, type, options, favoritesService }) {
-        super({ id, type, options });
+    constructor(config) { 
+        super(config); // Pass full config to base
 
-        if (!favoritesService) {
+        // Check for the directly passed service on the config object
+        if (!config.favoritesService) {
+            // console.error("FavoriteToggleElement constructor config:", config); // Removed log
             throw new Error("FavoriteToggleElement requires a FavoritesService instance.");
         }
-        this.favoritesService = favoritesService;
+        this.favoritesService = config.favoritesService;
 
         this.toggleButton = null;
         this.iconSpan = null;
@@ -30,7 +33,7 @@ export class FavoriteToggleElement extends BaseUIElement {
         this.boundUpdateUI = this.updateFavoriteUI.bind(this);
         this.unsubscribeState = null;
         this.unsubscribeKeyboard = null; // For 'F' key
-        console.log(`[FavoriteToggleElement ${this.id}] Initialized`);
+        // console.log(`[FavoriteToggleElement ${this.id}] Initialized`); // Removed log
     }
 
     /**
@@ -101,19 +104,19 @@ export class FavoriteToggleElement extends BaseUIElement {
              this.boundHandleClick // Reuse the same handler
         );
 
-        console.log(`[FavoriteToggleElement ${this.id}] Event listeners set up.`);
+        // console.log(`[FavoriteToggleElement ${this.id}] Event listeners set up.`); // Removed log
     }
 
     /**
      * Handles the click event on the favorite toggle button or 'F' key press.
      */
     async handleFavoriteToggle() {
-        console.log(`[FavoriteToggleElement ${this.id}] handleFavoriteToggle called.`);
+        // console.log(`[FavoriteToggleElement ${this.id}] handleFavoriteToggle called.`); // Removed log
         if (!this.favoritesService) return;
 
         try {
             const result = await this.favoritesService.toggleCurrentImageFavorite();
-            console.log(`[FavoriteToggleElement ${this.id}] Toggle result:`, result);
+            // console.log(`[FavoriteToggleElement ${this.id}] Toggle result:`, result); // Removed log
 
             // Publish event for toast notification
             EventBus.publish('ui:showToast', { message: result.message });
@@ -155,7 +158,7 @@ export class FavoriteToggleElement extends BaseUIElement {
      * Cleans up event listeners and subscriptions.
      */
     destroy() {
-        console.log(`[FavoriteToggleElement ${this.id}] Destroying...`);
+        // console.log(`[FavoriteToggleElement ${this.id}] Destroying...`); // Removed log
         if (this.toggleButton) {
             this.toggleButton.removeEventListener('click', this.boundHandleClick);
         }
@@ -175,6 +178,6 @@ export class FavoriteToggleElement extends BaseUIElement {
         this.toggleButton = null;
         this.iconSpan = null;
         this.favoritesService = null; // Release service reference
-        console.log(`[FavoriteToggleElement ${this.id}] Destroyed.`);
+        // console.log(`[FavoriteToggleElement ${this.id}] Destroyed.`); // Removed log
     }
 }

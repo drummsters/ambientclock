@@ -45,8 +45,8 @@ export async function registerElementTypes(configManager) { // Make async for dy
     });
 
     // Conditionally register Donate element based on config
-    if (configManager.isFeatureEnabled('includeDonate')) {
-        // Use the statically imported DonateElement
+    const shouldIncludeDonate = configManager.isFeatureEnabled('includeDonate');
+    if (shouldIncludeDonate) {
         ComponentRegistry.registerElementType('donate', DonateElement, {
             controlPanelConfig: [],
             capabilities: []
@@ -58,7 +58,7 @@ export async function registerElementTypes(configManager) { // Make async for dy
 
 
     // Register Favorite Toggle element
-    ComponentRegistry.registerElementType('FavoriteToggleElement', FavoriteToggleElement, {
+    ComponentRegistry.registerElementType('favorite-toggle', FavoriteToggleElement, {
         controlPanelConfig: [],
         capabilities: []
     });

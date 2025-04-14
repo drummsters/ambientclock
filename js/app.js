@@ -31,9 +31,17 @@ async function initApp() {
   try {
     // 1. Initialize Configuration Manager
     const configManager = new ConfigManager();
-    const configReady = await configManager.init();
+    console.log('[app.js] ConfigManager created, attempting init...');
+    let configReady;
+    try {
+        configReady = await configManager.init();
+        console.log('[app.js] ConfigManager init completed. Ready:', configReady);
+    } catch (error) {
+        console.error('[app.js] ConfigManager init failed:', error);
+        configReady = false;
+    }
     if (!configReady) {
-      logger.warn('Essential configuration is missing. Application might run with limited functionality.');
+        logger.warn('Essential configuration is missing. Application might run with limited functionality.');
     }
 
     // 2. Initialize State Manager

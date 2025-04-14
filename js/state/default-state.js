@@ -3,7 +3,7 @@
  * @returns {object} The default state object.
  */
 export function getDefaultState() {
-    return {
+    const state = { // Define state object first
         settings: {
             theme: 'dark', // Example global setting
             background: {
@@ -91,7 +91,7 @@ export function getDefaultState() {
                 options: {}
             },
             'favorite-toggle-default': {
-                type: 'FavoriteToggleElement', // Use the class name directly for registration
+                type: 'favorite-toggle', // DOUBLE CHECK: This MUST be 'favorite-toggle'
                 id: 'favorite-toggle-default',
                 // Fixed position, visibility managed externally
                 options: {} // No specific options needed
@@ -118,4 +118,8 @@ export function getDefaultState() {
         // Add other top-level state keys as needed (e.g., currentImageMetadata)
         currentImageMetadata: null // Placeholder for current background info
     };
+    
+    // console.log('[DefaultState] Returning default state. Favorite toggle type:', state.elements['favorite-toggle-default']?.type); // Removed log
+    
+    return state;
 }

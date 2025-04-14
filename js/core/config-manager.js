@@ -10,11 +10,14 @@ import * as logger from '../utils/logger.js'; // Import the logger
 export class ConfigManager {
   constructor() {
     // Add debug log for environment variables
-        logger.debug('[ConfigManager] Raw env check:', { // Changed to debug
-          importMetaEnv: typeof import.meta !== 'undefined' ? 'exists' : 'undefined',
-          vitePaypal: typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.DONATE_PAYPAL : 'not found'
-        });
+    console.log('[ConfigManager] Constructor starting...');
+    // Try both process.env and import.meta.env
+    const env = (typeof process !== 'undefined' && process.env) || 
+               (typeof import.meta !== 'undefined' && import.meta.env) || 
+               {};
+    // console.log('[ConfigManager] Constructor env check (process.env only):', { ... }); // Removed log
 
+    // Initialize features with defaults. includeDonate is hardcoded.
     this.config = {
       deployment: {
         platform: 'local', // 'local', 'vercel', 'netlify', 'github-pages', etc.
@@ -30,8 +33,8 @@ export class ConfigManager {
         videoBackground: false, // Example feature flag
         customElements: true,
         favorites: true,
-        includeDonate: false, // Default value
-        useImageDb: false,    // Default value
+        includeDonate: true, // Hardcode to true for local dev with vercel dev
+        useImageDb: false,   // Keep default, read from env if needed
       },
       performance: {
         reducedQuality: false,
@@ -47,33 +50,13 @@ export class ConfigManager {
       version: '2.0.0' // App version
     };
 
-    // Attempt to read build-time environment variables (Vite example)
-    // Check existence before accessing to avoid warnings in non-Vite environments
-    if (typeof import.meta !== 'undefined' && import.meta.env) {
-        // Read variables if they exist, otherwise keep the default null/empty value
-        this.config.donationLinks.paypal = import.meta.env.DONATE_PAYPAL || 'drummster'; // Keep fallback for testing
-        this.config.donationLinks.venmo = import.meta.env.DONATE_VENMO || this.config.donationLinks.venmo;
-        this.config.donationLinks.cashapp = import.meta.env.DONATE_CASHAPP || this.config.donationLinks.cashapp;
-        this.config.donationLinks.googlepay = import.meta.env.DONATE_GOOGLEPAY || this.config.donationLinks.googlepay;
-
-        // Read feature flags from env vars (convert string 'true' to boolean)
-        this.config.features.includeDonate = (import.meta.env.INCLUDE_DONATE === 'true');
-        this.config.features.useImageDb = (import.meta.env.USE_IMAGE_DB === 'true');
-
-        logger.debug('[ConfigManager] Config after attempting env var read:', JSON.stringify(this.config)); // Log entire config
-    } else {
-        // Log that env vars weren't found (optional, less noisy than the warning)
-        // logger.debug('[ConfigManager] Build-time environment variables (import.meta.env) not found.'); // Keep commented or use debug
-    }
-    // Removed the try...catch block as explicit checks handle potential errors.
-
-
+    // Set up initial state
     this.setupComplete = false;
     this.CONFIG_STORAGE_KEY = 'ambient-clock-v2-config';
     // SECURE_CONFIG_STORAGE_KEY removed
 
-    // Load initial configuration
-    this.loadConfig();
+    // Constructor only sets defaults, environment variables and storage will be handled in init()
+    // console.log('[ConfigManager] Constructor complete. Initial config:', this.config); // Removed log
   }
 
   /**
@@ -82,40 +65,62 @@ export class ConfigManager {
    * @returns {Promise<boolean>} True if configuration is complete, false if setup is needed.
    */
   async init() {
-    this.detectEnvironment();
-    // loadEnvironmentVariables removed as it only handled keys
-
-    // Load config from storage
-    this.loadConfig();
-
-    const setupRequired = !this.validateRequiredConfig(); // Validation logic will be simplified
-
-    if (setupRequired && this.config.deployment.platform === 'local') {
-      // Only show setup wizard automatically in local development
-      // In deployed environments, rely on environment variables
-      logger.log('Required configuration missing, attempting to show setup wizard...'); // Keep as log
-      // TODO: Implement and call SetupWizard if needed
-      // const setupWizard = new SetupWizard(this);
-      // const setupResult = await setupWizard.show();
-      // if (setupResult.success) {
-      //   this.setupComplete = true;
-      //   this.saveConfig(); // Save config after wizard completion
-      // } else {
-      //   logger.warn('Setup wizard was cancelled or failed.'); // Use logger.warn
-      //   // App might still run with limited functionality (e.g., color backgrounds only)
-      // }
-      logger.warn("Setup Wizard not implemented yet. Configuration might be incomplete."); // Use logger.warn
-      this.setupComplete = false; // Mark as incomplete if wizard didn't run/succeed
-    } else if (setupRequired) {
-        logger.warn(`Configuration incomplete, but running in deployed environment (${this.config.deployment.platform}). Relying on environment variables or defaults.`); // Use logger.warn
-        this.setupComplete = false; // Still mark as incomplete
-    }
-     else {
-      this.setupComplete = true;
+    try {
+        // console.log('[ConfigManager][init] Starting initialization...'); // Removed log
+        this.detectEnvironment();
+        // console.log('[ConfigManager][init] Environment detected:', this.config.deployment.platform); // Removed log
+    } catch (error) {
+        logger.error('[ConfigManager][init] Error in environment detection:', error); // Keep error log
     }
 
-    logger.debug('ConfigManager initialized. Setup complete:', this.setupComplete); // Changed to debug
-    EventBus.publish('config:loaded', this.getPublicConfig());
+    try {
+        // Environment variable reading logic removed.
+        
+        // Still read non-client-exposed donation links from process.env if available
+        const processEnv = (typeof process !== 'undefined' && process.env) || {};
+        this.config.donationLinks.paypal = processEnv.DONATE_PAYPAL || this.config.donationLinks.paypal || 'drummster'; // Keep fallback
+        this.config.donationLinks.venmo = processEnv.DONATE_VENMO || this.config.donationLinks.venmo; 
+        this.config.donationLinks.cashapp = processEnv.DONATE_CASHAPP || this.config.donationLinks.cashapp;
+        this.config.donationLinks.googlepay = processEnv.DONATE_GOOGLEPAY || this.config.donationLinks.googlepay;
+        
+        // console.log('[ConfigManager][init] Config features (using hardcoded includeDonate):', this.config.features); // Removed log
+        // console.log('[ConfigManager][init] Config donationLinks (reading from process.env):', this.config.donationLinks); // Removed log
+
+    } catch (error) {
+         logger.error('[ConfigManager][init] Error reading process.env variables:', error); // Keep error log
+    }
+
+    try {
+        // Now load from storage, which will merge with config (including hardcoded includeDonate)
+        // console.log('[ConfigManager][init] Loading from storage after env vars...'); // Removed log
+        this.loadConfig(); // This logs internally if needed
+        // console.log('[ConfigManager][init] Final config after env vars and storage:', this.config); // Removed log
+    } catch (error) {
+        logger.error('[ConfigManager][init] Error loading from storage:', error); // Keep error log
+    }
+
+    try {
+        const setupRequired = !this.validateRequiredConfig(); // Validation logic will be simplified
+
+        if (setupRequired && this.config.deployment.platform === 'local') {
+            // Only show setup wizard automatically in local development
+            // In deployed environments, rely on environment variables
+            logger.log('Required configuration missing, attempting to show setup wizard...'); // Keep as log
+            logger.warn("Setup Wizard not implemented yet. Configuration might be incomplete."); // Use logger.warn
+            this.setupComplete = false; // Mark as incomplete if wizard didn't run/succeed
+        } else if (setupRequired) {
+            logger.warn(`Configuration incomplete, but running in deployed environment (${this.config.deployment.platform}). Relying on environment variables or defaults.`); // Use logger.warn
+            this.setupComplete = false; // Still mark as incomplete
+        } else {
+            this.setupComplete = true;
+        }
+
+        logger.debug('ConfigManager initialized. Setup complete:', this.setupComplete); // Changed to debug
+        EventBus.publish('config:loaded', this.getPublicConfig());
+    } catch (error) {
+        console.error('[ConfigManager][init] Error in setup validation:', error);
+        this.setupComplete = false;
+    }
 
     return this.setupComplete;
   }
@@ -124,17 +129,26 @@ export class ConfigManager {
    * Detects the current deployment environment.
    */
   detectEnvironment() {
-    const hostname = window.location.hostname;
-    if (hostname.includes('vercel.app') || document.querySelector('meta[name="deployed-on"][content="vercel"]')) {
-      this.config.deployment.platform = 'vercel';
-    } else if (hostname.includes('netlify.app')) {
-      this.config.deployment.platform = 'netlify';
-    } else if (hostname.includes('github.io')) {
-      this.config.deployment.platform = 'github-pages';
-    } else {
-      this.config.deployment.platform = 'local';
+    try {
+        // console.log('[ConfigManager] Detecting environment...'); // Removed log
+        const hostname = window.location.hostname;
+        // console.log('[ConfigManager] Hostname:', hostname); // Removed log
+        
+        if (hostname.includes('vercel.app') || document.querySelector('meta[name="deployed-on"][content="vercel"]')) {
+            this.config.deployment.platform = 'vercel';
+        } else if (hostname.includes('netlify.app')) {
+            this.config.deployment.platform = 'netlify';
+        } else if (hostname.includes('github.io')) {
+            this.config.deployment.platform = 'github-pages';
+        } else {
+            this.config.deployment.platform = 'local';
+        }
+        // console.log(`[ConfigManager] Environment detected: ${this.config.deployment.platform}`); // Removed log
+    } catch (error) {
+        logger.error('[ConfigManager] Error detecting environment:', error); // Keep error log
+        // Set a default in case of error
+        this.config.deployment.platform = 'unknown';
     }
-    logger.debug(`Detected environment: ${this.config.deployment.platform}`); // Changed to debug
   }
 
   /**
@@ -166,7 +180,9 @@ export class ConfigManager {
    * @returns {boolean} The value of the feature flag (defaults to false).
    */
   isFeatureEnabled(featureName) {
-      return !!this.config.features[featureName];
+      const value = !!this.config.features[featureName];
+      // console.log(`[ConfigManager] Checking feature '${featureName}':`, { ... }); // Removed log
+      return value;
   }
 
   /**
@@ -191,16 +207,22 @@ export class ConfigManager {
   loadConfig() {
     try {
       // Load public config
+      // console.log('[ConfigManager] Loading config from localStorage...'); // Removed log
       const savedConfig = localStorage.getItem(this.CONFIG_STORAGE_KEY);
       if (savedConfig) {
+        // console.log('[ConfigManager] Found saved config in localStorage:', savedConfig); // Removed log
         const parsedPublic = JSON.parse(savedConfig);
+        // console.log('[ConfigManager] Config features BEFORE merging localStorage:', this.config.features); // Removed log
         // Merge directly, no need to skip 'apis' anymore for secure loading
         this.config = this.deepMerge(this.config, parsedPublic);
+        // console.log('[ConfigManager] Config features AFTER merging localStorage:', this.config.features); // Removed log
+      } else {
+        // console.log('[ConfigManager] No saved config found in localStorage'); // Removed log
       }
       // loadSecureConfig call removed
 
     } catch (error) {
-      logger.error('ConfigManager: Failed to load configuration:', error); // Use logger.error
+      logger.error('[ConfigManager] Failed to load configuration:', error); // Keep error log
       // Reset or handle error appropriately
     }
   }

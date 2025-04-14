@@ -23,12 +23,16 @@ export const ComponentRegistry = {
       return;
     }
 
-    this.elementTypes.set(type, {
-      constructor,
-      controlPanelConfig: config.controlPanelConfig || [],
-      capabilities: config.capabilities || []
-    });
-    logger.debug(`ComponentRegistry: Registered element type "${type}".`); // Changed to debug
+    try {
+        this.elementTypes.set(type, {
+            constructor,
+            controlPanelConfig: config.controlPanelConfig || [],
+            capabilities: config.capabilities || []
+        });
+        // console.log(`[ComponentRegistry] Successfully registered element type "${type}". Current types:`, Array.from(this.elementTypes.keys())); // Removed log
+    } catch (error) {
+        logger.error(`[ComponentRegistry] Failed to register element type "${type}":`, error); // Keep error log
+    }
   },
 
   /**
@@ -47,17 +51,18 @@ export const ComponentRegistry = {
     }
 
     try {
+      // console.log(`[ComponentRegistry] Creating ${type} with ID ${id}. Received dependencies:`, dependencies); // Removed log
+
       // Ensure id and type are explicitly set
       const constructorConfig = {
-        ...dependencies, // Put dependencies first
+        id: id,         // Explicitly set id
+        type: type,     // Explicitly set type
         options,
         capabilities: typeInfo.capabilities,
-        id: id,         // Explicitly set id
-        type: type      // Explicitly set type
+        ...dependencies // Spread the received dependencies object here
       };
 
-      // Force console log (not using logger) to ensure visibility
-      console.log(`[ComponentRegistry] Creating ${type} with ID ${id}. Config:`, constructorConfig);
+      // console.log(`[ComponentRegistry] Prepared constructor config:`, constructorConfig); // Removed log
 
       // Pass the prepared config object to the constructor
       const elementInstance = new typeInfo.constructor(constructorConfig);
@@ -94,5 +99,14 @@ export const ComponentRegistry = {
    */
   getRegisteredTypes() {
     return Array.from(this.elementTypes.keys());
+  },
+
+  /**
+   * Checks if a specific element type is registered.
+   * @param {string} type - The element type identifier.
+   * @returns {boolean} True if the type is registered, false otherwise.
+   */
+  isRegistered(type) {
+    return this.elementTypes.has(type);
   }
 };
