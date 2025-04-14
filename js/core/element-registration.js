@@ -3,7 +3,7 @@ import { ClockElement } from '../components/elements/clock-element.js';
 import { DateElement } from '../components/elements/date-element.js';
 import { ControlsHintElement } from '../components/elements/controls-hint-element.js';
 import { BackgroundInfoElement } from '../components/elements/background-info-element.js';
-// DonateElement is imported conditionally below
+import { DonateElement } from '../components/elements/donate-element.js'; // Import statically
 import { FavoriteToggleElement } from '../components/elements/favorite-toggle-element.js';
 import { NextBackgroundButtonElement } from '../components/elements/next-background-button.js';
 import { FullscreenToggleElement } from '../components/elements/fullscreen-toggle-element.js';
@@ -46,16 +46,12 @@ export async function registerElementTypes(configManager) { // Make async for dy
 
     // Conditionally register Donate element based on config
     if (configManager.isFeatureEnabled('includeDonate')) {
-        try {
-            const { DonateElement } = await import('../components/elements/donate-element.js');
-            ComponentRegistry.registerElementType('donate', DonateElement, {
-                controlPanelConfig: [],
-                capabilities: []
-            });
-            logger.debug('Donate element type registered.');
-        } catch (error) {
-            logger.error('Failed to dynamically import or register DonateElement:', error);
-        }
+        // Use the statically imported DonateElement
+        ComponentRegistry.registerElementType('donate', DonateElement, {
+            controlPanelConfig: [],
+            capabilities: []
+        });
+        logger.debug('Donate element type registered.');
     } else {
         logger.debug('Skipping Donate element registration (includeDonate feature is not enabled).');
     }
