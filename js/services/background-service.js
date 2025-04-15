@@ -1,5 +1,7 @@
 import { StateManager } from '../core/state-manager.js';
 import { EventBus } from '../core/event-bus.js';
+// ImageBackgroundHandler is now imported within the class where needed or assumed available globally if registered differently
+// For now, keep the import, but the constructor usage will change.
 import { ImageBackgroundHandler } from './image-background-handler.js';
 import { UnsplashProvider } from './image-providers/unsplash-provider.js';
 import { PexelsProvider } from './image-providers/pexels-provider.js';
@@ -121,8 +123,8 @@ export class BackgroundService {
       this.currentBackgroundHandler = null;
     }
 
-    // Apply overlay opacity and color first
-    this.applyOverlay(config.overlayOpacity, config.color); // Pass color here
+    // Apply overlay using values from config (defaults handled within applyOverlay)
+    this.applyOverlay(config.overlayOpacity, config.color);
 
     // Determine the correct handler based on type
     if (newType === 'image') { // && this.configManager.isFeatureEnabled('imageBackground')) { // Add feature flag check later
@@ -171,11 +173,12 @@ export class BackgroundService {
                 delete processedConfig.query;
             }
             
+            // Pass the correct providers map (this.imageProviders)
             this.currentBackgroundHandler = new ImageBackgroundHandler(
                 this.backgroundContainerA,
                 this.backgroundContainerB,
                 processedConfig,
-                this.imageProviders,
+                this.imageProviders, // Corrected: Use the populated map
                 this.configManager,
                 this.favoritesService
             );

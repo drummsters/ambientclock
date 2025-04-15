@@ -20,7 +20,7 @@ import { ControlPanel } from './components/controls/control-panel.js';
 
 // Utilities
 import { setupGlobalKeyListeners, setupWheelResizeListener } from './utils/global-listeners.js';
-import * as logger from './utils/logger.js'; // Import the logger
+import * as logger from './utils/logger.js'; // Import the logger (including syncDebugMode)
 
 // --- Application Initialization ---
 let controlPanel = null; // Declare controlPanel in a higher scope
@@ -51,10 +51,12 @@ async function initApp() {
     await StateManager.init(initialState);
     logger.log('[app.js] State initialized.'); // Simplified log
 
-    // NOTE: We are *not* syncing logger state from StateManager on init.
-    // Logger will always start with debugMode disabled on page load.
-    // The hotkey (Ctrl+Shift+Z) will toggle both the logger's internal state
-    // and update the StateManager for the current session.
+    // Sync logger's internal state with the loaded state
+    // Sync logger's internal state with the loaded state
+    const currentState = StateManager.getState();
+    const debugModeFromState = currentState?.settings?.debugModeEnabled ?? false;
+    logger.syncDebugMode(debugModeFromState); // Call the new sync function
+    // console.log(`[App.js] Explicit log after logger sync attempt. Debug state from StateManager: ${debugModeFromState}`); // Remove explicit log
 
     // 3. Register Element Types
     await registerElementTypes(configManager); // Pass configManager instance

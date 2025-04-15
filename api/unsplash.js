@@ -1,4 +1,6 @@
 import axios from 'axios';
+import fetch from 'node-fetch'; // Added for internal API call
+import { URL } from 'url'; // Added for constructing absolute URL
 // Removed dotenv import and related logic
 
 // Vercel environment variable (or similar for other platforms)
@@ -47,44 +49,67 @@ export default async (req, res) => {
 
     console.log('[API/Unsplash] Successfully fetched data from Unsplash.');
 
-    // --- Start: Add URLs to DB ---
-    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-      const urlsToDb = response.data.map(photo => ({
+    // --- Persist URLs to DB via /api/images endpoint ---
+    if (Array.isArray(response.data) && response.data.length > 0) {
+      const urlsToPersist = response.data.map(image => ({
         provider: 'unsplash',
-        url: photo.urls.raw || photo.urls.full, // Prefer raw, fallback to full
-        metadata: {
-          photographer: photo.user?.name,
-          photographer_url: photo.user?.links?.html,
-          alt: photo.alt_description || photo.description,
-          source_url: photo.links?.html, // Link back to the Unsplash page
-          width: photo.width,
-          height: photo.height,
-          color: photo.color,
-          blur_hash: photo.blur_hash,
-          // Include different sizes if needed
-          src_small: photo.urls?.small,
-          src_thumb: photo.urls?.thumb,
+        provider_image_id: image.id, // Extract provider's unique ID
+        url: image.urls?.raw || image.urls?.full, // Prefer raw or full URL
+        search_query: query, // Add the search query used
+        metadata: { // Store relevant metadata (can still include id if needed elsewhere)
+          id: image.id, // Keep original id in metadata for potential future use
+          description: image.description || image.alt_description,
+          width: image.width,
+          height: image.height,
+          color: image.color,
+          blur_hash: image.blur_hash,
+          user: {
+            name: image.user?.name,
+            link: image.user?.links?.html
+          },
+          links: {
+            html: image.links?.html,
+            download_location: image.links?.download_location
+          }
         }
       }));
 
-      // Make internal POST request to our own /api/images endpoint using relative path
-      const relativeApiPath = '/api/images';
-      console.log(`[API/Unsplash] Posting ${urlsToDb.length} URLs to internal endpoint: ${relativeApiPath}`);
+      const payload = { urls: urlsToPersist };
 
-      // Fire-and-forget the POST request using the relative path
-      axios.post(relativeApiPath, { urls: urlsToDb })
-        .then(dbResponse => {
-          console.log(`[API/Unsplash -> DB] Success: Added ${dbResponse.data.added}, Skipped ${dbResponse.data.skipped}`);
-        })
-        .catch(dbError => {
-          // Log detailed error if possible
-          const errorDetails = dbError.response ? JSON.stringify(dbError.response.data) : dbError.message;
-          console.error(`[API/Unsplash -> DB] Error posting to ${relativeApiPath}: ${errorDetails}`);
+      try {
+        // Construct absolute URL for the internal API call
+        // Use 'http' locally, Vercel handles HTTPS automatically if deployed
+        const protocol = req.headers['x-forwarded-proto'] || 'http';
+        const host = req.headers['x-forwarded-host'] || req.headers.host;
+        const internalApiUrl = `${protocol}://${host}/api/images`;
+
+        console.log(`[API/Unsplash] Sending ${payload.urls.length} URLs to internal endpoint: ${internalApiUrl}`);
+
+        const dbResponse = await fetch(internalApiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
         });
-    }
-    // --- End: Add URLs to DB ---
 
-    // Return the data received from Unsplash
+        // Log result but don't wait for it or let it block the client response
+        dbResponse.json().then(dbResult => {
+          if (dbResponse.ok) {
+            console.log(`[API/Unsplash] DB Persistence: Added ${dbResult.added}, Skipped ${dbResult.skipped}`);
+          } else {
+            console.error(`[API/Unsplash] DB Persistence Error: ${dbResult.error || dbResponse.statusText}`);
+          }
+        }).catch(logError => {
+            console.error('[API/Unsplash] Error processing DB response:', logError);
+        });
+
+      } catch (dbError) {
+        console.error('[API/Unsplash] Failed to call internal /api/images endpoint:', dbError);
+        // Log the error but proceed to return data to client
+      }
+    }
+    // --- End Persist URLs ---
+
+    // Return the original data received from Unsplash to the client
     res.status(200).json(response.data);
 
   } catch (error) {

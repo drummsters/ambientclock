@@ -1,18 +1,6 @@
-import axios from 'axios'; // Import axios for internal POST request
-
 const PIXABAY_BATCH_SIZE = 50; // Fetch larger batches for client-side caching/randomization
 
 export default async function handler(req, res) {
-    // Allow requests from any origin (adjust for production if needed)
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    // Handle CORS preflight requests
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-
     const apiKey = process.env.PIXABAY_API_KEY; // Ensure this is set in Vercel environment variables
 
     // Get parameters from query string
@@ -50,50 +38,87 @@ export default async function handler(req, res) {
         }
 
         const data = await response.json();
-        console.log(`[API/Pixabay] Successfully fetched data. Found ${data.hits?.length || 0} hits.`);
 
-        // --- Start: Add URLs to DB ---
-        if (data && Array.isArray(data.hits) && data.hits.length > 0) {
-            const urlsToDb = data.hits.map(hit => ({
+        // --- Persist URLs to DB via /api/images endpoint ---
+        const hits = data?.hits;
+        if (Array.isArray(hits) && hits.length > 0) {
+            const urlsToPersist = hits.map(hit => ({
                 provider: 'pixabay',
+                provider_image_id: hit.id.toString(), // Ensure ID is string
                 url: hit.largeImageURL || hit.webformatURL, // Prefer large, fallback to web format
-                metadata: {
-                    photographer: hit.user,
-                    photographer_id: hit.user_id, // Pixabay provides user ID
+                search_query: query, // Add the search query used
+                metadata: { // Store relevant metadata
+                    id: hit.id, // Keep original id in metadata
+                    pageURL: hit.pageURL,
+                    type: hit.type,
                     tags: hit.tags,
-                    source_url: hit.pageURL, // Link back to the Pixabay page
-                    width: hit.imageWidth, // Note the property names
-                    height: hit.imageHeight,
+                    previewURL: hit.previewURL,
+                    previewWidth: hit.previewWidth,
+                    previewHeight: hit.previewHeight,
+                    webformatURL: hit.webformatURL,
+                    webformatWidth: hit.webformatWidth,
+                    webformatHeight: hit.webformatHeight,
+                    largeImageURL: hit.largeImageURL,
+                    imageWidth: hit.imageWidth,
+                    imageHeight: hit.imageHeight,
+                    imageSize: hit.imageSize,
                     views: hit.views,
                     downloads: hit.downloads,
+                    collections: hit.collections,
                     likes: hit.likes,
                     comments: hit.comments,
-                    // Include different sizes if needed
-                    src_preview: hit.previewURL,
-                    src_webformat: hit.webformatURL,
+                    user_id: hit.user_id,
+                    user: hit.user,
+                    userImageURL: hit.userImageURL
                 }
             }));
 
-            // Make internal POST request to our own /api/images endpoint using relative path
-            const relativeApiPath = '/api/images';
-            console.log(`[API/Pixabay] Posting ${urlsToDb.length} URLs to internal endpoint: ${relativeApiPath}`);
+            const payload = { urls: urlsToPersist };
 
-            // Fire-and-forget the POST request using the relative path
-            axios.post(relativeApiPath, { urls: urlsToDb })
-                .then(dbResponse => {
-                    console.log(`[API/Pixabay -> DB] Success: Added ${dbResponse.data.added}, Skipped ${dbResponse.data.skipped}`);
-                })
-                .catch(dbError => {
-                    // Log detailed error if possible
-                    const errorDetails = dbError.response ? JSON.stringify(dbError.response.data) : dbError.message;
-                    console.error(`[API/Pixabay -> DB] Error posting to ${relativeApiPath}: ${errorDetails}`);
+            try {
+                // Construct absolute URL for the internal API call
+                const protocol = req.headers['x-forwarded-proto'] || 'http';
+                const host = req.headers['x-forwarded-host'] || req.headers.host;
+                const internalApiUrl = `${protocol}://${host}/api/images`;
+
+                console.log(`[API/Pixabay] Sending ${payload.urls.length} URLs to internal endpoint: ${internalApiUrl}`);
+
+                // Await the fetch and response processing
+                const dbResponse = await fetch(internalApiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
-        }
-        // --- End: Add URLs to DB ---
 
-        res.status(200).json(data); // Return original Pixabay data
+                // Process and log the response
+                try {
+                    const dbResult = await dbResponse.json();
+                    if (dbResponse.ok) {
+                        console.log(`[API/Pixabay] DB Persistence: Added ${dbResult.added}, Skipped ${dbResult.skipped}`);
+                    } else {
+                        console.error(`[API/Pixabay] DB Persistence Error: ${dbResult.error || dbResponse.statusText}`);
+                    }
+                } catch (logError) {
+                    console.error('[API/Pixabay] Error processing DB response JSON:', logError);
+                    try {
+                        const textResponse = await dbResponse.text();
+                        console.error('[API/Pixabay] Raw DB response text:', textResponse);
+                    } catch (textError) {
+                        console.error('[API/Pixabay] Could not get raw text from DB response:', textError);
+                    }
+                }
+
+            } catch (dbError) {
+                console.error('[API/Pixabay] Error during internal fetch or setup:', dbError);
+            }
+        }
+        // --- End Persist URLs ---
+
+        // Return original Pixabay data to client
+        res.status(200).json(data);
+
     } catch (error) {
-        console.error('Error fetching from Pixabay API:', error);
+        console.error('Error fetching from Pixabay API or during persistence step:', error);
         res.status(500).json({ error: 'Failed to fetch images from Pixabay' });
     }
 }

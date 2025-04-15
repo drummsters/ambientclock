@@ -181,3 +181,6 @@ export class FavoriteToggleElement extends BaseUIElement {
         // console.log(`[FavoriteToggleElement ${this.id}] Destroyed.`); // Removed log
     }
 }
+
+// Define the custom element for the browser
+customElements.define('favorite-toggle-element', FavoriteToggleElement);

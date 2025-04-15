@@ -1,4 +1,5 @@
 import axios from 'axios';
+import fetch from 'node-fetch'; // Added for internal API call
 
 // Vercel environment variable (or similar)
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
@@ -44,47 +45,72 @@ export default async (req, res) => {
     });
 
     console.log('[API/Pexels] Successfully fetched data from Pexels.');
-    // Return the data received from Pexels (usually nested under 'photos')
-    console.log('[API/Pexels] Successfully fetched data from Pexels.');
 
-    // --- Start: Add URLs to DB ---
-    if (response.data && Array.isArray(response.data.photos) && response.data.photos.length > 0) {
-      const urlsToDb = response.data.photos.map(photo => ({
+    // --- Persist URLs to DB via /api/images endpoint ---
+    const photos = response.data?.photos;
+    if (Array.isArray(photos) && photos.length > 0) {
+      const urlsToPersist = photos.map(photo => ({
         provider: 'pexels',
-        url: photo.src.original, // Assuming 'original' is the desired URL
-        metadata: {
+        provider_image_id: photo.id.toString(), // Ensure ID is string
+        url: photo.src?.original || photo.src?.large2x || photo.src?.large, // Prefer original, fallback
+        search_query: query, // Add the search query used
+        metadata: { // Store relevant metadata
+          id: photo.id, // Keep original id in metadata
+          width: photo.width,
+          height: photo.height,
           photographer: photo.photographer,
           photographer_url: photo.photographer_url,
           avg_color: photo.avg_color,
           alt: photo.alt,
-          source_url: photo.url, // Link back to the Pexels page for the image
-          width: photo.width,
-          height: photo.height,
-          // Include different sizes if needed, e.g., photo.src.large2x, photo.src.medium etc.
-          src_medium: photo.src.medium,
-          src_large: photo.src.large,
-          src_tiny: photo.src.tiny,
+          src: photo.src // Include all source URLs if needed
         }
       }));
 
-      // Make internal POST request to our own /api/images endpoint using relative path
-      const relativeApiPath = '/api/images';
-      console.log(`[API/Pexels] Posting ${urlsToDb.length} URLs to internal endpoint: ${relativeApiPath}`);
+      const payload = { urls: urlsToPersist };
 
-      // Fire-and-forget the POST request using the relative path
-      axios.post(relativeApiPath, { urls: urlsToDb })
-        .then(dbResponse => {
-          console.log(`[API/Pexels -> DB] Success: Added ${dbResponse.data.added}, Skipped ${dbResponse.data.skipped}`);
-        })
-        .catch(dbError => {
-          // Log detailed error if possible
-          const errorDetails = dbError.response ? JSON.stringify(dbError.response.data) : dbError.message;
-          console.error(`[API/Pexels -> DB] Error posting to ${relativeApiPath}: ${errorDetails}`);
+      try {
+        // Construct absolute URL for the internal API call
+        const protocol = req.headers['x-forwarded-proto'] || 'http';
+        const host = req.headers['x-forwarded-host'] || req.headers.host;
+        const internalApiUrl = `${protocol}://${host}/api/images`;
+
+        console.log(`[API/Pexels] Sending ${payload.urls.length} URLs to internal endpoint: ${internalApiUrl}`);
+
+        // Await the fetch and response processing to ensure logs are generated
+        const dbResponse = await fetch(internalApiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
         });
-    }
-    // --- End: Add URLs to DB ---
 
-    // Return the data received from Pexels (usually nested under 'photos')
+        // Process and log the response
+        try {
+            const dbResult = await dbResponse.json(); // Await JSON parsing
+            if (dbResponse.ok) {
+                console.log(`[API/Pexels] DB Persistence: Added ${dbResult.added}, Skipped ${dbResult.skipped}`);
+            } else {
+                console.error(`[API/Pexels] DB Persistence Error: ${dbResult.error || dbResponse.statusText}`);
+            }
+        } catch (logError) {
+            // Handle cases where response is not valid JSON (e.g., HTML error page)
+            console.error('[API/Pexels] Error processing DB response JSON:', logError);
+            // Attempt to log the raw response text if JSON parsing failed
+            try {
+                const textResponse = await dbResponse.text(); // Use await here too
+                console.error('[API/Pexels] Raw DB response text:', textResponse);
+            } catch (textError) {
+                console.error('[API/Pexels] Could not get raw text from DB response:', textError);
+            }
+        }
+
+      } catch (dbError) {
+        // Catch errors during the fetch call itself or synchronous setup errors
+        console.error('[API/Pexels] Error during internal fetch or setup:', dbError);
+      }
+    }
+    // --- End Persist URLs ---
+
+    // Return the original data received from Pexels to the client
     res.status(200).json(response.data);
 
   } catch (error) {

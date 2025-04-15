@@ -30,7 +30,17 @@ export async function toggleDebugMode() {
   }
 }
 
-// Removed setDebugMode as synchronization is no longer done from app.js
+/**
+ * Synchronizes the logger's internal debug state with an external value.
+ * Typically called after StateManager is initialized.
+ * @param {boolean} isEnabled - The desired state for debug mode.
+ */
+export function syncDebugMode(isEnabled) {
+    if (typeof isEnabled === 'boolean' && isDebugModeEnabled !== isEnabled) {
+        isDebugModeEnabled = isEnabled;
+        console.log(`${LOG_PREFIX} Logger debug mode synchronized to ${isDebugModeEnabled ? 'ENABLED' : 'DISABLED'}.`);
+    }
+}
 
 /**
  * Logs a debug message if debug mode is enabled internally.
