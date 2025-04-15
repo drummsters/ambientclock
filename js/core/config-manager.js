@@ -34,7 +34,7 @@ export class ConfigManager {
         customElements: true,
         favorites: true,
         includeDonate: true, // Hardcode to true for local dev with vercel dev
-        useImageDb: true,   // TEMPORARILY set default to true for debugging
+        useImageDb: true,   // Reverted default back to false
       },
       performance: {
         reducedQuality: false,

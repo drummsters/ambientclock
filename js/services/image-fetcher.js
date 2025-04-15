@@ -58,13 +58,13 @@ export class ImageFetcher {
 
          // --- Add diagnostic logging ---
          const randomCheckValue = Math.random(); // Store the random value
-         logger.log(`[ImageFetcher] DB Fetch Check: useDb=${useDb}, currentQueryKey=${currentQueryKey}, randomCheck=${randomCheckValue.toFixed(2)}`); // TEMPORARILY Changed to logger.log
+         logger.debug(`[ImageFetcher] DB Fetch Check: useDb=${useDb}, currentQueryKey=${currentQueryKey}, randomCheck=${randomCheckValue.toFixed(2)}`); // Reverted to logger.debug
          // --- End diagnostic logging ---
 
-         // --- Attempt DB Fetch (90% chance if enabled and possible) ---
+         // --- Attempt DB Fetch (50% chance if enabled and possible) --- // Updated comment
         // Use the stored random value for the actual check
-        if (useDb && currentQueryKey !== null && randomCheckValue < 0.9) {
-            logger.debug(`[ImageFetcher] (90% chance met) Attempting fetch from DB API for provider: ${currentProvider}, query: ${currentQueryKey}`);
+        if (useDb && currentQueryKey !== null && randomCheckValue < 0.5) { // Changed 0.9 to 0.5
+            logger.debug(`[ImageFetcher] (50% chance met) Attempting fetch from DB API for provider: ${currentProvider}, query: ${currentQueryKey}`); // Updated comment
             try {
                 const apiUrl = `/api/images?provider=${encodeURIComponent(currentProvider)}&query=${encodeURIComponent(currentQueryKey)}&count=${BATCH_SIZE}`;
                 const response = await fetch(apiUrl);
@@ -96,7 +96,7 @@ export class ImageFetcher {
              let skipReason = '';
              if (!useDb) skipReason = 'DB feature flag disabled';
              else if (currentQueryKey === null) skipReason = 'Query key is null';
-             else skipReason = `10% chance met (rnd=${randomCheckValue.toFixed(2)})`;
+             else skipReason = `50% chance met (rnd=${randomCheckValue.toFixed(2)})`; // Updated comment
              logger.debug(`[ImageFetcher] (${skipReason}) Proceeding to fetch from provider API.`);
         }
         // --- End DB Fetch Attempt ---
