@@ -3,7 +3,6 @@ import { EventBus } from '../../core/event-bus.js';
 import { BackgroundService } from '../../services/background-service.js';
 import { ConfigManager } from '../../core/config-manager.js';
 import { BackgroundUIBuilder } from './ui/BackgroundUIBuilder.js'; // Import the builder
-
 /**
  * Manages the UI controls for background settings within the control panel.
  */
@@ -13,20 +12,25 @@ export class BackgroundControls {
    * @param {HTMLElement} parentContainer - The DOM element to append the controls to.
    * @param {ConfigManager} configManager - The application's ConfigManager instance.
    * @param {BackgroundService} backgroundService - The application's BackgroundService instance.
+   * @param {FavoritesService} youtubeFavoritesService - The application's FavoritesService instance.
    */
-  constructor(parentContainer, configManager, backgroundService) { // Added backgroundService
+  constructor(parentContainer, configManager, backgroundService, favoritesService) { // Changed parameter name
     if (!parentContainer) {
       throw new Error('BackgroundControls requires a parent container element.');
     }
     if (!configManager) {
       throw new Error('BackgroundControls requires a ConfigManager instance.');
     }
-    if (!backgroundService) { // Added check for backgroundService
+    if (!backgroundService) {
       throw new Error('BackgroundControls requires a BackgroundService instance.');
+    }
+    if (!favoritesService) {
+      throw new Error('BackgroundControls requires a FavoritesService instance.');
     }
     this.parentContainer = parentContainer;
     this.configManager = configManager; // Keep for potential future use
     this.backgroundService = backgroundService; // Store reference
+    this.favoritesService = favoritesService; // Use the main FavoritesService for all favorites
     this.container = null; // The main container for these controls
     this.elements = {}; // To store references to input elements
     this.statePath = 'settings.background'; // Path to background settings in state
@@ -56,7 +60,8 @@ export class BackgroundControls {
       const builder = new BackgroundUIBuilder(
         this.container,
         this.peapixCountries,
-        this.backgroundService.imageProviders
+        this.backgroundService.imageProviders,
+        this.favoritesService
       );
       const builderResult = builder.build(); // Get the result object
       this.elements = builderResult; // Store references (includes contentWrapper now)
@@ -113,10 +118,12 @@ export class BackgroundControls {
 
     this._updateTypeControls(currentType);
     this._updateSourceControls(currentSource);
-    this._updatePeapixControls(state, currentType, currentSource); // Passes state which includes peapixCountry
+    this._updatePeapixControls(state, currentType, currentSource);
     this._updateCategoryControls(state, currentType, currentSource);
     this._updateCommonControls(state);
-    this._updateCycleControls(state); // Added call
+    this._updateCycleControls(state);
+    this._updateYouTubeControls(state, currentType);
+    this._updateYouTubeQualityControls(state, currentType);
     this._updateControlVisibilityAndState(state, currentType, currentSource);
   }
 
@@ -129,7 +136,7 @@ export class BackgroundControls {
 
   /** Updates the Image Source select control */
   _updateSourceControls(currentSource) {
-    if (this.elements.sourceSelect && !this.elements.sourceSelect.disabled) {
+    if (this.elements.sourceSelect && this.elements.sourceSelect.disabled) {
       const sourceExists = Array.from(this.elements.sourceSelect.options).some(opt => opt.value === currentSource);
       if (sourceExists) {
         this.elements.sourceSelect.value = currentSource;
@@ -219,31 +226,36 @@ export class BackgroundControls {
   /** Updates the visibility and disabled state of controls based on type and source */
   _updateControlVisibilityAndState(state, currentType, currentSource) {
     const isImageType = currentType === 'image';
+    const isYouTubeType = currentType === 'youtube';
     const isPeapixSource = currentSource === 'peapix';
+    // Hide favorite icon for videos
+    if (this.elements.favoriteToggleGroup) {
+      this.elements.favoriteToggleGroup.style.display = isImageType ? 'flex' : 'none';
+    }
     const isCycleEnabled = state.cycleEnabled ?? false;
     const useFavoritesOnly = state.useFavoritesOnly ?? false;
 
     // --- Visibility ---
     const setGroupDisplay = (element, condition) => {
-        // Use the stored group reference if available, otherwise find closest
         const group = this.elements[`${element?.id?.replace(/-/g, '_').replace('_checkbox', '').replace('_input', '')}Group`] || element?.closest('.control-group');
         if (group) group.style.display = condition ? 'flex' : 'none';
     };
 
     setGroupDisplay(this.elements.sourceSelect, isImageType);
-    setGroupDisplay(this.elements.favoritesOnlyCheckbox, isImageType); // Show favorites only for image type
-    // Peapix visibility handled in _updatePeapixControls
-    // Category visibility handled in _updateCategoryControls
-    // Custom Category visibility handled in _updateCategoryControls
+    setGroupDisplay(this.elements.favoritesOnlyCheckbox, isImageType);
     setGroupDisplay(this.elements.zoomCheckbox, isImageType);
     setGroupDisplay(this.elements.infoCheckbox, isImageType);
-    setGroupDisplay(this.elements.cycleEnableCheckbox, isImageType); // Show cycle enable only for images
-    setGroupDisplay(this.elements.cycleIntervalSlider, isImageType && isCycleEnabled); // Show interval slider only if image type and cycle enabled
-    setGroupDisplay(this.elements.colorPicker, !isImageType); // Show color picker only if type is 'color'
+    setGroupDisplay(this.elements.cycleEnableCheckbox, isImageType);
+    setGroupDisplay(this.elements.cycleIntervalSlider, isImageType && isCycleEnabled);
+    setGroupDisplay(this.elements.colorPicker, !isImageType && !isYouTubeType);
+    setGroupDisplay(this.elements.youtubeUrlInput, isYouTubeType);
+
+    // Peapix, category, and custom category handled in their own update methods
 
     // --- Disabled State ---
     const imageControlsDisabled = !isImageType;
-    if (this.elements.colorPicker) this.elements.colorPicker.disabled = isImageType; // Disable color picker if type is 'image'
+    const youtubeControlsDisabled = !isYouTubeType;
+    if (this.elements.colorPicker) this.elements.colorPicker.disabled = isImageType || isYouTubeType;
     if (this.elements.sourceSelect) this.elements.sourceSelect.disabled = imageControlsDisabled || useFavoritesOnly;
     if (this.elements.categorySelect) this.elements.categorySelect.disabled = imageControlsDisabled || isPeapixSource || useFavoritesOnly;
     if (this.elements.customCategoryInput) this.elements.customCategoryInput.disabled = imageControlsDisabled || isPeapixSource || useFavoritesOnly;
@@ -252,8 +264,25 @@ export class BackgroundControls {
     if (this.elements.infoCheckbox) this.elements.infoCheckbox.disabled = imageControlsDisabled;
     if (this.elements.cycleEnableCheckbox) this.elements.cycleEnableCheckbox.disabled = imageControlsDisabled;
     if (this.elements.cycleIntervalSlider) this.elements.cycleIntervalSlider.disabled = imageControlsDisabled || !isCycleEnabled;
+    if (this.elements.youtubeUrlInput) this.elements.youtubeUrlInput.disabled = youtubeControlsDisabled;
   }
 
+  /** Updates the YouTube input control based on state and type */
+  _updateYouTubeControls(state, currentType) {
+    if (this.elements.youtubeUrlInput && this.elements.youtubeUrlGroup) {
+      this.elements.youtubeUrlGroup.style.display = currentType === 'youtube' ? 'flex' : 'none';
+      this.elements.youtubeUrlInput.value = state.youtubeVideoId || '';
+    }
+  }
+
+  /** Updates the YouTube quality select control based on state and type */
+  _updateYouTubeQualityControls(state, currentType) {
+    if (this.elements.youtubeQualitySelect && this.elements.youtubeQualityGroup) {
+      this.elements.youtubeQualityGroup.style.display = currentType === 'youtube' ? 'flex' : 'none';
+      // Use 'auto' as the default value (previously empty string)
+      this.elements.youtubeQualitySelect.value = state.youtubeQuality || 'auto';
+    }
+  }
 
   /**
    * Adds event listeners to the UI elements to dispatch state updates.
@@ -286,11 +315,98 @@ export class BackgroundControls {
         this.elements.typeSelect.addEventListener('change', (event) => {
             const newType = event.target.value;
             this.dispatchStateUpdate({ type: newType });
+            // Update currentImageMetadata in state to reflect the new type
+            if (newType === 'youtube') {
+                const currentState = StateManager.getNestedValue(StateManager.getState(), this.statePath) || {};
+                StateManager.update({
+                    currentImageMetadata: {
+                        type: 'youtube',
+                        youtubeVideoId: currentState.youtubeVideoId || ''
+                    }
+                });
+            } else if (newType === 'image') {
+                // Let the image background handler update currentImageMetadata on image load
+                StateManager.update({ currentImageMetadata: null });
+            } else {
+                // For color or other types, clear currentImageMetadata
+                StateManager.update({ currentImageMetadata: null });
+            }
             // Immediately update UI visibility based on the new type
             const currentState = StateManager.getNestedValue(StateManager.getState(), this.statePath) || {};
             this.updateUIFromState({ ...currentState, type: newType });
         });
     }
+
+    // YouTube URL/ID Input Change - Now using Apply button instead of input event
+    if (this.elements.youtubeUrlInput && this.elements.youtubeApplyButton) {
+        // Function to handle applying the YouTube URL
+        const applyYouTubeUrl = () => {
+            const value = this.elements.youtubeUrlInput.value.trim();
+            if (!value) return; // Don't do anything if empty
+            
+            // Extract YouTube video ID from URL or use as-is if already an ID
+            let videoId = value;
+            const urlMatch = value.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/))([A-Za-z0-9_-]{11})/);
+            if (urlMatch && urlMatch[1]) {
+                videoId = urlMatch[1];
+            } else if (/^[A-Za-z0-9_-]{11}$/.test(value)) {
+                videoId = value;
+            }
+            
+            // Update state with the new video ID
+            this.dispatchStateUpdate({ type: 'youtube', youtubeVideoId: videoId });
+            StateManager.update({
+                currentImageMetadata: {
+                    type: 'youtube',
+                    videoId: videoId
+                }
+            });
+            
+            // Show a toast message to confirm
+            EventBus.publish('ui:showToast', { message: 'YouTube video updated' });
+        };
+        
+        // Apply button click event
+        this.elements.youtubeApplyButton.addEventListener('click', (event) => {
+            event.preventDefault(); // Prevent default link behavior
+            applyYouTubeUrl();
+        });
+        
+        // Also handle Enter key in the input field
+        this.elements.youtubeUrlInput.addEventListener('keyup', (event) => {
+            if (event.key === 'Enter') {
+                applyYouTubeUrl();
+            }
+        });
+    }
+
+    // YouTube Favorite Button Click
+    if (this.elements.youtubeFavoriteButton) {
+        this.elements.youtubeFavoriteButton.addEventListener('click', () => {
+            this._handleYouTubeFavoriteClick();
+        });
+    }
+
+    // YouTube Quality Change
+    if (this.elements.youtubeQualitySelect) {
+        this.elements.youtubeQualitySelect.addEventListener('change', (event) => {
+            const value = event.target.value;
+            this.dispatchStateUpdate({ youtubeQuality: value });
+        });
+    }
+
+    // Helper for favorite button click
+    this._handleYouTubeFavoriteClick = () => {
+        // Use the unified toggleFavorite method from FavoritesService
+        this.favoritesService.toggleFavorite().then(result => {
+            if (result && result.message) {
+                EventBus.publish('ui:showToast', { message: result.message });
+            }
+        }).catch(error => {
+            console.error('[BackgroundControls] Error toggling YouTube favorite:', error);
+            EventBus.publish('ui:showToast', { message: 'Error toggling favorite status' });
+        });
+    };
 
     // Image Source Change
     if (this.elements.sourceSelect) {
@@ -305,6 +421,11 @@ export class BackgroundControls {
                 source: newSource,
                 provider: newSource // Ensure provider is set correctly
             });
+            
+            // Trigger an immediate background update
+            console.log('[BackgroundControls] Image source changed. Triggering loadNextImage.');
+            this.backgroundService.loadNextImage();
+            
             // Immediately update UI visibility based on the new source/type
             this.updateUIFromState({ ...StateManager.getNestedValue(StateManager.getState(), this.statePath), type: 'image', source: newSource });
         });
@@ -314,6 +435,10 @@ export class BackgroundControls {
     if (this.elements.peapixCountrySelect) {
         this.elements.peapixCountrySelect.addEventListener('change', (event) => {
             this.dispatchStateUpdate({ peapixCountry: event.target.value });
+            
+            // Trigger an immediate background update for country change
+            console.log('[BackgroundControls] Peapix country changed. Triggering loadNextImage.');
+            this.backgroundService.loadNextImage();
         });
     }
 
@@ -338,6 +463,10 @@ export class BackgroundControls {
                     customCategory: '',
                     query: newCategory.toLowerCase() // Ensure consistent case for queries
                 });
+                
+                // Trigger an immediate background update for standard categories
+                console.log('[BackgroundControls] Category changed. Triggering loadNextImage.');
+                this.backgroundService.loadNextImage();
             }
             
             // Immediately update UI visibility
@@ -383,6 +512,10 @@ export class BackgroundControls {
                         customCategory: value,
                         query: value // Set query directly to ensure it's used immediately
                     });
+                    
+                    // Trigger an immediate background update for custom category
+                    console.log('[BackgroundControls] Custom category entered. Triggering loadNextImage.');
+                    this.backgroundService.loadNextImage();
                 } else {
                     // If empty, revert to previous state
                     const existingState = StateManager.getNestedValue(StateManager.getState(), this.statePath) || {};
@@ -415,14 +548,14 @@ export class BackgroundControls {
 
     // Opacity Slider Change
     if (this.elements.opacitySlider) {
-      this.elements.opacitySlider.addEventListener('input', (event) => {
-        const newOpacity = parseFloat(event.target.value);
-        if (this.elements.opacityValue) {
-          this.elements.opacityValue.textContent = newOpacity.toFixed(2);
-        }
-        // Debounce this later if needed
-        this.dispatchStateUpdate({ overlayOpacity: newOpacity });
-      });
+        this.elements.opacitySlider.addEventListener('input', (event) => {
+            const newOpacity = parseFloat(event.target.value);
+            if (this.elements.opacityValue) {
+                this.elements.opacityValue.textContent = newOpacity.toFixed(2);
+            }
+            // Debounce this later if needed
+            this.dispatchStateUpdate({ overlayOpacity: newOpacity });
+        });
     }
 
     // Cycle Enable Checkbox Change

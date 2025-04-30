@@ -98,7 +98,7 @@ export class ClockElement extends BaseUIElement {
     const checkTime = this.options.showSeconds ? timeData.seconds : timeData.minutes;
     const lastCheckTime = this.options.showSeconds ? this.lastRenderedTime?.seconds : this.lastRenderedTime?.minutes;
     if (checkTime === lastCheckTime && this.lastRenderedTime) {
-        // return; // Skip if relevant time part hasn't changed
+        return; // Skip if relevant time part hasn't changed
     }
     this.lastRenderedTime = { ...timeData }; // Store full time data
 

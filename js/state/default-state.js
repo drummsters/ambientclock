@@ -7,7 +7,7 @@ export function getDefaultState() {
         settings: {
             theme: 'dark', // Example global setting
             background: {
-                type: 'image', // 'image' or 'color' (future)
+                type: 'image', // 'image', 'color', or 'youtube'
                 query: 'nature',
                 useFavoritesOnly: false, // Whether to use only favorites as background source
                 provider: 'peapix', // Default provider set to peapix
@@ -18,6 +18,8 @@ export function getDefaultState() {
                 peapixCountry: 'us', // Default country set to US
                 cycleEnabled: true, // Whether to automatically cycle backgrounds
                 cycleInterval: 300000, // Interval in milliseconds (e.g., 300000 = 5 minutes)
+                youtubeVideoId: '', // Default YouTube video ID (empty)
+                youtubeQuality: 'auto', // Default YouTube quality ('auto' = 'Auto')
             },
             // effects: { // Keep commented out unless re-implemented
             //   style: 'raised',

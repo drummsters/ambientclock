@@ -1,17 +1,15 @@
 import { StateManager } from '../core/state-manager.js';
 import { EventBus } from '../core/event-bus.js';
-// ImageBackgroundHandler is now imported within the class where needed or assumed available globally if registered differently
-// For now, keep the import, but the constructor usage will change.
 import { ImageBackgroundHandler } from './image-background-handler.js';
 import { UnsplashProvider } from './image-providers/unsplash-provider.js';
 import { PexelsProvider } from './image-providers/pexels-provider.js';
-import { PeapixProvider } from './image-providers/peapix-provider.js'; // Added Peapix
-import { PixabayProvider } from './image-providers/pixabay-provider.js'; // Added Pixabay
+import { PeapixProvider } from './image-providers/peapix-provider.js';
+import { PixabayProvider } from './image-providers/pixabay-provider.js';
 import { determineImageQueryKey } from './utils/background-helpers.js';
 
 /**
- * Manages the application's background (color or image) and overlay,
- * supporting cross-fade transitions between images.
+ * Manages the application's background (color, image, or YouTube video) and overlay,
+ * supporting cross-fade transitions between images and video backgrounds.
  */
 export class BackgroundService {
   /**
@@ -32,17 +30,17 @@ export class BackgroundService {
       throw new Error('BackgroundService requires a FavoritesService instance.');
     }
 
-    this.backgroundContainerA = backgroundContainerA; // Store ref to first element
-    this.backgroundContainerB = backgroundContainerB; // Store ref to second element
+    this.backgroundContainerA = backgroundContainerA;
+    this.backgroundContainerB = backgroundContainerB;
     this.overlayContainer = overlayContainer;
-    this.configManager = configManager; // To check API keys later
-    this.favoritesService = favoritesService; // Store ref to favorites service
-    this.currentBackgroundHandler = null; // Instance to handle current background type (ColorBackground, ImageBackground)
-    this.imageProviders = new Map(); // Stores instances of image providers
+    this.configManager = configManager;
+    this.favoritesService = favoritesService;
+    this.currentBackgroundHandler = null;
+    this.imageProviders = new Map();
     this.unsubscribeState = null;
     this.unsubscribeRefresh = null;
-    this.unsubscribeSetFromFavorite = null; // Add for favorite listener
-    this.backgroundIntervalId = null; // ID for the background cycling timer
+    this.unsubscribeSetFromFavorite = null;
+    this.backgroundIntervalId = null;
 
     console.log('BackgroundService created.');
   }
@@ -55,16 +53,11 @@ export class BackgroundService {
   async init() {
     console.log('BackgroundService initializing...');
 
-    // Register image providers. API keys are handled by backend proxies.
-    // We register them regardless of local key config now.
-    // The providers themselves will use the /api/... endpoints.
     this.registerProvider('unsplash', new UnsplashProvider());
     this.registerProvider('pexels', new PexelsProvider());
-    this.registerProvider('peapix', new PeapixProvider()); // Added Peapix
+    this.registerProvider('peapix', new PeapixProvider());
     this.registerProvider('pixabay', new PixabayProvider());
-    // Note: The check if the provider is *selected* in state still happens in applyBackground
 
-    // Subscribe to the 'state:initialized' event to apply the initial background
     EventBus.subscribe('state:initialized', (fullState) => {
       console.log('[BackgroundService] state:initialized event received. Full state:', fullState);
       const backgroundState = fullState.settings?.background;
@@ -72,22 +65,18 @@ export class BackgroundService {
       this.applyBackground(backgroundState || {});
     });
 
-    // Subscribe to background state changes for future updates via EventBus
     const backgroundSubscription = EventBus.subscribe('state:settings.background:changed', (backgroundState) => {
       console.log('[BackgroundService] EventBus state:settings.background:changed triggered. Received state:', backgroundState);
-      this.applyBackground(backgroundState || {}); // Handle null/undefined state
+      this.applyBackground(backgroundState || {});
     });
-    // Store the unsubscribe function correctly
     this.unsubscribeState = backgroundSubscription.unsubscribe;
 
-    // Subscribe to the manual refresh command event
     const refreshSubscription = EventBus.subscribe('background:refresh', () => {
         console.log('[BackgroundService] Received background:refresh command.');
-        this.loadNextImage(); // Call the existing method to load a new image
+        this.loadNextImage();
     });
     this.unsubscribeRefresh = refreshSubscription.unsubscribe;
 
-    // Subscribe to the set background from favorite event
     const setFromFavoriteSubscription = EventBus.subscribe('background:setFromFavorite', (favoriteData) => {
         console.log('[BackgroundService] Received background:setFromFavorite event:', favoriteData);
         this.loadImageFromFavorite(favoriteData);
@@ -109,7 +98,7 @@ export class BackgroundService {
 
   /**
    * Applies the background based on the provided configuration.
-   * Determines whether to show a color or an image background.
+   * Determines whether to show a color, image, or YouTube video background.
    * @param {object} config - The background configuration from `state.settings.background`.
    * @returns {Promise<void>}
    */
@@ -117,7 +106,7 @@ export class BackgroundService {
     console.log('[BackgroundService] applyBackground called with config:', config);
 
     // Clear previous background handler if type changes
-    const newType = config.type || 'color'; // Default to color if type is missing
+    const newType = config.type || 'color';
     if (this.currentBackgroundHandler && this.currentBackgroundHandler.type !== newType) {
       this.currentBackgroundHandler.destroy();
       this.currentBackgroundHandler = null;
@@ -127,66 +116,46 @@ export class BackgroundService {
     this.applyOverlay(config.overlayOpacity, config.color);
 
     // Determine the correct handler based on type
-    if (newType === 'image') { // && this.configManager.isFeatureEnabled('imageBackground')) { // Add feature flag check later
-        // Check if the handler needs to be switched or created
+    if (newType === 'image') {
+        // ... (existing image logic unchanged)
         if (!this.currentBackgroundHandler || this.currentBackgroundHandler.type !== 'image') {
             console.log('[BackgroundService] Switching to ImageBackgroundHandler.');
-            this.currentBackgroundHandler?.destroy(); // Destroy previous handler if exists
-            // TODO: Check if any image providers are actually configured before creating
-            // const isAnyProviderConfigured = Array.from(this.imageProviders.keys()).some(p => this.configManager.isServiceConfigured(p));
-            // if (!isAnyProviderConfigured) {
-            //     console.warn('Image background selected, but no providers configured. Falling back to color.');
-            //     await this.applyColorBackground(config); // Fallback
-            //     return;
-            // }
-
-            // Check if the selected provider is actually registered/configured
-            const selectedProviderName = config.provider || config.source || 'unsplash'; // Use provider field first
+            this.currentBackgroundHandler?.destroy();
+            const selectedProviderName = config.provider || config.source || 'unsplash';
             if (!this.imageProviders.has(selectedProviderName)) {
                  console.warn(`[BackgroundService] Selected image provider "${selectedProviderName}" is not configured or registered. Falling back to color.`);
-                 // Destroy the potentially half-created image handler if it exists
                  this.currentBackgroundHandler?.destroy();
                  this.currentBackgroundHandler = null;
-                 // Explicitly call applyBackground again with type 'color' to force switch
                  await this.applyBackground({ ...config, type: 'color' });
-                 return; // Stop further processing for image type
+                 return;
             }
-
-            // Process config to preserve query and ensure provider is set
             const processedConfig = { 
                 ...config,
                 source: selectedProviderName,
                 provider: selectedProviderName
             };
-            // Determine query key using the helper
             const queryKey = determineImageQueryKey(processedConfig);
             if (queryKey) {
-                // If the provider is Peapix, the key is the country code, not the query
                 if (processedConfig.source === 'peapix') {
                     processedConfig.peapixCountry = queryKey;
-                    delete processedConfig.query; // Ensure query is not set for Peapix
+                    delete processedConfig.query;
                 } else {
                     processedConfig.query = queryKey;
                 }
             } else {
-                // If queryKey is null (e.g., 'Other' category with no input), clear the query
                 delete processedConfig.query;
             }
-            
-            // Pass the correct providers map (this.imageProviders)
             this.currentBackgroundHandler = new ImageBackgroundHandler(
                 this.backgroundContainerA,
                 this.backgroundContainerB,
                 processedConfig,
-                this.imageProviders, // Corrected: Use the populated map
+                this.imageProviders,
                 this.configManager,
                 this.favoritesService
             );
-            await this.currentBackgroundHandler.init(); // Initialize (loads first image)
-            // Start cycling if enabled
+            await this.currentBackgroundHandler.init();
             this.updateCycling(config);
         } else {
-            // If already using ImageBackgroundHandler, update it with processed config
             console.log('[BackgroundService] Updating existing ImageBackgroundHandler.');
             const selectedProviderName = config.provider || config.source || 'unsplash';
             const processedConfig = { 
@@ -194,89 +163,99 @@ export class BackgroundService {
                 source: selectedProviderName,
                 provider: selectedProviderName
             };
-            // Determine query key using the helper
             const queryKey = determineImageQueryKey(processedConfig);
              if (queryKey) {
-                // If the provider is Peapix, the key is the country code, not the query
                 if (processedConfig.source === 'peapix') {
                     processedConfig.peapixCountry = queryKey;
-                    delete processedConfig.query; // Ensure query is not set for Peapix
+                    delete processedConfig.query;
                 } else {
                     processedConfig.query = queryKey;
                 }
             } else {
-                // If queryKey is null (e.g., 'Other' category with no input), clear the query
                 delete processedConfig.query;
             }
             await this.currentBackgroundHandler.update(processedConfig);
-            // Update cycling based on potentially changed config
             this.updateCycling(config);
         }
-    } else { // Default to color background
-        // Stop cycling if switching away from image type
+    } else if (newType === 'youtube') {
+        // --- YOUTUBE BACKGROUND HANDLER ---
+        if (!this.currentBackgroundHandler || this.currentBackgroundHandler.type !== 'youtube') {
+            console.log('[BackgroundService] Switching to YouTubeBackgroundHandler.');
+            this.currentBackgroundHandler?.destroy(); // Ensure previous handler is destroyed
+            this.currentBackgroundHandler = new YouTubeBackgroundHandler(
+                this.backgroundContainerA,
+                this.backgroundContainerB,
+                config.youtubeVideoId,
+                config.youtubeQuality
+            );
+            await this.currentBackgroundHandler.init();
+        } else if (config.youtubeVideoId !== this.currentBackgroundHandler.videoId || 
+                  config.youtubeQuality !== this.currentBackgroundHandler.quality) {
+            // Only update if video ID or quality has actually changed
+            console.log('[BackgroundService] Updating YouTube background with new video ID or quality');
+            await this.currentBackgroundHandler.update(config.youtubeVideoId, config.youtubeQuality);
+        } else {
+            console.log('[BackgroundService] YouTube background already set with correct video ID and quality');
+        }
+        
+        // Update state with YouTube video info only if needed
+        if (config.youtubeVideoId !== StateManager.getState().currentImageMetadata?.videoId ||
+            config.youtubeQuality !== StateManager.getState().currentImageMetadata?.quality) {
+            StateManager.update({
+              settings: {
+                background: {
+                  type: 'youtube',
+                  youtubeVideoId: config.youtubeVideoId,
+                  youtubeQuality: config.youtubeQuality || 'default'
+                }
+              },
+              currentImageMetadata: {
+                type: 'youtube',
+                videoId: config.youtubeVideoId,
+                quality: config.youtubeQuality || 'default'
+              }
+            });
+        }
+        
+        // Stop cycling for YouTube backgrounds
         this.stopBackgroundCycling();
-        // Check if the handler needs to be switched or created
+    } else {
+        // Default to color background
+        this.stopBackgroundCycling();
         if (!this.currentBackgroundHandler || this.currentBackgroundHandler.type !== 'color') {
              console.log('[BackgroundService] Switching to ColorBackgroundHandler.');
-            this.currentBackgroundHandler?.destroy(); // Destroy previous handler
-            // Pass both background elements to the color handler as well
+            this.currentBackgroundHandler?.destroy();
             this.currentBackgroundHandler = new ColorBackgroundHandler(
                 this.backgroundContainerA,
                 this.backgroundContainerB
             );
-            await this.currentBackgroundHandler.init(); // Initialize color handler
+            await this.currentBackgroundHandler.init();
         }
-        // Update the color handler
         console.log('[BackgroundService] Updating existing ColorBackgroundHandler.');
-        await this.currentBackgroundHandler.update(config); // Use await if update becomes async
+        await this.currentBackgroundHandler.update(config);
     }
   }
-
-  /**
-   * @deprecated Use applyBackground which handles type switching.
-   */
-  // async applyColorBackground(config) {
-  //   console.log('[BackgroundService] Applying color background.');
-  //   if (!this.currentBackgroundHandler || this.currentBackgroundHandler.type !== 'color') {
-  //     console.log('[BackgroundService] Creating new ColorBackgroundHandler.');
-  //     if (this.currentBackgroundHandler) this.currentBackgroundHandler.destroy();
-  //     // Use a simple handler for color
-  //     this.currentBackgroundHandler = new ColorBackgroundHandler(this.backgroundContainer);
-  //     await this.currentBackgroundHandler.init(); // Await init if it becomes async
-  //   }
-  //   this.currentBackgroundHandler.update(config); // Update color
-  // }
 
   /**
    * Applies the overlay opacity and color.
    * @param {number} opacity - The opacity value (0 to 1).
    * @param {string} color - The base color for the overlay (hex string, e.g., '#000000').
    */
-  applyOverlay(opacity = 0.5, color = '#000000') { // Add color parameter with default
-    const validOpacity = Math.max(0, Math.min(1, opacity)); // Clamp between 0 and 1
-    const validColor = color || '#000000'; // Ensure color is not null/undefined
-
-    // Convert hex color to RGB components to apply opacity correctly
+  applyOverlay(opacity = 0.5, color = '#000000') {
+    const validOpacity = Math.max(0, Math.min(1, opacity));
+    const validColor = color || '#000000';
     const hex = validColor.replace('#', '');
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
     const b = parseInt(hex.substring(4, 6), 16);
-
-    // Check if parsing was successful (basic check)
     if (isNaN(r) || isNaN(g) || isNaN(b)) {
         console.error(`[BackgroundService] Invalid color format received: ${validColor}. Falling back to black.`);
         this.overlayContainer.style.backgroundColor = `rgba(0, 0, 0, ${validOpacity})`;
         return;
     }
-
-    console.log(`[BackgroundService] Applying overlay opacity: ${validOpacity}, color: ${validColor} (rgb(${r},${g},${b}))`);
-    this.overlayContainer.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${validOpacity})`; // Use RGB components
+    this.overlayContainer.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${validOpacity})`;
   }
 
-  /**
-   * Starts or stops the background image cycling based on config.
-   * @param {object} config - The background configuration.
-   */
   updateCycling(config) {
     if (config.type === 'image' && config.cycleEnabled && config.cycleInterval > 0) {
       this.startBackgroundCycling(config.cycleInterval);
@@ -285,84 +264,121 @@ export class BackgroundService {
     }
   }
 
-  /**
-   * Starts the background cycling interval.
-   * @param {number} interval - The interval in milliseconds.
-   */
   startBackgroundCycling(interval) {
-    this.stopBackgroundCycling(); // Clear any existing interval first
+    this.stopBackgroundCycling();
     if (interval > 0) {
-      console.log(`[BackgroundService] Starting background cycling with interval: ${interval}ms`);
       this.backgroundIntervalId = setInterval(() => {
-        console.log('[BackgroundService] Interval triggered: Loading next image.');
         this.loadNextImage();
       }, interval);
-    } else {
-      console.log('[BackgroundService] Background cycling interval is zero or negative, not starting.');
     }
   }
 
-  /**
-   * Stops the background cycling interval.
-   */
   stopBackgroundCycling() {
     if (this.backgroundIntervalId) {
-      console.log('[BackgroundService] Stopping background cycling.');
       clearInterval(this.backgroundIntervalId);
       this.backgroundIntervalId = null;
     }
   }
 
-  /**
-   * Fetches the next background image (if applicable).
-   * @returns {Promise<void>}
-   */
   async loadNextImage() {
     if (this.currentBackgroundHandler && typeof this.currentBackgroundHandler.loadNext === 'function') {
-      console.log('Loading next background image...');
       await this.currentBackgroundHandler.loadNext();
-    } else {
-      console.log('Cannot load next image: Current background type does not support it or handler not implemented.');
     }
   }
 
-  /**
-   * Loads a specific image URL provided by favorite data.
-   * @param {object} favoriteData - The favorite object containing image details.
-   * @returns {Promise<void>}
-   */
-  async loadImageFromFavorite(favoriteData) {
-    // Ensure we are currently using the ImageBackgroundHandler
-    if (this.currentBackgroundHandler && typeof this.currentBackgroundHandler.loadImageFromUrl === 'function') {
-      console.log('[BackgroundService] Calling loadImageFromUrl on handler.');
-      await this.currentBackgroundHandler.loadImageFromUrl(favoriteData);
-    } else {
-      // If not currently in image mode, switch to it first, then load
-      console.warn('[BackgroundService] Not in image mode or handler missing loadImageFromUrl. Switching mode first.');
-      // Update state to switch to image mode (this might trigger applyBackground)
-      // We need to pass enough info for it to potentially load the favorite image after switching.
-      // This might be complex; simpler approach is to assume user is already in image mode
-      // when clicking a favorite. For now, log a warning.
-      console.error('[BackgroundService] Cannot load favorite image when not in image background mode.');
-      // Optionally, publish a UI message? EventBus.publish('ui:showToast', { message: 'Switch to image background type first.' });
-    }
-  }
+    async loadImageFromFavorite(favoriteData) {
+        if (!favoriteData) {
+            console.warn('[BackgroundService] loadImageFromFavorite called with invalid favoriteData:', favoriteData);
+            return;
+        }
 
-  /**
-   * Cleans up the service, unsubscribing from state changes.
-   */
+        // Determine type from favoriteData or fallback to 'unknown'
+        const favoriteType = favoriteData.type || favoriteData.provider || 'unknown';
+
+        // Fix: Accept 'unknown' as valid type for images (some favorites have 'unknown' provider and no explicit type)
+        const validImageTypes = ['image', 'unknown'];
+
+        if (favoriteType === 'youtube') {
+            const videoId = favoriteData.url ? this._extractYouTubeVideoId(favoriteData.url) : '';
+            const quality = favoriteData.youtubeQuality || 'default';
+            
+            // Check if we already have the same video with the same quality
+            if (this.currentBackgroundHandler && 
+                this.currentBackgroundHandler.type === 'youtube' &&
+                this.currentBackgroundHandler.videoId === videoId &&
+                this.currentBackgroundHandler.quality === quality) {
+                console.log('[BackgroundService] YouTube favorite already loaded with same video ID and quality');
+                return; // Skip reloading the same video with the same quality
+            }
+            
+            if (!this.currentBackgroundHandler || this.currentBackgroundHandler.type !== 'youtube') {
+                console.log('[BackgroundService] Creating new YouTubeBackgroundHandler for favorite');
+                if (this.currentBackgroundHandler) {
+                    this.currentBackgroundHandler.destroy();
+                }
+                this.currentBackgroundHandler = new YouTubeBackgroundHandler(
+                    this.backgroundContainerA,
+                    this.backgroundContainerB,
+                    videoId,
+                    quality
+                );
+                await this.currentBackgroundHandler.init();
+            } else {
+                console.log('[BackgroundService] Updating existing YouTubeBackgroundHandler for favorite');
+                await this.currentBackgroundHandler.update(videoId, quality);
+            }
+            
+            // Update state with YouTube video info
+            StateManager.update({
+              currentImageMetadata: {
+                type: 'youtube',
+                videoId: videoId,
+                quality: quality
+              }
+            });
+        } else if (validImageTypes.includes(favoriteType)) {
+            if (!this.currentBackgroundHandler || this.currentBackgroundHandler.type !== 'image') {
+                if (this.currentBackgroundHandler) {
+                    this.currentBackgroundHandler.destroy();
+                }
+                this.currentBackgroundHandler = new ImageBackgroundHandler(
+                    this.backgroundContainerA,
+                    this.backgroundContainerB,
+                    favoriteData,
+                    this.imageProviders,
+                    this.configManager,
+                    this.favoritesService
+                );
+                await this.currentBackgroundHandler.init();
+            } else {
+                await this.currentBackgroundHandler.update(favoriteData);
+            }
+        } else {
+            console.warn('[BackgroundService] Unsupported favorite type:', favoriteType);
+            return;
+        }
+
+        if (this.currentBackgroundHandler && typeof this.currentBackgroundHandler.loadImageFromUrl === 'function') {
+            await this.currentBackgroundHandler.loadImageFromUrl(favoriteData);
+        }
+    }
+
+    _extractYouTubeVideoId(url) {
+        if (!url) return '';
+        const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/))([A-Za-z0-9_-]{11})/);
+        return match && match[1] ? match[1] : '';
+    }
+
   destroy() {
-    console.log('Destroying BackgroundService...');
     if (this.unsubscribeState) {
       this.unsubscribeState();
       this.unsubscribeState = null;
     }
-    // Unsubscribe from refresh command
     if (this.unsubscribeRefresh) {
         this.unsubscribeRefresh();
         this.unsubscribeRefresh = null;
     }
-    if (this.unsubscribeSetFromFavorite) { // Unsubscribe from favorite listener
+    if (this.unsubscribeSetFromFavorite) {
         this.unsubscribeSetFromFavorite();
         this.unsubscribeSetFromFavorite = null;
     }
@@ -370,11 +386,9 @@ export class BackgroundService {
       this.currentBackgroundHandler.destroy();
       this.currentBackgroundHandler = null;
     }
-    this.stopBackgroundCycling(); // Ensure timer is stopped on destroy
-    console.log('BackgroundService destroyed.');
+    this.stopBackgroundCycling();
   }
 }
-
 
 // --- Simple Handler for Color Background (Updated for two elements) ---
 class ColorBackgroundHandler {
@@ -385,8 +399,6 @@ class ColorBackgroundHandler {
   }
 
   async init() {
-    // No async init needed for simple color
-    // Ensure no images are lingering and set initial opacity
     this.containerA.style.backgroundImage = 'none';
     this.containerB.style.backgroundImage = 'none';
     this.containerA.style.opacity = '1';
@@ -394,32 +406,265 @@ class ColorBackgroundHandler {
   }
 
   update(config) {
-    const color = config.color || '#000000'; // Default to black
-    console.log(`[ColorBackgroundHandler] Updating background color to: ${color}`);
-    // Apply color to both containers
+    const color = config.color || '#000000';
     this.containerA.style.backgroundColor = color;
-    this.containerB.style.backgroundColor = color; // Keep B's color consistent even if hidden
-
-    // Ensure A is visible and B is hidden when in color mode
+    this.containerB.style.backgroundColor = color;
     this.containerA.style.opacity = '1';
     this.containerB.style.opacity = '0';
-
-    // Force a repaint (optional, might not be needed for color)
-    // this.containerA.style.display = 'none';
-    // this.containerA.offsetHeight; // Trigger a reflow
-    // this.containerA.style.display = 'block';
-
-    // Log the computed style to verify
     const computedStyle = window.getComputedStyle(this.containerA);
     console.log(`[ColorBackgroundHandler] Computed background color (A): ${computedStyle.backgroundColor}`);
   }
 
   destroy() {
-    // Reset background color or leave as is? Resetting might cause flicker.
-    // this.containerA.style.backgroundColor = '';
-    // this.containerB.style.backgroundColor = '';
     console.log('ColorBackgroundHandler destroyed.');
   }
 }
 
-// ImageBackgroundHandler is now imported from its own file
+// --- Handler for YouTube Video Background ---
+class YouTubeBackgroundHandler {
+  constructor(containerA, containerB, videoId, quality) {
+    this.containerA = containerA;
+    this.containerB = containerB;
+    this.type = 'youtube';
+    this.videoId = videoId || '';
+    this.quality = quality || '';
+    StateManager.update({
+      currentImageMetadata: {
+        type: 'youtube',
+        videoId: this.videoId,
+        quality: this.quality
+      }
+    });
+    this.iframe = null;
+    this.apiLoaded = false;
+    this.player = null;
+    this.isInitialized = false; // Flag to track if player is already initialized
+  }
+
+  async init() {
+    this.containerA.style.backgroundImage = 'none';
+    this.containerB.style.backgroundImage = 'none';
+    this.containerA.style.backgroundColor = 'black';
+    this.containerB.style.backgroundColor = 'black';
+    this.containerA.style.opacity = '1';
+    this.containerB.style.opacity = '0';
+
+    this._removeIframe();
+    await this._loadYouTubeAPI();
+    this._createIframe();
+  }
+
+  async update(videoId, quality) {
+    let qualityChanged = false;
+    if (typeof quality !== "undefined" && quality !== this.quality) {
+      this.quality = quality;
+      qualityChanged = true;
+    }
+    if (videoId && videoId !== this.videoId) {
+      this.videoId = videoId;
+      if (this.player && typeof this.player.loadVideoById === 'function') {
+        this.player.loadVideoById(this.videoId);
+        if (qualityChanged) {
+          this._updateQuality(this.quality);
+        }
+      } else {
+        this._removeIframe();
+        this._createIframe();
+      }
+    } else if (qualityChanged && this.player) {
+      this._updateQuality(this.quality);
+    }
+  }
+  
+  /**
+   * Updates the video quality by modifying the iframe src URL with the vq parameter
+   * @param {string} quality - The quality setting ('auto', 'small', 'medium', 'large', 'hd720', 'hd1080', etc.)
+   * @private
+   */
+  _updateQuality(quality) {
+    if (!this.player || !quality) return;
+    
+    // Get the iframe element
+    const iframe = this.player.getIframe();
+    if (!iframe) return;
+    
+    // Map quality settings to YouTube vq parameter values
+    const qualityMap = {
+      'auto': '',  // No vq parameter for auto
+      'small': 'small',  // 240p
+      'medium': 'medium',  // 360p
+      'large': 'large',  // 480p
+      'hd720': 'hd720',  // 720p
+      'hd1080': 'hd1080',  // 1080p
+      'hd1440': 'hd1440',  // 1440p
+      'hd2160': 'hd2160'   // 4K/2160p
+    };
+    
+    // Get the mapped quality value or default to empty (auto)
+    const vqValue = qualityMap[quality] || '';
+    
+    // Get current src
+    let src = iframe.src;
+    
+    // Remove existing vq parameter if present
+    src = src.replace(/(&|\?)vq=[^&]*(&|$)/, function(match, p1, p2) {
+      return p2 === '&' ? p1 : '';  // Keep the prefix if the suffix is &, otherwise remove both
+    });
+    
+    // Add new vq parameter if not auto
+    if (vqValue) {
+      src += (src.indexOf('?') > -1 ? '&' : '?') + 'vq=' + vqValue;
+    }
+    
+    // Add parameters to prevent browser extensions from interfering
+    if (src.indexOf('jsapicallback=') === -1) {
+      src += (src.indexOf('?') > -1 ? '&' : '?') + 'jsapicallback=none&enablejsapi=0';
+    }
+    
+    // Update iframe src
+    iframe.src = src;
+    
+    // Also try to use the API method as a fallback
+    if (typeof this.player.setPlaybackQuality === 'function') {
+      this.player.setPlaybackQuality(quality);
+    }
+    
+    console.log(`[YouTubeBackgroundHandler] Updated quality to ${quality} (vq=${vqValue})`);
+  }
+
+  destroy() {
+    this._removeIframe();
+    this.player = null;
+    this.iframe = null;
+  }
+
+  _removeIframe() {
+    if (this.iframe && this.iframe.parentNode) {
+      this.iframe.parentNode.removeChild(this.iframe);
+    }
+    this.iframe = null;
+    if (window.YT && window.YT.Player && this.player) {
+      try {
+        this.player.destroy();
+      } catch (e) {}
+    }
+    this.player = null;
+  }
+
+  async _loadYouTubeAPI() {
+    if (window.YT && window.YT.Player) {
+      this.apiLoaded = true;
+      return;
+    }
+    if (!document.getElementById('youtube-iframe-api')) {
+      const tag = document.createElement('script');
+      tag.id = 'youtube-iframe-api';
+      tag.src = 'https://www.youtube.com/iframe_api';
+      document.body.appendChild(tag);
+    }
+    // Wait for the API to be ready
+    await new Promise((resolve) => {
+      window.onYouTubeIframeAPIReady = () => {
+        this.apiLoaded = true;
+        resolve();
+      };
+      // If already loaded, resolve immediately
+      if (window.YT && window.YT.Player) {
+        this.apiLoaded = true;
+        resolve();
+      }
+    });
+  }
+
+  _createIframe() {
+    if (!this.videoId) return;
+    this._removeIframe();
+
+    // Create main container with proper class
+    const container = document.createElement('div');
+    container.className = 'youtube-background-container';
+    
+    // Create responsive container that maintains aspect ratio
+    const responsiveContainer = document.createElement('div');
+    responsiveContainer.className = 'youtube-responsive-container';
+    container.appendChild(responsiveContainer);
+    
+    // Create the player div
+    const playerDiv = document.createElement('div');
+    playerDiv.id = 'ambientclock-youtube-bg-player';
+    responsiveContainer.appendChild(playerDiv);
+
+    // Add the container to the DOM
+    this.containerA.appendChild(container);
+    this.iframe = container; // Store reference to the main container for cleanup
+
+    // Initialize YouTube player in the player div
+    this.player = new window.YT.Player(playerDiv, {
+      videoId: this.videoId,
+      width: '100%',
+      height: '100%',
+      playerVars: {
+        autoplay: 1,
+        controls: 0,
+        showinfo: 0,
+        modestbranding: 1, // Reduces YouTube branding
+        loop: 1,
+        mute: 1,
+        playlist: this.videoId,
+        rel: 0, // Limits related videos to the same channel
+        fs: 0, // Disables fullscreen button since this is a background
+        disablekb: 1,
+        iv_load_policy: 3,
+        playsinline: 1,
+        origin: window.location.origin, // Security parameter
+        host: window.location.origin, // Additional security parameter
+        enablejsapi: 0, // Disable JavaScript API to prevent extensions from interfering
+        jsapicallback: 'none', // Prevent extensions from using callbacks
+      },
+      events: {
+        onReady: (event) => {
+          // Prevent multiple initializations
+          if (this.isInitialized) {
+            return;
+          }
+          
+          this.isInitialized = true;
+          console.log('[YouTubeBackgroundHandler] Player initialized');
+          
+          event.target.mute();
+          event.target.playVideo(); // Start playing immediately
+          
+          // Add class to the iframe for styling and add sandbox attribute
+          const iframe = event.target.getIframe();
+          if (iframe) {
+            iframe.classList.add('youtube-player-iframe');
+            
+            // Add sandbox attribute to prevent browser extensions from interfering
+            iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts');
+            
+            // Add additional attributes to reduce CORS errors
+            iframe.setAttribute('referrerpolicy', 'no-referrer');
+            
+            // Update src to include additional parameters
+            let src = iframe.src;
+            if (!src.includes('widget_referrer=')) {
+              src += (src.includes('?') ? '&' : '?') + 'widget_referrer=' + encodeURIComponent(window.location.href);
+              iframe.src = src;
+            }
+          }
+          
+          // Apply quality setting after video starts playing
+          if (this.quality) {
+            this._updateQuality(this.quality);
+          }
+        },
+        onStateChange: (event) => {
+          if (event.data === window.YT.PlayerState.ENDED) {
+            event.target.seekTo(0);
+            event.target.playVideo();
+          }
+        }
+      }
+    });
+  }
+}

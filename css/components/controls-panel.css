@@ -183,7 +183,9 @@
     font-size: inherit;
 }
 
-#controls-panel input[type="text"] { /* For custom category etc. */
+#controls-panel input[type="text"],
+#controls-panel .control-input-text,
+#background-youtube-url-input { /* For custom category, YouTube URL, etc. */
     padding: var(--control-element-padding-y) var(--control-element-padding-x);
     height: var(--control-element-height);
     background-color: var(--control-input-bg);
@@ -195,6 +197,17 @@
     flex-grow: 1; /* Allow shrinking/growing if needed */
     white-space: normal; /* Allow text wrapping */
     word-break: break-word; /* Allow breaking on words */
+}
+
+/* Ensure YouTube URL input maintains styling even with autofill */
+#background-youtube-url-input:-webkit-autofill,
+#background-youtube-url-input:-webkit-autofill:hover,
+#background-youtube-url-input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--control-text-color);
+    -webkit-box-shadow: 0 0 0px 1000px var(--control-input-bg) inset;
+    transition: background-color 5000s ease-in-out 0s;
+    border: 1px solid var(--control-border-color);
+    border-radius: var(--control-element-radius);
 }
 
 #controls-panel input[type="color"] {

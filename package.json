@@ -1,6 +1,7 @@
 {
   "type": "module",
   "scripts": {
+    "dev": "vite",
     "build": "echo \"No build required\"",
     "test": "vitest"
   },

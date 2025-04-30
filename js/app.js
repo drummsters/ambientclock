@@ -68,6 +68,8 @@ async function initApp() {
     logger.debug('[app.js] Initializing FavoritesService...');
     const favoritesService = new FavoritesService(StateManager);
 
+
+
     // 6. Initialize Background Service
     logger.debug('[app.js] Initializing BackgroundService...');
     const backgroundElementA = document.getElementById('app-background-a');

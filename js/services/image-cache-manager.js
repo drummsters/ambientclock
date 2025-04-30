@@ -65,8 +65,13 @@ export class ImageCacheManager {
             logger.error('[ImageCacheManager] addImageBatch received invalid data:', imageBatch);
             return;
         }
-        this.imageCache = [...imageBatch]; // Replace existing cache
-        logger.debug(`[ImageCacheManager] Added batch of ${imageBatch.length} images.`);
+        // Filter out invalid images (missing or empty url)
+        const validBatch = imageBatch.filter(img => img && typeof img.url === 'string' && img.url.trim() !== '');
+        if (validBatch.length < imageBatch.length) {
+            logger.warn(`[ImageCacheManager] Filtered out ${imageBatch.length - validBatch.length} invalid images from batch.`);
+        }
+        this.imageCache = [...validBatch]; // Replace existing cache
+        logger.debug(`[ImageCacheManager] Added batch of ${validBatch.length} valid images.`);
         this._saveCacheToStorage();
     }
 

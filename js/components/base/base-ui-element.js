@@ -25,15 +25,31 @@ export class BaseUIElement {
    * @param {object} [config.responsive] - Responsive configuration.
    */
   constructor(config) {
-    // console.log(`[BaseUIElement] Constructor called for ${config.type} with config:`, config); // Removed log
-    
-    if (!config || !config.id || !config.type) {
-      throw new Error('BaseUIElement requires id and type in config');
+    // If config is not provided (e.g., element created by browser parsing HTML),
+    // initialize config and read id/type from attributes.
+    if (!config || typeof config !== 'object') {
+        config = {}; // Initialize config as an empty object
     }
 
+    // Read id from config or element attribute
     this.id = config.id;
+    if (!this.id && typeof document !== "undefined" && this.getAttribute) {
+        this.id = this.getAttribute('id');
+    }
+
+    // Read type from config or element tag name
     this.type = config.type;
-    this.options = config.options || {}; // Type-specific options
+    if (!this.type && typeof document !== "undefined" && this.tagName) {
+        this.type = this.tagName.toLowerCase();
+    }
+
+    // Ensure id and type are present after attempting to read from config and attributes
+    if (!this.id || !this.type) {
+         throw new Error(`BaseUIElement requires id and type. Could not determine for element with tag: ${this.tagName || 'unknown'}`);
+    }
+
+    this.config = config; // Store the potentially updated config
+    this.options = config.options || {};
     this.container = null; // Main DOM container for the element
     this.elements = {}; // Child DOM elements managed by this component
     this.eventHandlers = {}; // Managed event listeners (plugins might add here)
@@ -52,11 +68,22 @@ export class BaseUIElement {
         baseHeight: 150,
     };
 
-    // Create container *before* handlers that need it
-    this.container = this.createContainer();
+    // Create container *before* handlers that need it, passing the element instance itself
+    // If the element is defined in HTML, createContainer should find and return 'this'.
+    this.container = this.createContainer(this);
     if (!this.container) {
-        // Throw error early if container creation fails, crucial for handlers
         throw new Error(`Failed to create container for element ${this.id}`);
+    }
+    // Ensure the container has the correct ID if it was created dynamically
+    if (this.container !== this && !this.container.id) {
+        this.container.id = this.id;
+    }
+    // Add base class and type-specific class if not already present
+    if (!this.container.classList.contains('base-element')) {
+        this.container.classList.add('base-element');
+    }
+     if (!this.container.classList.contains(`${this.type}-element`)) {
+        this.container.classList.add(`${this.type}-element`);
     }
 
     // Instantiate Handlers/Mixins, passing 'this' (the element instance)
@@ -118,25 +145,21 @@ export class BaseUIElement {
    * Creates the main container DOM element for this UI element.
    * Subclasses can override this to provide a different container structure.
    *
-   * TODO: Refactor BaseUIElement to better align with standard Web Component practices.
-   * Currently, createContainer always creates a new div. This conflicts with custom elements
-   * defined directly in HTML (e.g., `<my-element>`), where the class should enhance the
-   * existing element. For HTML-defined elements, subclasses *must* override createContainer
-   * to find and return the existing element (like ControlPanel does). Consider modifying
-   * the base constructor or init logic to detect if the element already exists in the DOM
-   * based on its ID and use that instead of creating a new one, or provide separate base
-   * classes for dynamically created vs. HTML-defined elements.
-   * (See FontPanel component for an example where inheriting from HTMLElement directly
-   * was necessary to avoid constructor errors).
+   * If the element is defined directly in HTML, this method should return the element instance itself (`this`).
+   * If the element is created dynamically via JavaScript, this method should create and return a new container element.
    *
-   * @returns {HTMLElement} The created container element.
+   * @param {HTMLElement} [elementInstance] - The element instance (`this`) if called from a custom element constructor.
+   * @returns {HTMLElement} The container element.
    */
-  createContainer() {
+  createContainer(elementInstance) {
+    // If called from a custom element defined in HTML, return the instance itself
+    if (elementInstance && elementInstance.tagName && elementInstance.tagName.includes('-')) {
+        return elementInstance;
+    }
+
+    // Otherwise, create a new container div
     const container = document.createElement('div');
-    container.id = this.id;
-    // Add base class and type-specific class
-    container.className = `base-element ${this.type}-element`;
-    // Initial styles are now handled by StyleHandler or CSS
+    // ID and classes will be set after this method returns in the constructor
     return container;
   }
 

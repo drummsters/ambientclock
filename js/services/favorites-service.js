@@ -1,45 +1,112 @@
 import { StateManager } from '../core/state-manager.js';
 import { EventBus } from '../core/event-bus.js';
 import { FavoritesStorage } from './storage/FavoritesStorage.js';
-import * as logger from '../utils/logger.js'; // Import the logger
+import * as logger from '../utils/logger.js';
 import {
     normalizeUrl,
-    generateUniqueId,
-    generateThumbnailUrl,
     validateAddFavoriteInput,
     isDuplicateFavorite,
     createFavoriteObject
-} from './utils/favorites-helpers.js'; // Import helper functions
+} from './utils/favorites-helpers.js';
 
-// Constants
-export const MAX_FAVORITES = 20; // Export the constant
+export const MAX_FAVORITES = 20;
 
 /**
- * @class FavoritesService
- * @description Manages saving, retrieving, and applying favorite background images for V2.
+ * Manages saving, retrieving, and applying favorite backgrounds (images and YouTube videos).
  */
 export class FavoritesService {
-    /**
-     * Creates an instance of FavoritesService.
-     * @param {StateManager} stateManager - The application's StateManager instance.
-     */
     constructor(stateManager) {
         if (!stateManager) {
             throw new Error("FavoritesService requires a StateManager instance.");
         }
         this.stateManager = stateManager;
-        this.storage = new FavoritesStorage(); // Instantiate storage handler
-        logger.log('[FavoritesService] Initialized'); // Keep as log
+        this.storage = new FavoritesStorage();
+        logger.log('[FavoritesService] Initialized');
     }
 
-    // --- Core CRUD Operations ---
+    /**
+     * Removes a favorite by its unique ID.
+     * @param {string} id - The ID of the favorite to remove.
+     * @returns {{success: boolean, message: string}} Result object.
+     */
+    removeFavoriteById(id) {
+        if (!id) {
+            logger.error("[FavoritesService] removeFavoriteById requires an ID.");
+            return { success: false, message: 'Favorite ID is required.' };
+        }
+        logger.log("[FavoritesService] removeFavoriteById called for ID:", id);
+
+        const favorites = this.getFavorites();
+        const initialLength = favorites.length;
+
+        const updatedFavorites = favorites.filter(fav => fav.id !== id);
+
+        if (updatedFavorites.length === initialLength) {
+            logger.warn("[FavoritesService] Favorite not found for ID:", id);
+            return { success: false, message: 'Favorite not found.' };
+        }
+
+        const success = this.storage.saveAll(updatedFavorites);
+        if (success) {
+            EventBus.publish('favorites:changed', { count: updatedFavorites.length });
+            logger.log("[FavoritesService] Favorite removed for ID:", id);
+            // Update state if this was the current item
+            const currentItemUrl = this.stateManager.getState().currentImageMetadata?.url;
+            const removedFavorite = favorites.find(fav => fav.id === id);
+            if (removedFavorite && removedFavorite.url === currentItemUrl) {
+                this._updateCurrentFavoriteState(removedFavorite.url, false);
+            }
+            return { success: true, message: 'Removed from favorites.' };
+        } else {
+            logger.error("[FavoritesService] Failed to remove favorite for ID:", id);
+            return { success: false, message: 'Failed to remove favorite.' };
+        }
+    }
+
+    /**
+     * Removes a favorite by its unique ID.
+     * @param {string} id - The ID of the favorite to remove.
+     * @returns {{success: boolean, message: string}} Result object.
+     */
+    removeFavoriteById(id) {
+        if (!id) {
+            logger.error("[FavoritesService] removeFavoriteById requires an ID.");
+            return { success: false, message: 'Favorite ID is required.' };
+        }
+        logger.log("[FavoritesService] removeFavoriteById called for ID:", id);
+
+        const favorites = this.getFavorites();
+        const initialLength = favorites.length;
+
+        const updatedFavorites = favorites.filter(fav => fav.id !== id);
+
+        if (updatedFavorites.length === initialLength) {
+            logger.warn("[FavoritesService] Favorite not found for ID:", id);
+            return { success: false, message: 'Favorite not found.' };
+        }
+
+        const success = this.storage.saveAll(updatedFavorites);
+        if (success) {
+            EventBus.publish('favorites:changed', { count: updatedFavorites.length });
+            logger.log("[FavoritesService] Favorite removed for ID:", id);
+            // Update state if this was the current item
+            const currentItemUrl = this.stateManager.getState().currentImageMetadata?.url;
+            const removedFavorite = favorites.find(fav => fav.id === id);
+            if (removedFavorite && removedFavorite.url === currentItemUrl) {
+                this._updateCurrentFavoriteState(removedFavorite.url, false);
+            }
+            return { success: true, message: 'Removed from favorites.' };
+        } else {
+            logger.error("[FavoritesService] Failed to remove favorite for ID:", id);
+            return { success: false, message: 'Failed to remove favorite.' };
+        }
+    }
 
     /**
      * Gets all saved favorites from localStorage.
      * @returns {Array<object>} Array of favorite objects.
      */
     getFavorites() {
-        // Delegate to storage class
         return this.storage.getAll();
     }
 
@@ -49,206 +116,118 @@ export class FavoritesService {
      * @private
      */
     _saveFavorites(favorites) {
-        // Delegate to storage class
         const success = this.storage.saveAll(favorites);
         if (success) {
-            EventBus.publish('favorites:changed', { count: favorites.length }); // Publish change event
-            logger.log('[FavoritesService] Favorites saved via storage, published favorites:changed event.'); // Keep as log
+            EventBus.publish('favorites:changed', { count: favorites.length });
+            logger.log('[FavoritesService] Favorites saved via storage, published favorites:changed event.');
         } else {
-            // Handle storage saving error if needed (e.g., show user message)
-            logger.error('[FavoritesService] Failed to save favorites via storage.'); // Use logger.error
+            logger.error('[FavoritesService] Failed to save favorites via storage.');
         }
     }
 
     /**
-     * Adds the current background image data to favorites.
-     * @param {object} imageData - Object containing image data (url, provider, etc.). Must have at least a 'url'.
+     * Adds a background (image or YouTube video) to favorites.
+     * @param {object} itemData - Object containing item data (url, provider, type, etc.).
      * @returns {{success: boolean, message: string, favorite?: object}} Result object.
      */
-    addFavorite(imageData) {
-        logger.log("[FavoritesService] addFavorite called with data:", imageData); // Keep as log
+    addFavorite(itemData) {
+        logger.log("[FavoritesService] addFavorite called with data:", itemData);
         const favorites = this.getFavorites();
 
         // 1. Validate Input and Limits
-        const validation = validateAddFavoriteInput(imageData, favorites); // Use helper
+        const validation = validateAddFavoriteInput(itemData, favorites);
         if (!validation.valid) {
-            logger.error(`[FavoritesService] Add favorite validation failed: ${validation.message}`); // Use logger.error
+            logger.error(`[FavoritesService] Add favorite failed: ${validation.message}`);
             return { success: false, message: validation.message };
         }
 
         // 2. Check for Duplicates
-        const normalizedNewUrl = normalizeUrl(imageData.url); // Use helper
-        if (isDuplicateFavorite(normalizedNewUrl, favorites)) { // Use helper
-            logger.log("[FavoritesService] Image is already a favorite:", normalizedNewUrl); // Keep as log
-            return { success: false, message: 'This image is already in your favorites.' };
+        const normalizedNewUrl = normalizeUrl(itemData.url);
+        if (isDuplicateFavorite(normalizedNewUrl, favorites)) {
+            logger.log("[FavoritesService] Item is already a favorite:", normalizedNewUrl);
+            return { success: false, message: 'This item is already in your favorites.' };
         }
 
         // 3. Create Favorite Object
-        const newFavorite = createFavoriteObject(imageData); // Use helper
-        logger.debug("[FavoritesService] New favorite object:", newFavorite); // Changed to debug
+        const newFavorite = createFavoriteObject({...itemData});
+        logger.debug("[FavoritesService] New favorite object:", newFavorite);
 
         // 4. Save and Update State
-        favorites.push(newFavorite);
-        this._saveFavorites(favorites);
+        const updatedFavorites = [...favorites, newFavorite];
+        this._saveFavorites(updatedFavorites);
         this._updateCurrentFavoriteState(newFavorite.url, true);
 
         return { success: true, message: 'Added to favorites.', favorite: newFavorite };
     }
 
     /**
-     * Removes a favorite based on its image URL.
-     * @param {string} imageUrl - The URL of the favorite image to remove.
+     * Removes a favorite based on its URL.
+     * @param {string} itemUrl - The URL of the favorite item to remove.
      * @returns {{success: boolean, message: string}} Result object.
      */
-    removeFavorite(imageUrl) {
-        if (!imageUrl) {
-            logger.error("[FavoritesService] removeFavorite requires an image URL."); // Use logger.error
-            return { success: false, message: 'Image URL is required.' };
+    removeFavorite(itemUrl) {
+        if (!itemUrl) {
+            logger.error("[FavoritesService] removeFavorite requires an item URL.");
+            return { success: false, message: 'Item URL is required.' };
         }
-        logger.log("[FavoritesService] removeFavorite called for URL:", imageUrl); // Keep as log
+        logger.log("[FavoritesService] removeFavorite called for URL:", itemUrl);
 
         const favorites = this.getFavorites();
         const initialLength = favorites.length;
-        const normalizedUrlToRemove = normalizeUrl(imageUrl); // Use helper
+        const normalizedUrlToRemove = normalizeUrl(itemUrl);
 
         const updatedFavorites = favorites.filter(fav => {
-            const normalizedFavUrl = normalizeUrl(fav.url); // Use helper
+            const normalizedFavUrl = normalizeUrl(fav.url);
             return normalizedFavUrl !== normalizedUrlToRemove;
         });
 
         if (updatedFavorites.length === initialLength) {
-            logger.warn("[FavoritesService] Favorite not found for URL:", imageUrl); // Use logger.warn
+            logger.warn("[FavoritesService] Favorite not found for URL:", itemUrl);
             return { success: false, message: 'Favorite not found.' };
         }
 
         this._saveFavorites(updatedFavorites);
-        logger.log("[FavoritesService] Favorite removed for URL:", imageUrl); // Keep as log
+        logger.log("[FavoritesService] Favorite removed for URL:", itemUrl);
 
-        // Update state if this was the current image
-        this._updateCurrentFavoriteState(imageUrl, false);
-
-        return { success: true, message: 'Removed from favorites.' };
-    }
-
-    /**
-     * Removes a favorite by its unique ID.
-     * @param {string} id - The unique ID of the favorite to remove.
-     * @returns {{success: boolean, message: string}} Result object.
-     */
-    removeFavoriteById(id) {
-        if (!id) {
-            logger.error("[FavoritesService] removeFavoriteById requires an ID."); // Use logger.error
-            return { success: false, message: 'Favorite ID is required.' };
-        }
-        logger.log("[FavoritesService] removeFavoriteById called for ID:", id); // Keep as log
-
-        const favorites = this.getFavorites();
-        const initialLength = favorites.length;
-        let removedUrl = null;
-
-        const updatedFavorites = favorites.filter(fav => {
-            if (fav.id === id) {
-                removedUrl = fav.url; // Store the URL of the removed item
-                return false; // Filter out
-            }
-            return true; // Keep
-        });
-
-        if (updatedFavorites.length === initialLength) {
-            logger.warn("[FavoritesService] Favorite not found for ID:", id); // Use logger.warn
-            return { success: false, message: 'Favorite not found.' };
-        }
-
-        this._saveFavorites(updatedFavorites);
-        logger.log("[FavoritesService] Favorite removed for ID:", id); // Keep as log
-
-        // Update state if the removed favorite was the current image
-        if (removedUrl) {
-            this._updateCurrentFavoriteState(removedUrl, false);
-        }
+        // Update state if this was the current item
+        this._updateCurrentFavoriteState(itemUrl, false);
 
         return { success: true, message: 'Removed from favorites.' };
     }
-
 
     /**
      * Clears all saved favorites.
      * @returns {{success: boolean, message: string}} Result object.
      */
     clearAllFavorites() {
-        const currentImageUrl = this.stateManager.getState().currentImageMetadata?.url;
-        // Delegate to storage class
+        const currentItemUrl = this.stateManager.getState().currentImageMetadata?.url;
         const success = this.storage.clearAll();
 
         if (success) {
-            logger.log('[FavoritesService] All favorites cleared via storage.'); // Keep as log
-            EventBus.publish('favorites:changed', { count: 0 }); // Publish change event
+            logger.log('[FavoritesService] All favorites cleared via storage.');
+            EventBus.publish('favorites:changed', { count: 0 });
 
-            // Update state if the current image was a favorite
-            if (currentImageUrl) {
-                this._updateCurrentFavoriteState(currentImageUrl, false); // Force state update
+            if (currentItemUrl) {
+                this._updateCurrentFavoriteState(currentItemUrl, false);
             }
             return { success: true, message: 'All favorites cleared.' };
         } else {
-            logger.error('[FavoritesService] Error clearing favorites via storage.'); // Use logger.error
+            logger.error('[FavoritesService] Error clearing favorites via storage.');
             return { success: false, message: 'Error clearing favorites.' };
         }
     }
 
-    // --- Status & Toggling ---
-
     /**
-     * Checks if the current background image (from state) is a favorite.
-     * @returns {boolean} True if the current image is in favorites.
+     * Checks if a given item (image or video) is a favorite.
+     * @param {string} itemUrl - The URL of the item to check.
+     * @returns {boolean} True if the item is in favorites, false otherwise.
      */
-    isCurrentImageFavorite() {
-        const currentImageMetadata = this.stateManager.getState().currentImageMetadata;
-        const currentImageUrl = currentImageMetadata?.url;
-
-        if (!currentImageUrl) {
-            // console.log("[FavoritesService] isCurrentImageFavorite: No current image URL in state.");
-            return false;
-        }
-
-        const normalizedCurrentUrl = normalizeUrl(currentImageUrl); // Use helper
-        // console.log("[FavoritesService] isCurrentImageFavorite: Checking normalized URL:", normalizedCurrentUrl);
-
+    isFavorite(itemUrl) {
+        if (!itemUrl) return false;
+        const normalizedItemUrl = normalizeUrl(itemUrl);
         const favorites = this.getFavorites();
-        const isFavorite = favorites.some(fav => normalizeUrl(fav.url) === normalizedCurrentUrl); // Use helper
-
-        // console.log("[FavoritesService] isCurrentImageFavorite result:", isFavorite);
-        return isFavorite;
+        return favorites.some(fav => normalizeUrl(fav.url) === normalizedItemUrl);
     }
-
-    /**
-     * Toggles the favorite status of the current background image.
-     * Adds if not favorite, removes if it is.
-     * @returns {Promise<{success: boolean, message: string, isFavorite: boolean}>} Result object including the new favorite status.
-     */
-    async toggleCurrentImageFavorite() {
-        logger.log("[FavoritesService] toggleCurrentImageFavorite called"); // Keep as log
-        const currentImageMetadata = this.stateManager.getState().currentImageMetadata;
-
-        if (!currentImageMetadata || !currentImageMetadata.url) {
-            logger.error("[FavoritesService] No current image metadata to toggle favorite status."); // Use logger.error
-            return { success: false, message: 'No current image to favorite.', isFavorite: false };
-        }
-
-        const isFavorite = this.isCurrentImageFavorite();
-        logger.debug("[FavoritesService] Current favorite status:", isFavorite); // Changed to debug
-
-        let result;
-        if (isFavorite) {
-            result = this.removeFavorite(currentImageMetadata.url);
-        } else {
-            result = this.addFavorite(currentImageMetadata);
-        }
-
-        logger.debug("[FavoritesService] Toggle result:", result); // Changed to debug
-        return { ...result, isFavorite: !isFavorite }; // Return the new status
-    }
-
-    // --- Utility Methods ---
 
     /**
      * Gets the count of saved favorites.
@@ -259,7 +238,7 @@ export class FavoritesService {
     }
 
     /**
-     * Gets a random favorite that is different from the current image.
+     * Gets a random favorite that is different from the current item.
      * @returns {object|null} A randomly selected favorite object, or null if no suitable favorites exist.
      */
     getRandomFavorite() {
@@ -269,17 +248,14 @@ export class FavoritesService {
             return null;
         }
 
-        // Get current image URL
-        const currentImageUrl = StateManager.getState().currentImageMetadata?.url;
-        if (!currentImageUrl) {
-            // If no current image, just return a random favorite
+        const currentItemUrl = StateManager.getState().currentImageMetadata?.url;
+        if (!currentItemUrl) {
             const randomIndex = Math.floor(Math.random() * favorites.length);
             return favorites[randomIndex];
         }
 
-        // Filter out the current image
-        const availableFavorites = favorites.filter(fav => 
-            normalizeUrl(fav.url) !== normalizeUrl(currentImageUrl)
+        const availableFavorites = favorites.filter(fav =>
+            normalizeUrl(fav.url) !== normalizeUrl(currentItemUrl)
         );
 
         if (availableFavorites.length === 0) {
@@ -293,7 +269,7 @@ export class FavoritesService {
     }
 
     /**
-     * Sets the background to a favorite image by its ID.
+     * Sets the background to a favorite item by its ID.
      * Publishes an event for the BackgroundService to handle the actual change.
      * @param {string} id - The ID of the favorite to apply.
      * @returns {Promise<{success: boolean, message: string}>} Result object.
@@ -307,52 +283,119 @@ export class FavoritesService {
         }
 
         try {
-            // Publish event with favorite data for BackgroundService to handle
-            EventBus.publish('background:setFromFavorite', favorite);
-            logger.log('[FavoritesService] Published background:setFromFavorite event for ID:', id); // Keep as log
-
-            // We don't directly update state here; BackgroundService should do that
-            // after successfully loading and setting the image.
-            // However, we can optimistically update the isFavorite flag if needed,
-            // but it's better handled by BackgroundService setting the full metadata.
-
+            EventBus.publish('background:setFromFavorite', { ...favorite, quality: favorite.quality });
+            logger.log('[FavoritesService] Published background:setFromFavorite event for ID:', id);
             return { success: true, message: 'Background change requested from favorite.' };
         } catch (error) {
-            logger.error('[FavoritesService] Error requesting background change from favorite:', error); // Use logger.error
+            logger.error('[FavoritesService] Error requesting background change from favorite:', error);
             return { success: false, message: 'Error requesting background change.' };
         }
     }
 
-
-    // --- Private Helper Methods ---
+    /**
+     * Toggles the favorite status of the current background item (image or video).
+     * @param {object} [customData] - Optional custom data to use instead of currentImageMetadata.
+     * @returns {Promise<{success: boolean, message: string, isFavorite: boolean}>} Result object including the new favorite status.
+     */
+    async toggleFavorite(customData = null) {
+        const state = this.stateManager.getState();
+        const backgroundState = state.settings?.background || {};
+        const type = backgroundState.type || 'image';
+        const currentImageMetadata = state.currentImageMetadata;
+        
+        // Use custom data if provided, otherwise use current metadata
+        const itemData = customData || currentImageMetadata;
+        
+        // Handle YouTube videos
+        if (type === 'youtube') {
+            const videoId = backgroundState.youtubeVideoId;
+            if (!videoId) {
+                logger.warn("[FavoritesService] No YouTube video ID to toggle favorite status.");
+                return { success: false, message: 'No YouTube video to favorite.', isFavorite: false };
+            }
+            
+            const itemUrl = `https://www.youtube.com/watch?v=${videoId}`;
+            
+            // Check if this specific video ID is already a favorite
+            const favorites = this.getFavorites();
+            const existingFavorite = favorites.find(fav => 
+                fav.type === 'youtube' && fav.url.includes(videoId)
+            );
+            
+            let result;
+            if (existingFavorite) {
+                // If it's already a favorite, remove it by ID
+                result = this.removeFavoriteById(existingFavorite.id);
+                return { ...result, isFavorite: false };
+            } else {
+                // Create a new favorite with the YouTube video data
+                const videoTitle = currentImageMetadata?.title || ''; 
+                const quality = backgroundState.youtubeQuality || 'auto';
+                
+                const youtubeData = {
+                    url: itemUrl,
+                    thumbnailUrl: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+                    provider: 'youtube',
+                    category: 'youtube',
+                    photographer: 'Unknown',
+                    photographerUrl: '#',
+                    addedAt: Date.now(),
+                    title: videoTitle,
+                    type: 'youtube',
+                    videoId: videoId,
+                    youtubeQuality: quality,
+                    quality: quality
+                };
+                
+                logger.log(`[FavoritesService] Adding YouTube favorite with quality: ${quality}`);
+                result = this.addFavorite(youtubeData);
+                return { ...result, isFavorite: true };
+            }
+        } 
+        // Handle images
+        else if (type === 'image') {
+            if (!currentImageMetadata || !currentImageMetadata.url) {
+                logger.warn("[FavoritesService] No current image metadata to toggle favorite status.");
+                return { success: false, message: 'No image to favorite.', isFavorite: false };
+            }
+            
+            const isCurrentlyFavorite = this.isFavorite(currentImageMetadata.url);
+            let result;
+            if (isCurrentlyFavorite) {
+                result = this.removeFavorite(currentImageMetadata.url);
+            } else {
+                result = this.addFavorite(currentImageMetadata);
+            }
+            
+            return { ...result, isFavorite: !isCurrentlyFavorite };
+        }
+        // Handle other types
+        else {
+            logger.warn(`[FavoritesService] Unsupported background type for favorites: ${type}`);
+            return { success: false, message: 'No background to favorite.', isFavorite: false };
+        }
+    }
 
     /**
-     * Updates the `isFavorite` flag in the StateManager if the given URL matches the current image.
-     * @param {string} imageUrl - The URL of the image that was added/removed.
-     * @param {boolean} isFavorite - The new favorite status for this image.
+     * Updates the `isFavorite` flag in the StateManager if the given URL matches the current item.
+     * @param {string} itemUrl - The URL of the item that was added/removed.
+     * @param {boolean} isFavorite - The new favorite status for this item.
      * @private
      */
-    _updateCurrentFavoriteState(imageUrl, isFavorite) {
+    _updateCurrentFavoriteState(itemUrl, isFavorite) {
         const currentState = this.stateManager.getState();
         const currentMeta = currentState.currentImageMetadata;
 
-        if (currentMeta && normalizeUrl(currentMeta.url) === normalizeUrl(imageUrl)) { // Use helper
-            // Only update if the status is actually different
+        if (currentMeta && normalizeUrl(currentMeta.url) === normalizeUrl(itemUrl)) {
             if (currentMeta.isFavorite !== isFavorite) {
-                logger.log(`[FavoritesService] Updating current image state: isFavorite=${isFavorite} for URL: ${imageUrl}`); // Keep as log
-                // Use static StateManager.update for partial state update
+                logger.log(`[FavoritesService] Updating current item state: isFavorite=${isFavorite} for URL: ${itemUrl}`);
                 StateManager.update({
                     currentImageMetadata: {
                         ...currentMeta,
                         isFavorite: isFavorite
                     }
                 });
-            } else {
-                // console.log(`[FavoritesService] State already matches for isFavorite=${isFavorite}, no update needed.`);
             }
-        } else {
-             // console.log(`[FavoritesService] Image URL ${imageUrl} does not match current image ${currentMeta?.url}, state not updated.`);
         }
     }
-
 }

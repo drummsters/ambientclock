@@ -81,5 +81,6 @@ export async function registerElementTypes(configManager) { // Make async for dy
         capabilities: []      // No capabilities needed
     });
 
+
     logger.debug('Element type registration complete.'); // Changed to debug
 }

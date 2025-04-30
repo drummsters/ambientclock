@@ -1,5 +1,6 @@
 import { BaseUIElement } from '../base/base-ui-element.js';
 import { EventBus } from '../../core/event-bus.js';
+import { StateManager } from '../../core/state-manager.js';
 // FavoritesService will be injected
 
 /**
@@ -17,23 +18,24 @@ export class FavoriteToggleElement extends BaseUIElement {
      * @param {object} config - The configuration object passed from ComponentRegistry.
      * @param {FavoritesService} config.favoritesService - Instance of the FavoritesService (now a direct property).
      */
-    constructor(config) { 
+    constructor(config) {
         super(config); // Pass full config to base
 
-        // Check for the directly passed service on the config object
         if (!config.favoritesService) {
-            // console.error("FavoriteToggleElement constructor config:", config); // Removed log
             throw new Error("FavoriteToggleElement requires a FavoritesService instance.");
         }
         this.favoritesService = config.favoritesService;
 
         this.toggleButton = null;
         this.iconSpan = null;
-        this.boundHandleClick = this.handleFavoriteToggle.bind(this);
+        
+        // Define method references before binding
+        this.handleFavoriteToggle = this.handleFavoriteToggle.bind(this);
+        this.boundHandleClick = this.handleFavoriteToggle; // Store reference after binding
         this.boundUpdateUI = this.updateFavoriteUI.bind(this);
+        this.boundLogEvent = this.logEvent ? this.logEvent.bind(this) : null;
         this.unsubscribeState = null;
         this.unsubscribeKeyboard = null; // For 'F' key
-        // console.log(`[FavoriteToggleElement ${this.id}] Initialized`); // Removed log
     }
 
     /**
@@ -97,33 +99,46 @@ export class FavoriteToggleElement extends BaseUIElement {
             'state:currentImageMetadata:changed',
             this.boundUpdateUI
         );
-
-        // Subscribe to keyboard event for 'F' key (optional enhancement)
-        this.unsubscribeKeyboard = EventBus.subscribe(
-            'keyboard:favoriteTogglePressed',
-             this.boundHandleClick // Reuse the same handler
+        // Also subscribe to background type changes
+        this.unsubscribeBackground = EventBus.subscribe(
+            'state:settings.background:changed',
+            this.boundUpdateUI
         );
 
-        // console.log(`[FavoriteToggleElement ${this.id}] Event listeners set up.`); // Removed log
     }
 
     /**
      * Handles the click event on the favorite toggle button or 'F' key press.
      */
     async handleFavoriteToggle() {
-        // console.log(`[FavoriteToggleElement ${this.id}] handleFavoriteToggle called.`); // Removed log
-        if (!this.favoritesService) return;
-
         try {
-            const result = await this.favoritesService.toggleCurrentImageFavorite();
-            // console.log(`[FavoriteToggleElement ${this.id}] Toggle result:`, result); // Removed log
-
-            // Publish event for toast notification
-            EventBus.publish('ui:showToast', { message: result.message });
-
-            // Update UI immediately after toggle action
-            this.updateFavoriteUI();
-
+            // Use the unified toggleFavorite method from FavoritesService
+            const result = await this.favoritesService.toggleFavorite();
+            
+            if (result && result.message) {
+                EventBus.publish('ui:showToast', { message: result.message });
+            }
+            
+            // Update UI immediately based on the result
+            if (result && typeof result.isFavorite === 'boolean') {
+                // Update button class and attributes
+                if (result.isFavorite) {
+                    this.toggleButton.classList.add('favorited');
+                } else {
+                    this.toggleButton.classList.remove('favorited');
+                }
+                
+                // Update aria-label and title
+                const newLabel = result.isFavorite ? 'Remove from Favorites' : 'Add to Favorites';
+                this.toggleButton.setAttribute('aria-label', newLabel);
+                this.toggleButton.setAttribute('title', newLabel);
+                
+                // Log the result for debugging
+                console.log(`[FavoriteToggleElement] Toggle result: isFavorite=${result.isFavorite}`);
+            } else {
+                // If result doesn't include isFavorite, fall back to updateFavoriteUI
+                this.updateFavoriteUI();
+            }
         } catch (error) {
             console.error(`[FavoriteToggleElement ${this.id}] Error toggling favorite:`, error);
             EventBus.publish('ui:showToast', { message: 'Error toggling favorite status' });
@@ -134,23 +149,73 @@ export class FavoriteToggleElement extends BaseUIElement {
      * Updates the visual state (CSS class) of the toggle button based on favorite status.
      */
     updateFavoriteUI() {
-        // console.log(`[FavoriteToggleElement ${this.id}] updateFavoriteUI called.`);
-        if (!this.toggleButton || !this.favoritesService) {
-            // console.log(`[FavoriteToggleElement ${this.id}] updateFavoriteUI skipped: Button or service missing.`);
-            return;
+        if (!this.toggleButton || !this.container) return;
+        const state = window.StateManager?.getNestedValue(window.StateManager.getState(), 'settings.background') || {};
+        const currentMetadata = StateManager.getState().currentImageMetadata;
+        const type = state.type || 'image';
+        let isFavorite = false;
+        let newLabel = 'Add to Favorites';
+        let canFavorite = false;
+
+        console.debug(`[FavoriteToggleElement ${this.id}] updateFavoriteUI called. Background type: ${type}`);
+
+        // Generic approach to check if the current item is a favorite
+        if (type === 'youtube') {
+            const videoId = state.youtubeVideoId;
+            if (videoId) {
+                // Create a URL that we can check against
+                const itemUrl = `https://www.youtube.com/watch?v=${videoId}`;
+                
+                // Use a consistent approach to check if it's a favorite
+                const favorites = this.favoritesService.getFavorites();
+                const existingFavorite = favorites.find(fav => 
+                    fav.type === 'youtube' && fav.url && fav.url.includes(videoId)
+                );
+                
+                isFavorite = existingFavorite !== undefined;
+                newLabel = isFavorite ? 'Remove from Favorites' : 'Add to Favorites';
+                canFavorite = true;
+                
+                console.log(`[FavoriteToggleElement] YouTube video ${videoId} favorite status: ${isFavorite ? 'IS favorite' : 'NOT favorite'}`);
+            } else {
+                newLabel = 'No background to favorite';
+                canFavorite = false;
+            }
+        } else if (type === 'image') {
+            if (currentMetadata?.url) {
+                // Use the same approach as for YouTube videos
+                const favorites = this.favoritesService.getFavorites();
+                const existingFavorite = favorites.find(fav => 
+                    fav.type !== 'youtube' && fav.url === currentMetadata.url
+                );
+                
+                isFavorite = existingFavorite !== undefined;
+                newLabel = isFavorite ? 'Remove from Favorites' : 'Add to Favorites';
+                canFavorite = true;
+            } else {
+                newLabel = 'No background to favorite';
+                canFavorite = false;
+            }
+        } else {
+            newLabel = 'No background to favorite';
+            canFavorite = false;
         }
 
-        const isFavorite = this.favoritesService.isCurrentImageFavorite();
-        // console.log(`[FavoriteToggleElement ${this.id}] Current favorite status: ${isFavorite}`);
-
-        const newLabel = isFavorite ? 'Remove from Favorites' : 'Add to Favorites';
+        // Update button class and attributes
         if (isFavorite) {
             this.toggleButton.classList.add('favorited');
         } else {
             this.toggleButton.classList.remove('favorited');
         }
         this.toggleButton.setAttribute('aria-label', newLabel);
-        this.toggleButton.setAttribute('title', newLabel); // Also update title attribute
+        this.toggleButton.setAttribute('title', newLabel);
+
+        // Make sure the element is visible when a background can be favorited
+        if (canFavorite) {
+            this.container.classList.add('visible');
+        } else {
+            this.container.classList.remove('visible');
+        }
     }
 
     /**
@@ -166,10 +231,14 @@ export class FavoriteToggleElement extends BaseUIElement {
         if (typeof this.unsubscribeState === 'function') {
             this.unsubscribeState();
         }
+        if (typeof this.unsubscribeBackground === 'function') {
+            this.unsubscribeBackground();
+        }
         if (typeof this.unsubscribeKeyboard === 'function') {
             this.unsubscribeKeyboard();
         }
         this.unsubscribeState = null;
+        this.unsubscribeBackground = null;
         this.unsubscribeKeyboard = null;
 
         // Call base destroy which removes the container

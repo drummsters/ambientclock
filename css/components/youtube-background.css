@@ -1,0 +1,52 @@
+/**
+ * YouTube Background Styles
+ * Implements a full-screen cover approach for YouTube videos
+ */
+
+/* Main container for YouTube background */
+.youtube-background-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: black;
+  z-index: 0;
+}
+
+/* Responsive container that ensures video fills the screen */
+.youtube-responsive-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* YouTube iframe styling - object-fit: cover approach */
+.youtube-responsive-container iframe,
+.youtube-responsive-container #ambientclock-youtube-bg-player {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 100%;
+  min-height: 100%;
+  width: auto;
+  height: auto;
+  pointer-events: none; /* Prevents interaction with the video */
+}
+
+/* Ensure the YouTube player is properly sized */
+#ambientclock-youtube-bg-player {
+  position: absolute;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Force the iframe to be larger than the container to avoid black bars */
+.youtube-player-iframe {
+  object-fit: cover;
+}

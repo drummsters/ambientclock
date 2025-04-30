@@ -1,4 +1,5 @@
 import { EventBus } from './event-bus.js';
+import { getDefaultState } from '../state/default-state.js';
 import * as logger from '../utils/logger.js'; // Import the logger
 
 /**
@@ -34,6 +35,30 @@ export const StateManager = {
       this.state = initialClone; // Use the default state directly
     }
 
+    // --- State Correction Logic ---
+    // Correct known incorrect PascalCase element types from loaded state
+    if (this.state.elements) {
+        const elements = this.state.elements;
+        const corrections = {
+            "FavoriteToggleElement": "favorite-toggle",
+            "youtube-favorite-toggle": "favorite-toggle", // Added correction for youtube-favorite-toggle
+            // Add other corrections here if needed in the future
+        };
+
+        for (const elementId in elements) {
+            if (elements.hasOwnProperty(elementId)) {
+                const elementType = elements[elementId].type;
+                if (elementType && corrections[elementType]) {
+                    const correctedType = corrections[elementType];
+                    logger.warn(`Correcting element type for ID "${elementId}": "${elementType}" -> "${correctedType}"`);
+                    elements[elementId].type = correctedType;
+                }
+            }
+        }
+    }
+    // --- End State Correction Logic ---
+
+
     // Always save after merging/loading to ensure consistent structure
     this.scheduleSave();
 
@@ -67,6 +92,17 @@ export const StateManager = {
 
     const oldState = this.state; // Keep reference to old state for comparison
     this.state = newState;
+
+    // Publish specific event if currentImageMetadata changed
+    if (changes.hasOwnProperty('currentImageMetadata')) {
+      const oldMeta = oldState.currentImageMetadata;
+      const newMeta = changes.currentImageMetadata;
+      const oldUrl = oldMeta?.url;
+      const newUrl = newMeta?.url;
+      if (oldUrl !== newUrl) {
+        EventBus.publish('state:currentImageMetadata:changed', newMeta);
+      }
+    }
 
     // Notify subscribers about the specific changes
     this.notifySubscribers(changes, oldState);
@@ -173,11 +209,12 @@ export const StateManager = {
   /**
    * Resets the current state to the stored default state.
    */
-  resetState() {
+   resetState() {
     logger.log('Resetting state to default...'); // Keep as log
     const oldState = this.state;
-    // Replace current state with a clone of the default state
-    this.state = this.deepClone(this.defaultState);
+    // Replace current state with a clone of the *current* default state
+    const defaultState = getDefaultState();
+    this.state = this.deepClone(defaultState);
 
     // Notify subscribers about the changes (treat the entire state as changed)
     // We can simulate this by passing the new state as 'changes'
@@ -207,6 +244,9 @@ export const StateManager = {
    */
   deepClone(obj) {
     // Basic implementation, consider a more robust library for complex cases
+    if (typeof obj === 'undefined') {
+      return null; // Return null instead of undefined to avoid JSON.parse error
+    }
     try {
       return JSON.parse(JSON.stringify(obj));
     } catch (e) {

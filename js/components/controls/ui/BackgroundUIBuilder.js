@@ -7,14 +7,16 @@ export class BackgroundUIBuilder {
      * @param {HTMLElement} parentContainer - The DOM element to append the controls to.
      * @param {object} peapixCountries - An object mapping country codes to names.
      * @param {Map<string, object>} availableProviders - Map of available image provider instances.
+     * @param {FavoritesService} favoritesService - The application's FavoritesService instance.
      */
-    constructor(parentContainer, peapixCountries, availableProviders) {
+    constructor(parentContainer, peapixCountries, availableProviders, favoritesService) {
         if (!parentContainer) {
             throw new Error('BackgroundUIBuilder requires a parent container element.');
         }
         this.parentContainer = parentContainer;
         this.peapixCountries = peapixCountries || {};
         this.availableProviders = availableProviders || new Map();
+        this.favoritesService = favoritesService;
         this.elements = {}; // To store references to created input elements
     }
 
@@ -25,7 +27,6 @@ export class BackgroundUIBuilder {
     build() {
         console.log('Building background control elements...');
         // Don't clear parent, it might contain the section title
-        // this.parentContainer.innerHTML = ''; // Removed
 
         // Create a wrapper for the controls inside the parent container
         const contentWrapper = document.createElement('div');
@@ -39,6 +40,12 @@ export class BackgroundUIBuilder {
 
         const categoryControls = this._createCategorySelects();
         categoryControls.forEach(control => contentWrapper.appendChild(control));
+
+        // Add YouTube video URL input (hidden by default)
+        contentWrapper.appendChild(this._createYouTubeInput());
+
+        // Add YouTube quality select (hidden by default)
+        contentWrapper.appendChild(this._createYouTubeQualitySelect());
 
         const commonControls = this._createCommonControls();
         commonControls.forEach(control => contentWrapper.appendChild(control));
@@ -54,7 +61,7 @@ export class BackgroundUIBuilder {
         const group = this.createControlGroup('Type:', inputId); // Pass ID to helper
         this.elements.typeSelect = document.createElement('select');
         this.elements.typeSelect.id = inputId; // Use defined ID
-        ['color', 'image'].forEach(type => {
+        ['color', 'image', 'youtube'].forEach(type => {
             const option = document.createElement('option');
             option.value = type;
             option.textContent = type.charAt(0).toUpperCase() + type.slice(1);
@@ -144,6 +151,91 @@ export class BackgroundUIBuilder {
         this.elements.customCategoryGroup = customGroup; // Store reference
 
         return [categoryGroup, customGroup];
+    }
+
+    /** Creates the YouTube video URL/ID input control (hidden by default) */
+    _createYouTubeInput() {
+        const inputId = 'background-youtube-url-input';
+        const group = this.createControlGroup('YouTube URL:', inputId);
+        
+        // Create a container for the input and apply button
+        const inputContainer = document.createElement('div');
+        inputContainer.className = 'youtube-input-container';
+        inputContainer.style.display = 'flex';
+        inputContainer.style.alignItems = 'center';
+        inputContainer.style.gap = '8px';
+        inputContainer.style.width = '100%';
+        
+        // Create the input element
+        this.elements.youtubeUrlInput = document.createElement('input');
+        this.elements.youtubeUrlInput.type = 'text';
+        this.elements.youtubeUrlInput.id = inputId;
+        this.elements.youtubeUrlInput.placeholder = 'e.g. https://youtu.be/xyz or ID';
+        this.elements.youtubeUrlInput.maxLength = 100;
+        
+        // Ensure the input uses the correct styling from controls-panel.css
+        this.elements.youtubeUrlInput.className = 'control-input-text';
+        this.elements.youtubeUrlInput.style.width = 'calc(100% - 70px)'; // Make room for the Apply button
+        
+        // Add event listeners to handle autofill and maintain styling
+        this.elements.youtubeUrlInput.addEventListener('input', () => {
+            // Ensure the class is maintained after autofill
+            if (!this.elements.youtubeUrlInput.classList.contains('control-input-text')) {
+                this.elements.youtubeUrlInput.className = 'control-input-text';
+            }
+        });
+        
+        this.elements.youtubeUrlInput.addEventListener('change', () => {
+            // Ensure the class is maintained after autofill
+            if (!this.elements.youtubeUrlInput.classList.contains('control-input-text')) {
+                this.elements.youtubeUrlInput.className = 'control-input-text';
+            }
+        });
+        
+        // Create the Apply button
+        this.elements.youtubeApplyButton = document.createElement('a');
+        this.elements.youtubeApplyButton.textContent = 'Apply';
+        this.elements.youtubeApplyButton.className = 'center-link';
+        this.elements.youtubeApplyButton.id = 'youtube-apply-button';
+        this.elements.youtubeApplyButton.href = '#';
+        this.elements.youtubeApplyButton.title = 'Apply YouTube URL';
+        
+        // Add the input and button to the container
+        inputContainer.appendChild(this.elements.youtubeUrlInput);
+        inputContainer.appendChild(this.elements.youtubeApplyButton);
+        
+        // Add the container to the control group
+        group.appendChild(inputContainer);
+        group.style.display = 'none'; // Hide initially, shown only for type 'youtube'
+        this.elements.youtubeUrlGroup = group; // Store reference for toggling
+        return group;
+    }
+
+    /** Creates the YouTube quality select control (hidden by default) */
+    _createYouTubeQualitySelect() {
+        const inputId = 'background-youtube-quality-select';
+        const group = this.createControlGroup('YouTube Quality:', inputId);
+        this.elements.youtubeQualitySelect = document.createElement('select');
+        this.elements.youtubeQualitySelect.id = inputId;
+        [
+            { value: 'auto', label: 'Auto' },
+            { value: 'small', label: '240p' },
+            { value: 'medium', label: '360p' },
+            { value: 'large', label: '480p' },
+            { value: 'hd720', label: '720p' },
+            { value: 'hd1080', label: '1080p' },
+            { value: 'hd1440', label: '1440p (2K)' },
+            { value: 'hd2160', label: '2160p (4K)' }
+        ].forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.label;
+            this.elements.youtubeQualitySelect.appendChild(option);
+        });
+        group.appendChild(this.elements.youtubeQualitySelect);
+        group.style.display = 'none'; // Hide initially, shown only for type 'youtube'
+        this.elements.youtubeQualityGroup = group;
+        return group;
     }
 
     /** Creates common controls like Opacity, Zoom, Info, Refresh */
@@ -236,7 +328,6 @@ export class BackgroundUIBuilder {
 
     /**
      * Helper to create a label and container for a control.
-     * @param {string} labelText - The text for the label.
      * @param {string} labelText - The text for the label.
      * @param {string} [inputId] - Optional ID of the input element this label is for.
      * @returns {HTMLElement} The container div with the label.

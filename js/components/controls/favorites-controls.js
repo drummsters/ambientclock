@@ -1,6 +1,5 @@
 import { EventBus } from '../../core/event-bus.js';
 import { MAX_FAVORITES } from '../../services/favorites-service.js'; // Import MAX_FAVORITES
-// FavoritesService will be injected
 
 /**
  * @class FavoritesControls
@@ -145,9 +144,8 @@ export class FavoritesControls {
     handleClearClick() {
         console.log('[FavoritesControls] Clear All button clicked.');
         if (confirm('Are you sure you want to clear all favorites? This cannot be undone.')) {
-            const result = this.favoritesService.clearAllFavorites();
-            EventBus.publish('ui:showToast', { message: result.message });
-            // The 'favorites:changed' event published by clearAllFavorites will trigger re-render
+            this.favoritesService.clearAllFavorites();
+            EventBus.publish('ui:showToast', { message: 'All favorites cleared.' });
         }
     }
 
@@ -159,8 +157,18 @@ export class FavoritesControls {
         try {
             const result = await this.favoritesService.setBackgroundFromFavorite(id);
             EventBus.publish('ui:showToast', { message: result.message });
-            // Optionally close controls panel after applying?
-            // EventBus.publish('controls:close');
+
+            // Set YouTube quality dropdown if favorite has quality
+            const favorites = this.favoritesService.getFavorites();
+            const favorite = favorites.find(fav => fav.id === id);
+            if (favorite && favorite.youtubeQuality) {
+                const youtubeQualitySelect = document.getElementById('background-youtube-quality-select');
+                if (youtubeQualitySelect) {
+                    youtubeQualitySelect.value = favorite.youtubeQuality;
+                    // Dispatch state update to reflect quality change
+                    EventBus.publish('state:settings.background.youtubeQuality:changed', favorite.youtubeQuality);
+                }
+            }
         } catch (error) {
             console.error(`[FavoritesControls] Error applying favorite ID ${id}:`, error);
             EventBus.publish('ui:showToast', { message: 'Error applying favorite.' });
@@ -173,10 +181,8 @@ export class FavoritesControls {
      */
     handleRemoveFavorite(id) {
         try {
-            // Use removeFavoriteById for precision
             const result = this.favoritesService.removeFavoriteById(id);
             EventBus.publish('ui:showToast', { message: result.message });
-            // The 'favorites:changed' event published by removeFavoriteById will trigger re-render
         } catch (error) {
             console.error(`[FavoritesControls] Error removing favorite ID ${id}:`, error);
             EventBus.publish('ui:showToast', { message: 'Error removing favorite.' });
@@ -196,26 +202,25 @@ export class FavoritesControls {
         const favorites = this.favoritesService.getFavorites();
         const count = favorites.length;
 
-        // Update count display
         this.favoritesCountSpan.textContent = `${count}/${MAX_FAVORITES} favorites`;
 
-        // Clear previous grid content
         this.favoritesGrid.innerHTML = '';
 
-        // Populate grid or show empty message
         if (count === 0) {
             this.emptyMessageDiv.style.display = 'block';
             this.favoritesGrid.style.display = 'none';
         } else {
             this.emptyMessageDiv.style.display = 'none';
-            this.favoritesGrid.style.display = 'grid'; // Ensure grid is visible
+            this.favoritesGrid.style.display = 'grid';
 
             favorites.forEach(fav => {
                 const item = document.createElement('div');
                 item.className = 'favorite-item';
                 item.dataset.id = fav.id;
-                // Use thumbnailUrl if available, otherwise fall back to full url
+                item.dataset.type = fav.type;
+
                 const thumb = fav.thumbnailUrl || fav.url;
+
                 item.innerHTML = `
                     <img class="favorite-thumbnail" src="${thumb}" alt="Favorite background" loading="lazy">
                     <div class="favorite-overlay">
@@ -247,19 +252,18 @@ export class FavoritesControls {
         if (typeof this.unsubscribeFavoritesChanged === 'function') {
             this.unsubscribeFavoritesChanged();
         }
-        if (typeof this.unsubscribeSettingsImported === 'function') { // Added cleanup
+        if (typeof this.unsubscribeSettingsImported === 'function') {
             this.unsubscribeSettingsImported();
         }
         this.unsubscribeFavoritesChanged = null;
-        this.unsubscribeSettingsImported = null; // Added cleanup
+        this.unsubscribeSettingsImported = null;
 
-        // Clear DOM references
-        this.container.innerHTML = ''; // Clear container content
+        this.container.innerHTML = '';
         this.favoritesGrid = null;
         this.favoritesCountSpan = null;
         this.clearFavoritesButton = null;
         this.emptyMessageDiv = null;
-        this.favoritesService = null; // Release service reference
+        this.favoritesService = null;
 
         console.log('[FavoritesControls] Destroyed.');
     }

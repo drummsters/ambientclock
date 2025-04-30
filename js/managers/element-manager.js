@@ -106,7 +106,7 @@ export class ElementManager {
    * @param {DocumentFragment} fragment - The document fragment to append the element's container to.
    * @returns {Promise<void>}
    */
-  async createElementInstance(elementConfig, fragment) { // Added fragment parameter
+    async createElementInstance(elementConfig, fragment) { // Added fragment parameter
     const { id, type, options } = elementConfig;
     logger.log(`Creating element instance: ID=${id}, Type=${type}`); // Keep as log
 
@@ -122,10 +122,16 @@ export class ElementManager {
         return; // Skip creation
     }
 
+    // Remove favoritesService from options to avoid overriding dependencies
+    const filteredOptions = { ...options };
+    if ('favoritesService' in filteredOptions) {
+      delete filteredOptions.favoritesService;
+    }
+
     // Use ComponentRegistry to get the constructor and create instance
     // Pass the dependencies object directly
     // console.log(`[ElementManager] Creating element ${id} of type ${type} with dependencies:`, this.dependencies); // Removed log
-    const elementInstance = ComponentRegistry.createElement(type, id, options, this.dependencies); // Pass this.dependencies directly
+    const elementInstance = ComponentRegistry.createElement(type, id, filteredOptions, this.dependencies); // Pass this.dependencies directly
 
     if (elementInstance) {
       // Initialize the element (which creates its DOM, binds state, etc.)

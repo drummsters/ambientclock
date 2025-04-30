@@ -28,7 +28,7 @@ export class ControlPanel extends BaseUIElement {
    * @param {BackgroundService} backgroundService - The application's BackgroundService instance.
    * @param {FavoritesService} favoritesService - The application's FavoritesService instance.
    */
-  constructor(config, elementManager, configManager, backgroundService, favoritesService) { // Added backgroundService and favoritesService
+  constructor(config, elementManager, configManager, backgroundService, favoritesService) {
     if (!elementManager) {
         throw new Error('ControlPanel requires an ElementManager instance.');
     }
@@ -85,7 +85,7 @@ export class ControlPanel extends BaseUIElement {
             },
             this.elementManager // Pass ElementManager
         );
-            this.dynamicControlManager.init(); // Initialize the manager
+        this.dynamicControlManager.init(); // Initialize the manager
         logger.debug(`[ControlPanel ${this.id}] DynamicControlManager initialized.`); // Keep as log
     } else {
         logger.error(`[ControlPanel ${this.id}] Failed to initialize DynamicControlManager: Placeholders missing.`); // Use logger.error
@@ -171,7 +171,7 @@ export class ControlPanel extends BaseUIElement {
   async _createStaticControls() {
     // Background Controls
     if (this.elements.backgroundSection) {
-        const backgroundControls = new BackgroundControls(this.elements.backgroundSection, this.configManager, this.backgroundService);
+        const backgroundControls = new BackgroundControls(this.elements.backgroundSection, this.configManager, this.backgroundService, this.favoritesService);
         await backgroundControls.init();
         this.elements.backgroundControls = backgroundControls; // Store reference
     } else {
@@ -184,7 +184,7 @@ export class ControlPanel extends BaseUIElement {
         await favoritesControls.init();
         this.elements.favoritesControls = favoritesControls; // Store reference
     } else {
-        logger.error(`[ControlPanel ${this.id}] Favorites section container not found after build.`); // Use logger.error
+        logger.error(`[ControlPanel ${this.id}] Favorites section container not found after build.`);
     }
 
     // Settings Section Reset Button is already created by the builder, reference stored in createElements
@@ -324,10 +324,16 @@ export class ControlPanel extends BaseUIElement {
        const clickedFontPanel = this.fontPanel?.contains(event.target);
        const clickedClock = event.target.closest('.clock-element');
        const clickedDate = event.target.closest('.date-element');
-       const clickedHint = event.target.closest('.controls-hint-element'); // Also ignore hint clicks
+       const clickedHint = event.target.closest('.controls-hint-element');
+       const clickedFavoriteToggle = event.target.closest('.favorite-toggle-element-container');
+       
+       // Check if the click was on the YouTube URL input or any input field
+       const clickedInput = event.target.tagName === 'INPUT' && 
+                           (event.target.type === 'text' || event.target.type === 'search');
 
        // If the click was outside all these elements, toggle the panels' visibility
-       if (!clickedControlPanel && !clickedFontPanel && !clickedClock && !clickedDate && !clickedHint) {
+       if (!clickedControlPanel && !clickedFontPanel && !clickedClock && !clickedDate && 
+           !clickedHint && !clickedFavoriteToggle && !clickedInput) {
            if (this.isVisible) {
                logger.debug(`[ControlPanel ${this.id}] Background click detected outside relevant elements. Hiding panels.`);
                this.hide();
@@ -420,15 +426,6 @@ export class ControlPanel extends BaseUIElement {
 
     // Destroy dynamically added element controls via the manager
     this.dynamicControlManager?.destroy();
-
-    // Destroy FontPanel (if it has a destroy method) - FontPanel is HTMLElement, no destroy needed unless added
-    // if (this.fontPanel && typeof this.fontPanel.destroy === 'function') {
-    //     this.fontPanel.destroy();
-    // }
-
-    // REMOVED: visibilityManager cleanup
-    // REMOVED: visibilityObserver disconnect
-
     // Call base destroy to handle subscriptions etc.
     super.destroy();
 

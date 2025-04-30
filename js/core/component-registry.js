@@ -54,12 +54,13 @@ export const ComponentRegistry = {
       // console.log(`[ComponentRegistry] Creating ${type} with ID ${id}. Received dependencies:`, dependencies); // Removed log
 
       // Ensure id and type are explicitly set
+      // Merge dependencies first, then options to allow options to override if needed
       const constructorConfig = {
         id: id,         // Explicitly set id
         type: type,     // Explicitly set type
-        options,
         capabilities: typeInfo.capabilities,
-        ...dependencies // Spread the received dependencies object here
+        ...dependencies, // Spread dependencies first
+        ...options       // Spread options last to allow overrides
       };
 
       // console.log(`[ComponentRegistry] Prepared constructor config:`, constructorConfig); // Removed log
