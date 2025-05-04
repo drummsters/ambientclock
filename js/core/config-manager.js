@@ -44,8 +44,7 @@ export class ConfigManager {
       donationLinks: { // Initialize with empty/null values
         paypal: null,
         venmo: null,
-        cashapp: null,
-        googlepay: null
+        cashapp: null
       },
       version: '2.0.0' // App version
     };
@@ -70,33 +69,43 @@ export class ConfigManager {
         this.detectEnvironment();
         // console.log('[ConfigManager][init] Environment detected:', this.config.deployment.platform); // Removed log
     } catch (error) {
-        logger.error('[ConfigManager][init] Error in environment detection:', error); // Keep error log
+         logger.error('[ConfigManager][init] Error in environment detection:', error); // Keep error log
+    }
+
+    try {
+        // Load from storage first to get any saved user preferences
+        // console.log('[ConfigManager][init] Loading from storage first...'); // Removed log
+        this.loadConfig(); // This logs internally if needed
+        // console.log('[ConfigManager][init] Config after loading from storage:', this.config); // Removed log
+    } catch (error) {
+        logger.error('[ConfigManager][init] Error loading from storage:', error); // Keep error log
     }
 
     try {
         // Environment variable reading logic removed.
         
-        // Still read non-client-exposed donation links from process.env if available
-        const processEnv = (typeof process !== 'undefined' && process.env) || {};
-        this.config.donationLinks.paypal = processEnv.DONATE_PAYPAL || this.config.donationLinks.paypal || 'drummster'; // Keep fallback
-        this.config.donationLinks.venmo = processEnv.DONATE_VENMO || this.config.donationLinks.venmo; 
-        this.config.donationLinks.cashapp = processEnv.DONATE_CASHAPP || this.config.donationLinks.cashapp;
-        this.config.donationLinks.googlepay = processEnv.DONATE_GOOGLEPAY || this.config.donationLinks.googlepay;
+        // Now read non-client-exposed donation links from environment variables if available
+        // Use the 'env' variable which attempts to handle both process.env and import.meta.env
+        // Environment variables should override localStorage for these specific values
+        const env = (typeof process !== 'undefined' && process.env) ||
+                   (typeof import.meta !== 'undefined' && import.meta.env) ||
+                   {};
+        this.config.donationLinks.paypal = env.VITE_DONATE_PAYPAL || this.config.donationLinks.paypal || 'drummster'; // Keep fallback
+        this.config.donationLinks.venmo = env.VITE_DONATE_VENMO || this.config.donationLinks.venmo || '@Jerry-Drumm';
+        this.config.donationLinks.cashapp = env.VITE_DONATE_CASHAPP || this.config.donationLinks.cashapp || '$drummster';
         
         // console.log('[ConfigManager][init] Config features (using hardcoded includeDonate):', this.config.features); // Removed log
-        // console.log('[ConfigManager][init] Config donationLinks (reading from process.env):', this.config.donationLinks); // Removed log
+        // console.log('[ConfigManager][init] Config donationLinks (reading from env):', this.config.donationLinks); // Removed log
 
     } catch (error) {
-         logger.error('[ConfigManager][init] Error reading process.env variables:', error); // Keep error log
+         logger.error('[ConfigManager][init] Error reading environment variables:', error); // Keep error log
     }
 
     try {
-        // Now load from storage, which will merge with config (including hardcoded includeDonate)
-        // console.log('[ConfigManager][init] Loading from storage after env vars...'); // Removed log
-        this.loadConfig(); // This logs internally if needed
-        // console.log('[ConfigManager][init] Final config after env vars and storage:', this.config); // Removed log
+        // No need to load from storage again
+        // console.log('[ConfigManager][init] Final config after env vars:', this.config); // Removed log
     } catch (error) {
-        logger.error('[ConfigManager][init] Error loading from storage:', error); // Keep error log
+        logger.error('[ConfigManager][init] Error in final config check:', error); // Keep error log
     }
 
     try {

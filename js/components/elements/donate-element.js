@@ -115,8 +115,7 @@ export class DonateElement extends BaseUIElement {
         const availablePlatforms = [
             { key: 'paypal', name: 'PayPal', icon: 'paypal.svg', urlPrefix: 'https://www.paypal.com/paypalme/' },
             { key: 'venmo', name: 'Venmo', icon: 'venmo.svg', urlPrefix: 'https://venmo.com/' },
-            { key: 'cashapp', name: 'Cash App', icon: 'cash-app.svg', urlPrefix: 'https://cash.app/$' },
-            { key: 'googlepay', name: 'Google Pay', icon: 'google-pay.svg', urlPrefix: '' }
+            { key: 'cashapp', name: 'Cash App', icon: 'cash-app.svg', urlPrefix: 'https://cash.app/$' }
         ];
         
         let dropdownHTML = '';
